@@ -63,15 +63,6 @@
   color: var(--text);
 }
 
-.table-scene::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  opacity: 0.05;
-  background-image: repeating-linear-gradient(135deg, #fff 0px, #fff 1px, transparent 1px, transparent 26px);
-  pointer-events: none;
-}
-
 /* ---------- menu screen ---------- */
 
 .menu-scene {
@@ -88,15 +79,6 @@
   background: var(--table-bg);
   font-family: var(--font-display);
   color: var(--text);
-}
-
-.menu-scene::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  opacity: 0.05;
-  background-image: repeating-linear-gradient(135deg, #fff 0px, #fff 1px, transparent 1px, transparent 26px);
-  pointer-events: none;
 }
 
 .menu-watermark {
@@ -488,6 +470,7 @@
 .table-main {
   flex: 1 1 auto;
   min-width: 0;
+  min-height: 0;
   position: relative;
   display: flex;
   flex-direction: column;
@@ -1229,19 +1212,29 @@
   }
 
   .table-main {
-    padding: 0.6rem 0.6rem 0.7rem;
+    padding: 0.5rem 0.6rem 0.6rem;
+    gap: 0.4rem;
   }
 
+  .hud {
+    padding: 0.35rem 0.6rem;
+    gap: 0.4rem 0.6rem;
+  }
+
+  .hud-group {
+    gap: 0.4rem;
+  }
+
+  /* The board zone already announces the street in the middle of the
+     screen — repeating it here just spends a whole row of a screen that's
+     already tight enough to clip the action buttons. */
   .street-stepper {
-    order: 3;
-    width: 100%;
-    justify-content: center;
-    gap: 0.7rem;
+    display: none;
   }
 
-  .street-step {
-    font-size: 0.6rem;
-    letter-spacing: 0.1em;
+  .board-scene {
+    gap: 0.7rem;
+    padding: 0.4rem 0;
   }
 
   .opponent-strip {
@@ -1315,7 +1308,8 @@
 
   .controls {
     width: 100%;
-    padding: 0.6rem;
+    padding: 0.55rem;
+    gap: 0.4rem;
   }
 
   .controls-waiting {

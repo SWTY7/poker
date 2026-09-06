@@ -79,6 +79,69 @@ export function Controls({ legalActions, toCall, minRaiseTo, maxRaiseTo, potSize
     return () => window.removeEventListener('keydown', onKey)
   })
 
+  // Touch shortcuts for one-handed phone play: an upward swipe starting
+  // from the lower-left corner folds (mirrors physically pushing cards away
+  // from you); a double-tap anywhere plays the free action (check, or call
+  // when there's nothing free to do). Both are skipped when the touch
+  // started on a real control, so they never fight a button tap or a drag
+  // on the raise slider.
+  useEffect(() => {
+    if (legalActions.length === 0) return
+
+    let touchStart: { x: number; y: number; time: number } | null = null
+    let lastTap: { x: number; y: number; time: number } | null = null
+
+    function isOnControl(target: EventTarget | null): boolean {
+      return Boolean((target as HTMLElement | null)?.closest('button, input, a'))
+    }
+
+    function onTouchStart(event: TouchEvent) {
+      const touch = event.touches[0]
+      touchStart = { x: touch.clientX, y: touch.clientY, time: Date.now() }
+    }
+
+    function onTouchEnd(event: TouchEvent) {
+      const start = touchStart
+      touchStart = null
+      if (isOnControl(event.target)) return
+
+      const touch = event.changedTouches[0]
+      const now = Date.now()
+
+      if (start) {
+        const dx = touch.clientX - start.x
+        const dy = touch.clientY - start.y
+        const elapsed = now - start.time
+        const startedLowerLeft = start.x < window.innerWidth * 0.5 && start.y > window.innerHeight * 0.55
+        const swipedUp = dy < -70 && Math.abs(dx) < Math.abs(dy) * 1.5
+        if (startedLowerLeft && swipedUp && elapsed < 700 && legalActions.includes('fold')) {
+          onAction('fold')
+          lastTap = null
+          return
+        }
+      }
+
+      if (
+        lastTap &&
+        now - lastTap.time < 350 &&
+        Math.hypot(touch.clientX - lastTap.x, touch.clientY - lastTap.y) < 40
+      ) {
+        if (legalActions.includes('check')) onAction('check')
+        else if (legalActions.includes('call')) onAction('call')
+        lastTap = null
+        return
+      }
+      lastTap = { x: touch.clientX, y: touch.clientY, time: now }
+    }
+
+    window.addEventListener('touchstart', onTouchStart, { passive: true })
+    window.addEventListener('touchend', onTouchEnd, { passive: true })
+    return () => {
+      window.removeEventListener('touchstart', onTouchStart)
+      window.removeEventListener('touchend', onTouchEnd)
+    }
+  }, [legalActions, onAction])
+
   if (legalActions.length === 0) return null
 
   return (
