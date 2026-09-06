@@ -1,11 +1,14 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { ActionType, GameState, HandLogEntry } from '../poker/game-state'
 import { getLegalActions, minRaiseTargetAmount, maxRaiseTargetAmount } from '../poker/betting'
 import { committedPot, streetBetTotal, totalPot } from '../poker/pot'
 import { positionLabels } from '../poker/position'
+import { cardToString } from '../poker/card'
+import { estimateHandOdds } from '../poker/equity'
 import { Seat } from './Seat'
 import { HeroBar } from './HeroBar'
 import { PotDisplay } from './PotDisplay'
+import { HandOddsPanel } from './HandOddsPanel'
 import { Controls, PreActionBar, SpectatingBar, WaitingBar, RevealGate } from './Controls'
 import { HandFeed } from './HandFeed'
 import { TableHud } from './TableHud'
@@ -36,6 +39,7 @@ interface TableProps {
   onAction: (type: ActionType, amount?: number) => void
   onNextHand: () => void
   onExit: () => void
+  showHandOdds: boolean
 }
 
 const STREET_BANNER: Record<string, string> = {
@@ -97,6 +101,7 @@ export function Table({
   onAction,
   onNextHand,
   onExit,
+  showHandOdds,
 }: TableProps) {
   const activePlayer = state.players.find((p) => p.id === activeHumanId)
   const currentPlayer = state.handInProgress ? state.players[state.currentPlayerIndex] : undefined
@@ -112,6 +117,21 @@ export function Table({
   // The hand log is opt-in — most players only want the table itself in
   // front of them, not a running transcript, so it starts closed.
   const [showLog, setShowLog] = useState(false)
+
+  // Keyed by the actual cards rather than object identity — the GameState
+  // reference changes on every action (including opponents' actions that
+  // don't touch the hero's cards or the board at all), which would
+  // otherwise re-run the flop/turn enumeration far more than the cards
+  // it depends on actually change.
+  const holeKey = activePlayer?.holeCards.map(cardToString).join('') ?? ''
+  const boardKey = state.communityCards.map(cardToString).join('')
+  const handOdds = useMemo(() => {
+    if (!showHandOdds || !activePlayer || activePlayer.holeCards.length < 2) return null
+    return estimateHandOdds(activePlayer.holeCards, state.communityCards)
+    // Deliberately keyed on the derived card strings, not on activePlayer/
+    // state.communityCards themselves — see the comment above.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showHandOdds, holeKey, boardKey])
 
   // At showdown the engine has already swept the bets into `pots`; before that
   // the middle holds only what earlier streets contributed.
@@ -201,6 +221,8 @@ export function Table({
             </div>
 
             <PotDisplay potSize={middlePot} inPlay={inPlay} communityCards={state.communityCards} />
+
+            {handOdds && <HandOddsPanel odds={handOdds} />}
 
             {dealingStreet && STREET_BANNER[dealingStreet] && (
               <div className="street-banner" key={dealingStreet}>

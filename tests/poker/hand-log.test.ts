@@ -123,6 +123,29 @@ describe('hand log', () => {
     expect(result?.message).toMatch(/wins/)
   })
 
+  it('reveals every showdown contender’s hole cards before announcing the result', () => {
+    const engine = engineWith(3)
+    engine.startHand()
+    let guard = 0
+    while (engine.state.handInProgress && guard++ < 40) {
+      const player = engine.state.players[engine.state.currentPlayerIndex]
+      const legal = engine.getLegalActions(player.id)
+      engine.act({ playerId: player.id, type: legal.includes('check') ? 'check' : 'call' })
+    }
+
+    const reveals = engine.state.handLog.filter((e) => e.kind === 'reveal')
+    expect(reveals.length).toBeGreaterThan(0)
+    for (const reveal of reveals) {
+      expect(reveal.street).toBe('showdown')
+      expect(reveal.cards).toHaveLength(2)
+      expect(reveal.playerName).toBeTruthy()
+    }
+
+    const lastRevealIndex = engine.state.handLog.findLastIndex((e) => e.kind === 'reveal')
+    const firstResultIndex = engine.state.handLog.findIndex((e) => e.kind === 'result')
+    expect(lastRevealIndex).toBeLessThan(firstResultIndex)
+  })
+
   it('starts a fresh log each hand', () => {
     const engine = engineWith(4)
     engine.startHand()

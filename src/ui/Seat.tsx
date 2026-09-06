@@ -1,7 +1,7 @@
 import type { Card } from '../poker/card'
 import type { PositionLabel } from '../poker/position'
 import { CardView } from './CardView'
-import { ChipIcon } from './icons'
+import { CoinIcon } from './icons'
 import { avatarInitial, avatarStyle } from './avatar'
 
 export interface SeatProps {
@@ -70,7 +70,7 @@ export function Seat({
         <span className="seat-stack">{stack.toLocaleString()}</span>
         {betThisStreet > 0 && !folded ? (
           <span className="seat-bet">
-            <ChipIcon className="seat-bet-icon" />
+            <CoinIcon className="seat-bet-icon" />
             {betThisStreet.toLocaleString()}
           </span>
         ) : (

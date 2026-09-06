@@ -104,7 +104,7 @@ export function evaluateFiveCardHand(cards: Card[]): HandValue {
   return { category, categoryRank: CATEGORY_RANK[category], tiebreakers }
 }
 
-function* combinations<T>(items: T[], size: number): Generator<T[]> {
+export function* combinations<T>(items: T[], size: number): Generator<T[]> {
   const n = items.length
   if (size > n) return
   const indices = Array.from({ length: size }, (_, i) => i)

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import type { GameConfigOptions } from './useHoldemGame'
 import { readJSON, writeJSON } from '../utils/storage'
 import { SUIT_PATH } from './suit-icons'
-import { AnteIcon, BlindsIcon, ChipIcon, DealIcon, PeopleIcon, PersonIcon } from './icons'
+import { CoinIcon, DealIcon, PeopleIcon, PercentIcon, PersonIcon } from './icons'
 
 interface MenuScreenProps {
   onStart: (options: GameConfigOptions) => void
@@ -29,6 +29,7 @@ const DEFAULT_CONFIG: GameConfigOptions = {
   smallBlind: 5,
   bigBlind: 10,
   ante: 0,
+  showHandOdds: false,
 }
 
 const STORAGE_KEY = 'poker.lastConfig'
@@ -163,7 +164,7 @@ export function MenuScreen({ onStart }: MenuScreenProps) {
           <div>
             <div className="menu-field-heading">
               <span className="menu-field-icon menu-field-icon-gold">
-                <ChipIcon />
+                <CoinIcon />
               </span>
               <span className="menu-field-label">Starting stack</span>
             </div>
@@ -184,7 +185,7 @@ export function MenuScreen({ onStart }: MenuScreenProps) {
           <div>
             <div className="menu-field-heading">
               <span className="menu-field-icon menu-field-icon-gold">
-                <BlindsIcon />
+                <CoinIcon />
               </span>
               <span className="menu-field-label">Blinds</span>
             </div>
@@ -205,7 +206,7 @@ export function MenuScreen({ onStart }: MenuScreenProps) {
           <div>
             <div className="menu-field-heading">
               <span className="menu-field-icon menu-field-icon-gold">
-                <AnteIcon />
+                <CoinIcon />
               </span>
               <span className="menu-field-label">Ante</span>
             </div>
@@ -221,6 +222,30 @@ export function MenuScreen({ onStart }: MenuScreenProps) {
                 </button>
               ))}
             </div>
+          </div>
+
+          <div className="menu-divider" />
+
+          <div className="menu-field-row">
+            <div className="menu-field-heading" style={{ marginBottom: 0 }}>
+              <span className="menu-field-icon menu-field-icon-violet">
+                <PercentIcon />
+              </span>
+              <div>
+                <span className="menu-field-label">Hand odds</span>
+                <div className="menu-hint" style={{ marginLeft: 0, marginTop: '0.15rem' }}>
+                  Show the exact odds of ending up with each hand type as the board comes out.
+                </div>
+              </div>
+            </div>
+            <button
+              type="button"
+              className={`menu-option menu-toggle ${config.showHandOdds ? 'menu-option-on' : ''}`}
+              onClick={() => setConfig((c) => ({ ...c, showHandOdds: !c.showHandOdds }))}
+              aria-pressed={config.showHandOdds}
+            >
+              {config.showHandOdds ? 'On' : 'Off'}
+            </button>
           </div>
 
           <button type="button" className="btn menu-start" onClick={handleStart}>

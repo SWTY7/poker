@@ -83,6 +83,11 @@ export function HandFeed({ log, activeId }: HandFeedProps) {
 
               {entry.kind === 'deal' ? (
                 <div className="feed-deal">{entry.cards?.map(cardToString).join('  ')}</div>
+              ) : entry.kind === 'reveal' ? (
+                <div className={`feed-row feed-reveal ${isHero ? 'feed-row-hero' : ''}`}>
+                  <span className="feed-name">{entry.playerName}</span>
+                  <span className="feed-what">{entry.cards?.map(cardToString).join('  ')}</span>
+                </div>
               ) : entry.kind === 'result' ? (
                 <div className="feed-result">{entry.message}</div>
               ) : (

@@ -35,7 +35,7 @@ export interface HandLogEntry {
   /** Monotonic within a hand; a stable React key and an ordering guarantee. */
   seq: number
   street: Street
-  kind: 'blind' | 'ante' | 'action' | 'deal' | 'result'
+  kind: 'blind' | 'ante' | 'action' | 'deal' | 'reveal' | 'result'
   playerId?: string
   playerName?: string
   actionType?: ActionType
@@ -43,7 +43,7 @@ export interface HandLogEntry {
   amount?: number
   /** For bet/raise: the total this player's bet now stands at, this street. */
   toAmount?: number
-  /** Cards turned over on a 'deal' entry. */
+  /** Community cards turned over on a 'deal' entry, or one player's hole cards on a 'reveal' entry. */
   cards?: Card[]
   /** Human-readable summary, used for 'result' entries. */
   message?: string

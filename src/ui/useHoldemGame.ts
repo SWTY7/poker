@@ -68,6 +68,8 @@ export interface GameConfigOptions {
   smallBlind: number
   bigBlind: number
   ante: number
+  /** Shows the hero the exact probability of ending up with each hand category, computed purely from their own cards and the board — a study aid, not something a real player would see. */
+  showHandOdds: boolean
 }
 
 export interface SessionStats {

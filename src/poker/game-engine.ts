@@ -252,6 +252,21 @@ export class HoldemEngine {
       (i) => state.players[i].id,
     )
 
+    // Show every hand that reached showdown before announcing who won with
+    // what — the log is the only place to check a bot's play against the
+    // cards it actually held, and that check is worthless without this.
+    for (const id of seatOrder) {
+      const player = state.players.find((p) => p.id === id)
+      if (!player || player.folded) continue
+      logEvent(state, {
+        street: 'showdown',
+        kind: 'reveal',
+        playerId: player.id,
+        playerName: player.name,
+        cards: player.holeCards,
+      })
+    }
+
     const winnersByPot: { ids: string[]; category?: string }[] = pots.map((pot) => {
       const contenders = pot.eligiblePlayerIds
       if (contenders.length === 1) return { ids: contenders }

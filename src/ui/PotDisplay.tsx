@@ -1,6 +1,6 @@
 import type { Card } from '../poker/card'
 import { CardView } from './CardView'
-import { ChipIcon } from './icons'
+import { CoinIcon } from './icons'
 
 interface PotDisplayProps {
   /** Chips already swept into the middle from earlier streets. */
@@ -37,7 +37,7 @@ export function PotDisplay({ potSize, inPlay, communityCards }: PotDisplayProps)
       {total > 0 && (
         <div className="pot-readout">
           <div className="pot-amount">
-            <ChipIcon className="pot-amount-icon" />
+            <CoinIcon className="pot-amount-icon" />
             ${total.toLocaleString()}
           </div>
           {potSize > 0 && inPlay > 0 && (
