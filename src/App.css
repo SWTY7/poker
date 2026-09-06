@@ -321,6 +321,13 @@
 
 /* ---------- HUD ---------- */
 
+/* Deliberately never wraps: a wrapped HUD's rendered line count depends on
+   font metrics (fallback vs. loaded webfont) and exact button widths, which
+   made its reserved height unreliable — on a real phone the wrap point
+   landed differently than in any fixed-viewport test, and content below it
+   would render at the height computed for fewer lines than actually
+   rendered. A single line that scrolls under overflow has no such
+   ambiguity: its height never depends on how much content it holds. */
 .hud {
   flex-shrink: 0;
   box-sizing: border-box;
@@ -328,8 +335,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
-  flex-wrap: wrap;
+  gap: 0.75rem;
+  flex-wrap: nowrap;
   border-bottom: 1px solid var(--line-soft);
   background: rgba(255, 255, 255, 0.02);
   z-index: 6;
@@ -340,7 +347,23 @@
   align-items: center;
   gap: 0.5rem;
   font-size: 0.78rem;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* The controls group is the one that can genuinely run out of room (speed
+   toggle, pause, step, auto-deal, log) — it scrolls horizontally rather
+   than wrapping or being cut off. */
+.hud-controls {
+  flex-shrink: 1;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.hud-controls::-webkit-scrollbar {
+  display: none;
 }
 
 .hud-strong {

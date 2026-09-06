@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import type { ActionType, GameState, HandLogEntry } from '../poker/game-state'
 import { getLegalActions, minRaiseTargetAmount, maxRaiseTargetAmount } from '../poker/betting'
 import { committedPot, streetBetTotal, totalPot } from '../poker/pot'
@@ -109,6 +109,10 @@ export function Table({
   // everyone (humans included) shows up as a plain opponent tile.
   const opponents = state.players.filter((p) => p.id !== activeHumanId)
 
+  // The hand log is opt-in — most players only want the table itself in
+  // front of them, not a running transcript, so it starts closed.
+  const [showLog, setShowLog] = useState(false)
+
   // At showdown the engine has already swept the bets into `pots`; before that
   // the middle holds only what earlier streets contributed.
   const settled = state.pots.length > 0
@@ -167,6 +171,8 @@ export function Table({
         onStep={onStep}
         autoNextHand={autoNextHand}
         onToggleAutoNextHand={() => onSetAutoNextHand(!autoNextHand)}
+        showLog={showLog}
+        onToggleLog={() => setShowLog((v) => !v)}
         onExit={handleExit}
       />
 
@@ -271,7 +277,7 @@ export function Table({
           ) : null}
         </div>
 
-        <HandFeed log={state.handLog} activeId={activeHumanId} />
+        {showLog && <HandFeed log={state.handLog} activeId={activeHumanId} />}
       </div>
     </div>
   )

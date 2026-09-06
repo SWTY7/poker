@@ -26,6 +26,8 @@ interface TableHudProps {
   onStep: () => void
   autoNextHand: boolean
   onToggleAutoNextHand: () => void
+  showLog: boolean
+  onToggleLog: () => void
   onExit: () => void
 }
 
@@ -48,6 +50,8 @@ export function TableHud({
   onStep,
   autoNextHand,
   onToggleAutoNextHand,
+  showLog,
+  onToggleLog,
   onExit,
 }: TableHudProps) {
   const currentIndex = STREETS.findIndex((s) => s.key === street)
@@ -77,7 +81,7 @@ export function TableHud({
         ))}
       </div>
 
-      <div className="hud-group">
+      <div className="hud-group hud-controls">
         <span className="hud-dim">{handsPlayed} played</span>
         {net !== null && (
           <span className={`hud-net ${net >= 0 ? 'hud-net-up' : 'hud-net-down'}`}>
@@ -119,6 +123,15 @@ export function TableHud({
           title="Deal the next hand without waiting for you"
         >
           Auto-deal
+        </button>
+
+        <button
+          type="button"
+          className={`hud-btn ${showLog ? 'hud-btn-on' : ''}`}
+          onClick={onToggleLog}
+          title="Show the running hand log"
+        >
+          Log
         </button>
       </div>
     </div>
