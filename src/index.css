@@ -8,6 +8,16 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+
+  /* Nearly every size in the app (cards, avatars, seat tiles, buttons,
+     type) is expressed in rem off this root size. A fixed 16px root made
+     the whole table look lost on a large monitor — correct in absolute
+     terms, but tiny relative to how much screen there is to fill. Scaling
+     the root with viewport width fixes that everywhere at once instead of
+     hunting down every fixed size. Phones stay at the 16px floor (their
+     viewport width keeps `0.9vw + 9px` under it), so the tuned mobile
+     overrides in App.css are unaffected. */
+  font-size: clamp(16px, 0.9vw + 9px, 26px);
 }
 
 html,

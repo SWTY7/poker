@@ -33,7 +33,7 @@
   --font-mono: 'Space Mono', ui-monospace, monospace;
   --font-wordmark: 'Bebas Neue', 'Space Grotesk', system-ui, sans-serif;
 
-  --feed-w: 268px;
+  --feed-w: 16.75rem;
   --table-bg:
     radial-gradient(110% 45% at 50% 0%, oklch(0.27 0.025 300 / 0.28) 0%, transparent 45%),
     radial-gradient(85% 65% at 50% 82%, oklch(0.22 0.028 295) 0%, oklch(0.15 0.016 285) 60%, oklch(0.1 0.012 285) 100%);
@@ -1370,33 +1370,33 @@
   }
 
   .card-sm {
-    width: 1.15rem;
-    height: 1.6rem;
-    padding: 0.1rem 0.14rem;
+    width: 1.5rem;
+    height: 2.1rem;
+    padding: 0.13rem 0.17rem;
   }
 
   .card-sm .card-rank {
-    font-size: 0.62rem;
+    font-size: 0.8rem;
   }
 
   .card-sm .card-suit {
-    width: 0.56rem;
-    height: 0.56rem;
+    width: 0.72rem;
+    height: 0.72rem;
   }
 
   .card-lg {
-    width: 2.5rem;
-    height: 3.5rem;
-    padding: 0.24rem 0.3rem;
+    width: 3.2rem;
+    height: 4.5rem;
+    padding: 0.32rem 0.38rem;
   }
 
   .card-lg .card-rank {
-    font-size: 1.1rem;
+    font-size: 1.4rem;
   }
 
   .card-lg .card-suit {
-    width: 1rem;
-    height: 1rem;
+    width: 1.3rem;
+    height: 1.3rem;
   }
 
   .btn {
