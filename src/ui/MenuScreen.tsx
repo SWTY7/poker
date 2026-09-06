@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import type { GameConfigOptions } from './useHoldemGame'
 import { readJSON, writeJSON } from '../utils/storage'
+import { SUIT_PATH } from './suit-icons'
+import { AnteIcon, BlindsIcon, ChipIcon, DealIcon, PeopleIcon, PersonIcon } from './icons'
 
 interface MenuScreenProps {
   onStart: (options: GameConfigOptions) => void
@@ -63,116 +65,169 @@ export function MenuScreen({ onStart }: MenuScreenProps) {
 
   return (
     <div className="menu-scene">
-      <div className="menu-card">
-        <div className="menu-title">Texas Hold&rsquo;em</div>
-        <div className="menu-subtitle">Set up the table, then deal yourself in.</div>
+      <svg className="menu-watermark menu-watermark-a" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d={SUIT_PATH.spades} />
+      </svg>
+      <svg className="menu-watermark menu-watermark-b" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d={SUIT_PATH.hearts} />
+      </svg>
 
-        <div className="menu-field">
-          <div className="menu-field-label">Players</div>
-          <div className="stepper">
-            <button
-              type="button"
-              className="stepper-btn"
-              onClick={() => setPlayerCount(config.playerCount - 1)}
-              disabled={config.playerCount <= MIN_PLAYERS}
-              aria-label="Fewer players"
-            >
-              −
-            </button>
-            <span className="stepper-value">{config.playerCount}</span>
-            <button
-              type="button"
-              className="stepper-btn"
-              onClick={() => setPlayerCount(config.playerCount + 1)}
-              disabled={config.playerCount >= MAX_PLAYERS}
-              aria-label="More players"
-            >
-              +
-            </button>
+      <div className="menu-content">
+        <div className="menu-wordmark-row">
+          <div className="menu-wordmark">
+            <svg className="menu-wordmark-glyph" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d={SUIT_PATH.clubs} />
+            </svg>
+            <span className="menu-wordmark-text">
+              Texas <span className="menu-wordmark-accent">Hold&rsquo;em</span>
+            </span>
+            <svg className="menu-wordmark-glyph" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d={SUIT_PATH.diamonds} />
+            </svg>
           </div>
+          <div className="menu-subtitle">Set up the table, then deal yourself in.</div>
         </div>
 
-        <div className="menu-field">
-          <div className="menu-field-label">Human players</div>
-          <div className="stepper">
-            <button
-              type="button"
-              className="stepper-btn"
-              onClick={() => setHumanCount(config.humanCount - 1)}
-              disabled={config.humanCount <= 1}
-              aria-label="Fewer human players"
-            >
-              −
-            </button>
-            <span className="stepper-value">{config.humanCount}</span>
-            <button
-              type="button"
-              className="stepper-btn"
-              onClick={() => setHumanCount(config.humanCount + 1)}
-              disabled={config.humanCount >= config.playerCount}
-              aria-label="More human players"
-            >
-              +
-            </button>
-          </div>
-          <div className="menu-hint">
-            {config.humanCount > 1
-              ? "Pass-and-play — everyone shares this device. Hands stay hidden until it's your turn."
-              : 'Just you, against the rest at the table.'}
-          </div>
-        </div>
-
-        <div className="menu-field">
-          <div className="menu-field-label">Starting stack</div>
-          <div className="menu-options">
-            {STACK_OPTIONS.map((stack) => (
+        <div className="menu-card">
+          <div className="menu-field-row">
+            <div className="menu-field-heading" style={{ marginBottom: 0 }}>
+              <span className="menu-field-icon menu-field-icon-violet">
+                <PeopleIcon />
+              </span>
+              <span className="menu-field-label">Players</span>
+            </div>
+            <div className="stepper">
               <button
-                key={stack}
                 type="button"
-                className={`menu-option ${config.startingStack === stack ? 'menu-option-on' : ''}`}
-                onClick={() => setConfig((c) => ({ ...c, startingStack: stack }))}
+                className="stepper-btn"
+                onClick={() => setPlayerCount(config.playerCount - 1)}
+                disabled={config.playerCount <= MIN_PLAYERS}
+                aria-label="Fewer players"
               >
-                ${stack.toLocaleString()}
+                −
               </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="menu-field">
-          <div className="menu-field-label">Blinds</div>
-          <div className="menu-options">
-            {BLIND_OPTIONS.map((b) => (
+              <span className="stepper-value">{config.playerCount}</span>
               <button
-                key={b.label}
                 type="button"
-                className={`menu-option ${config.smallBlind === b.smallBlind && config.bigBlind === b.bigBlind ? 'menu-option-on' : ''}`}
-                onClick={() => setConfig((c) => ({ ...c, smallBlind: b.smallBlind, bigBlind: b.bigBlind }))}
+                className="stepper-btn"
+                onClick={() => setPlayerCount(config.playerCount + 1)}
+                disabled={config.playerCount >= MAX_PLAYERS}
+                aria-label="More players"
               >
-                {b.label}
+                +
               </button>
-            ))}
+            </div>
           </div>
-        </div>
 
-        <div className="menu-field">
-          <div className="menu-field-label">Ante</div>
-          <div className="menu-options">
-            {ANTE_OPTIONS.map((ante) => (
-              <button
-                key={ante}
-                type="button"
-                className={`menu-option ${config.ante === ante ? 'menu-option-on' : ''}`}
-                onClick={() => setConfig((c) => ({ ...c, ante }))}
-              >
-                {ante === 0 ? 'None' : `$${ante}`}
-              </button>
-            ))}
+          <div className="menu-divider" />
+
+          <div>
+            <div className="menu-field-row">
+              <div className="menu-field-heading" style={{ marginBottom: 0 }}>
+                <span className="menu-field-icon menu-field-icon-violet">
+                  <PersonIcon />
+                </span>
+                <span className="menu-field-label">Human players</span>
+              </div>
+              <div className="stepper">
+                <button
+                  type="button"
+                  className="stepper-btn"
+                  onClick={() => setHumanCount(config.humanCount - 1)}
+                  disabled={config.humanCount <= 1}
+                  aria-label="Fewer human players"
+                >
+                  −
+                </button>
+                <span className="stepper-value">{config.humanCount}</span>
+                <button
+                  type="button"
+                  className="stepper-btn"
+                  onClick={() => setHumanCount(config.humanCount + 1)}
+                  disabled={config.humanCount >= config.playerCount}
+                  aria-label="More human players"
+                >
+                  +
+                </button>
+              </div>
+            </div>
+            <div className="menu-hint">
+              {config.humanCount > 1
+                ? "Pass-and-play — everyone shares this device. Hands stay hidden until it's your turn."
+                : 'Just you, against the rest at the table.'}
+            </div>
           </div>
-        </div>
 
-        <button type="button" className="btn menu-start" onClick={handleStart}>
-          {config.humanCount > 1 ? 'Start pass-and-play' : 'Deal me in'}
-        </button>
+          <div className="menu-divider" />
+
+          <div>
+            <div className="menu-field-heading">
+              <span className="menu-field-icon menu-field-icon-gold">
+                <ChipIcon />
+              </span>
+              <span className="menu-field-label">Starting stack</span>
+            </div>
+            <div className="menu-options">
+              {STACK_OPTIONS.map((stack) => (
+                <button
+                  key={stack}
+                  type="button"
+                  className={`menu-option ${config.startingStack === stack ? 'menu-option-on' : ''}`}
+                  onClick={() => setConfig((c) => ({ ...c, startingStack: stack }))}
+                >
+                  ${stack.toLocaleString()}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <div className="menu-field-heading">
+              <span className="menu-field-icon menu-field-icon-gold">
+                <BlindsIcon />
+              </span>
+              <span className="menu-field-label">Blinds</span>
+            </div>
+            <div className="menu-options">
+              {BLIND_OPTIONS.map((b) => (
+                <button
+                  key={b.label}
+                  type="button"
+                  className={`menu-option ${config.smallBlind === b.smallBlind && config.bigBlind === b.bigBlind ? 'menu-option-on' : ''}`}
+                  onClick={() => setConfig((c) => ({ ...c, smallBlind: b.smallBlind, bigBlind: b.bigBlind }))}
+                >
+                  {b.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <div className="menu-field-heading">
+              <span className="menu-field-icon menu-field-icon-gold">
+                <AnteIcon />
+              </span>
+              <span className="menu-field-label">Ante</span>
+            </div>
+            <div className="menu-options">
+              {ANTE_OPTIONS.map((ante) => (
+                <button
+                  key={ante}
+                  type="button"
+                  className={`menu-option ${config.ante === ante ? 'menu-option-on' : ''}`}
+                  onClick={() => setConfig((c) => ({ ...c, ante }))}
+                >
+                  {ante === 0 ? 'None' : `$${ante}`}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <button type="button" className="btn menu-start" onClick={handleStart}>
+            <DealIcon className="menu-start-icon" />
+            {config.humanCount > 1 ? 'Start pass-and-play' : 'Deal me in'}
+          </button>
+        </div>
       </div>
     </div>
   )

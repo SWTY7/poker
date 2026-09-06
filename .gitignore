@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Seeded Claude Design canvas payloads (generated, ~MB-scale — the .dc.html
+# source under design/ is what's tracked)
+poker-ui-directions.html

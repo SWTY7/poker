@@ -4,11 +4,11 @@ import { getLegalActions, minRaiseTargetAmount, maxRaiseTargetAmount } from '../
 import { committedPot, streetBetTotal, totalPot } from '../poker/pot'
 import { positionLabels } from '../poker/position'
 import { Seat } from './Seat'
+import { HeroBar } from './HeroBar'
 import { PotDisplay } from './PotDisplay'
 import { Controls, PreActionBar, SpectatingBar, WaitingBar, RevealGate } from './Controls'
 import { HandFeed } from './HandFeed'
 import { TableHud } from './TableHud'
-import { seatPosition } from './layout'
 import type { PreAction, Speed } from './useHoldemGame'
 
 interface TableProps {
@@ -98,10 +98,16 @@ export function Table({
   onNextHand,
   onExit,
 }: TableProps) {
-  const total = state.players.length
   const activePlayer = state.players.find((p) => p.id === activeHumanId)
   const currentPlayer = state.handInProgress ? state.players[state.currentPlayerIndex] : undefined
   const positions = positionLabels(state)
+  const dealerId = state.players[state.dealerIndex]?.id
+  // Every seat renders in the opponent strip except whichever human is
+  // currently revealed — that one gets the fixed hero zone at the bottom,
+  // large cards and all, regardless of where they'd sit around a real table.
+  // In pass-and-play, between two humans' turns nobody is revealed, so
+  // everyone (humans included) shows up as a plain opponent tile.
+  const opponents = state.players.filter((p) => p.id !== activeHumanId)
 
   // At showdown the engine has already swept the bets into `pots`; before that
   // the middle holds only what earlier streets contributed.
@@ -164,95 +170,109 @@ export function Table({
         onExit={handleExit}
       />
 
-      <div className="table-oval">
-        <PotDisplay potSize={middlePot} inPlay={inPlay} communityCards={state.communityCards} />
-
-        {state.players.map((player, index) => {
-          const { left, top } = seatPosition(index, total)
-          // Only the currently revealed human's cards render face-up — in a
-          // pass-and-play game showing anyone else's would leak their hand to
-          // whoever is holding the device right now.
-          const isRevealed = player.id === activeHumanId
-          return (
-            <Seat
-              key={player.id}
-              name={player.name}
-              stack={player.stack}
-              betThisStreet={player.betThisStreet}
-              folded={player.folded}
-              isAllIn={player.isAllIn}
-              isEliminated={player.isEliminated}
-              isDealer={index === state.dealerIndex}
-              isCurrentTurn={state.handInProgress && index === state.currentPlayerIndex && !paused}
-              isHero={isRevealed}
-              isWinner={winnerIds.has(player.id)}
-              position={positions.get(player.id)}
-              lastAction={lastActionThisStreet(state.handLog, player.id, state.street)}
-              cards={isRevealed || revealAll ? player.holeCards : []}
-              revealCards={isRevealed || (revealAll && !player.folded)}
-              left={left}
-              top={top}
-            />
-          )
-        })}
-      </div>
-
-      <HandFeed log={state.handLog} activeId={activeHumanId} />
-
-      {dealingStreet && STREET_BANNER[dealingStreet] && (
-        <div className="street-banner" key={dealingStreet}>
-          {STREET_BANNER[dealingStreet]}
-        </div>
-      )}
-
-      {paused && <div className="paused-badge">Paused — S to step, P to resume</div>}
-
-      {lastResult && (
-        <div className="hand-result-banner">
-          {lastResult.map((r, i) => (
-            <div key={i} className="hand-result-line">
-              {r.winnerIds.map((id) => state.players.find((p) => p.id === id)?.name).join(' & ')} won $
-              {r.potAmount.toLocaleString()}
-              {r.category ? ` with ${r.category.replace(/-/g, ' ')}` : ''}
+      <div className="table-body">
+        <div className="table-main">
+          <div className="board-scene">
+            <div className="opponent-strip">
+              {opponents.map((player) => (
+                <Seat
+                  key={player.id}
+                  name={player.name}
+                  stack={player.stack}
+                  betThisStreet={player.betThisStreet}
+                  folded={player.folded}
+                  isAllIn={player.isAllIn}
+                  isEliminated={player.isEliminated}
+                  isDealer={player.id === dealerId}
+                  isCurrentTurn={state.handInProgress && player.id === currentPlayer?.id && !paused}
+                  isWinner={winnerIds.has(player.id)}
+                  position={positions.get(player.id)}
+                  lastAction={lastActionThisStreet(state.handLog, player.id, state.street)}
+                  cards={revealAll ? player.holeCards : []}
+                  revealCards={revealAll && !player.folded}
+                />
+              ))}
             </div>
-          ))}
-          <button className="btn btn-next-hand" onClick={onNextHand}>
-            Next hand <kbd>Space</kbd>
-          </button>
-        </div>
-      )}
 
-      {isHumanTurn && activePlayer ? (
-        <Controls
-          legalActions={heroLegalActions}
-          toCall={state.currentBet - activePlayer.betThisStreet}
-          minRaiseTo={minRaiseTargetAmount(state)}
-          maxRaiseTo={maxRaiseTargetAmount(state, activePlayer.id)}
-          potSize={potForSizing}
-          onAction={onAction}
-        />
-      ) : needsReveal && currentPlayer ? (
-        <RevealGate playerName={currentPlayer.name} onReveal={onRevealCurrentPlayer} />
-      ) : isSpectating ? (
-        <SpectatingBar
-          message={
-            isSolo
-              ? `You${activePlayer?.isAllIn ? "'re all-in" : ' folded'} — the hand plays on…`
-              : 'No more decisions for your table — the hand plays on…'
-          }
-          onSkip={onSkipToEnd}
-        />
-      ) : isSolo && state.handInProgress ? (
-        <PreActionBar
-          toCall={activePlayer ? state.currentBet - activePlayer.betThisStreet : 0}
-          value={preAction}
-          onChange={onSetPreAction}
-          waitingOn={waitingOn}
-          dealing={dealingStreet !== null}
-        />
-      ) : state.handInProgress ? (
-        <WaitingBar label={currentPlayer ? `${currentPlayer.name} is deciding…` : 'Waiting…'} />
-      ) : null}
+            <PotDisplay potSize={middlePot} inPlay={inPlay} communityCards={state.communityCards} />
+
+            {dealingStreet && STREET_BANNER[dealingStreet] && (
+              <div className="street-banner" key={dealingStreet}>
+                {STREET_BANNER[dealingStreet]}
+              </div>
+            )}
+
+            {paused && <div className="paused-badge">Paused — S to step, P to resume</div>}
+          </div>
+
+          {activePlayer &&
+            (() => {
+              const heroToCall = Math.max(state.currentBet - activePlayer.betThisStreet, 0)
+              return (
+                <HeroBar
+                  name={activePlayer.name}
+                  stack={activePlayer.stack}
+                  cards={activePlayer.holeCards}
+                  position={positions.get(activePlayer.id)}
+                  isDealer={activePlayer.id === dealerId}
+                  toCall={heroToCall}
+                  potOdds={heroToCall > 0 ? heroToCall / (potForSizing + heroToCall) : null}
+                  folded={activePlayer.folded}
+                  isAllIn={activePlayer.isAllIn}
+                />
+              )
+            })()}
+
+          {lastResult && (
+            <div className="hand-result-banner">
+              {lastResult.map((r, i) => (
+                <div key={i} className="hand-result-line">
+                  {r.winnerIds.map((id) => state.players.find((p) => p.id === id)?.name).join(' & ')} won $
+                  {r.potAmount.toLocaleString()}
+                  {r.category ? ` with ${r.category.replace(/-/g, ' ')}` : ''}
+                </div>
+              ))}
+              <button className="btn btn-next-hand" onClick={onNextHand}>
+                Next hand <kbd>Space</kbd>
+              </button>
+            </div>
+          )}
+
+          {isHumanTurn && activePlayer ? (
+            <Controls
+              legalActions={heroLegalActions}
+              toCall={state.currentBet - activePlayer.betThisStreet}
+              minRaiseTo={minRaiseTargetAmount(state)}
+              maxRaiseTo={maxRaiseTargetAmount(state, activePlayer.id)}
+              potSize={potForSizing}
+              onAction={onAction}
+            />
+          ) : needsReveal && currentPlayer ? (
+            <RevealGate playerName={currentPlayer.name} onReveal={onRevealCurrentPlayer} />
+          ) : isSpectating ? (
+            <SpectatingBar
+              message={
+                isSolo
+                  ? `You${activePlayer?.isAllIn ? "'re all-in" : ' folded'} — the hand plays on…`
+                  : 'No more decisions for your table — the hand plays on…'
+              }
+              onSkip={onSkipToEnd}
+            />
+          ) : isSolo && state.handInProgress ? (
+            <PreActionBar
+              toCall={activePlayer ? state.currentBet - activePlayer.betThisStreet : 0}
+              value={preAction}
+              onChange={onSetPreAction}
+              waitingOn={waitingOn}
+              dealing={dealingStreet !== null}
+            />
+          ) : state.handInProgress ? (
+            <WaitingBar label={currentPlayer ? `${currentPlayer.name} is deciding…` : 'Waiting…'} />
+          ) : null}
+        </div>
+
+        <HandFeed log={state.handLog} activeId={activeHumanId} />
+      </div>
     </div>
   )
 }

@@ -1,57 +1,39 @@
 {
+  "pages": [
+    { "id": "final", "name": "Final" },
+    { "id": "directions", "name": "Directions (archived)" }
+  ],
   "artboards": [
-    { "file": "Main.dc.html", "title": "A · Broadcast — desktop", "x": 0, "y": 0, "w": 1240, "h": 800 },
-    { "file": "Studio.dc.html", "title": "B · Studio — desktop", "x": 1340, "y": 0, "w": 1240, "h": 800 },
-    { "file": "Editorial.dc.html", "title": "C · Editorial — desktop", "x": 0, "y": 1120, "w": 1240, "h": 800 },
-    { "file": "Focus.dc.html", "title": "D · Focus — desktop", "x": 1340, "y": 1120, "w": 1240, "h": 800 },
-    { "file": "BroadcastPhone.dc.html", "title": "A · Broadcast — iPhone", "x": 0, "y": 2240, "w": 390, "h": 844 },
-    { "file": "StudioPhone.dc.html", "title": "B · Studio — iPhone", "x": 490, "y": 2240, "w": 390, "h": 844 },
-    { "file": "EditorialPhone.dc.html", "title": "C · Editorial — iPhone", "x": 980, "y": 2240, "w": 390, "h": 844 },
-    { "file": "FocusPhone.dc.html", "title": "D · Focus — iPhone", "x": 1470, "y": 2240, "w": 390, "h": 844 }
+    { "file": "Main.dc.html", "title": "Game — desktop", "x": 0, "y": 0, "w": 1240, "h": 800, "page": "final" },
+    { "file": "GamePhone.dc.html", "title": "Game — iPhone", "x": 1340, "y": 0, "w": 390, "h": 844, "page": "final" },
+    { "file": "Menu.dc.html", "title": "Menu — desktop", "x": 0, "y": 970, "w": 1240, "h": 800, "page": "final" },
+    { "file": "MenuPhone.dc.html", "title": "Menu — iPhone", "x": 1340, "y": 970, "w": 390, "h": 844, "page": "final" },
+
+    { "file": "BroadcastPhone.dc.html", "title": "A · Broadcast — iPhone", "x": 0, "y": 0, "w": 390, "h": 844, "page": "directions" },
+    { "file": "Studio.dc.html", "title": "B · Studio — desktop", "x": 490, "y": 0, "w": 1240, "h": 800, "page": "directions" },
+    { "file": "StudioPhone.dc.html", "title": "B · Studio — iPhone", "x": 1830, "y": 0, "w": 390, "h": 844, "page": "directions" },
+    { "file": "Editorial.dc.html", "title": "C · Editorial — desktop", "x": 0, "y": 964, "w": 1240, "h": 800, "page": "directions" },
+    { "file": "EditorialPhone.dc.html", "title": "C · Editorial — iPhone", "x": 1340, "y": 964, "w": 390, "h": 844, "page": "directions" },
+    { "file": "Focus.dc.html", "title": "D · Focus (original) — desktop", "x": 1830, "y": 964, "w": 1240, "h": 800, "page": "directions" },
+    { "file": "FocusPhone.dc.html", "title": "D · Focus (original) — iPhone", "x": 3170, "y": 964, "w": 390, "h": 844, "page": "directions" }
   ],
   "annotations": [
     {
-      "id": "how-to-read",
+      "id": "how-to-read-final",
       "x": 0,
-      "y": -230,
+      "y": -140,
       "w": 700,
-      "text": "Four directions for the same moment: hand #23, flop 9h 7s 2c, Chip has bet $40, it's your turn on the button with As Kd.\n\nSame data everywhere, so the only thing that varies is the design. All four already fold in the game-loop fixes: street stepper, split pot ($115 committed + $80 still in play), position labels, speed control, session P&L, keyboard hints, and a persistent action bar.\n\nPick one, or mix — 'B's feed with A's table' is a perfectly good answer."
+      "text": "Chosen direction: D · Focus (decision-first, no round table), elevated to a production-grade poker app: real card-index treatment + faint suit watermark, poker-chip iconography instead of bare numbers, per-player avatar circles, a gold dealer-button disc, glossy button gradients, and a branded lobby screen with a display wordmark and icon-led config rows.\n\nSame data as before: hand #23, flop 9h 7s 2c, Chip has bet $40, your turn on the button with As Kd. The Menu screen mirrors the app's real fields (Players, Human players, Starting stack, Blinds, Ante, Deal me in).",
+      "page": "final"
     },
     {
-      "id": "note-a",
+      "id": "how-to-read-directions",
       "x": 0,
-      "y": 850,
-      "w": 580,
-      "text": "A · BROADCAST — you're sitting at the table.\nCinematic felt oval, warm bronze rail, action shown as bubbles that pop above the acting seat and fade. Hero's cards live big in the bottom rail, not in a seat.\n\nBest at: making a hand feel like an event. Familiar to anyone who has played online poker.\nCosts: history is ephemeral — you see the last action, not the last ten. Least useful of the four when you want to study a hand. Heaviest to build."
-    },
-    {
-      "id": "note-b",
-      "x": 1340,
-      "y": 850,
-      "w": 580,
-      "text": "B · STUDIO — poker as an instrument panel.\nFlat table on the left, permanent right rail on the right: full hand feed grouped by street, live pot-odds readout, recent-hand results. Seat plates are data tiles in tabular mono.\n\nBest at: you can always reconstruct why the pot is what it is. The rail is also where a future 'reads / tells' panel would go, so it's the direction that grows into the psychology layer.\nCosts: colder, less table-feel. The rail has to become a bottom sheet on iPhone."
-    },
-    {
-      "id": "note-c",
-      "x": 0,
-      "y": 1970,
-      "w": 580,
-      "text": "C · EDITORIAL — the flat/minimal spec in your plan, taken literally.\nWarm paper, ink hairlines, Newsreader serif for every number, one vermillion accent. No felt, no gradients, no glow. Actions read as prose: 'bets $40', 'folds'.\n\nBest at: legibility, calm, and the smallest visual-debt bill. Inverts to a dark theme cleanly by swapping tokens.\nCosts: it doesn't feel like gambling. If you want the pulse of a real table, this isn't it."
-    },
-    {
-      "id": "note-d",
-      "x": 1340,
-      "y": 1970,
-      "w": 580,
-      "text": "D · FOCUS — decision-first, phone-native.\nDrops the round table entirely. Opponents compress into a strip of tiles, board and your cards get the space instead. One column, no eye travel, 62px hit targets.\n\nBest at: iPhone. It's the only direction where the phone layout is the design rather than a squeeze of the desktop one. Fastest to read under pressure.\nCosts: no table metaphor means less social presence — six tiles feel less like six opponents. Scales awkwardly past ~8 players."
-    },
-    {
-      "id": "note-phones",
-      "x": 1960,
-      "y": 2240,
-      "w": 460,
-      "text": "iPhone portrait, 390 × 844.\n\nNo status bar or home indicator drawn — the real ones sit on top, so that space is left clear.\n\nWorth judging here specifically: can you read your own two cards at a glance, and can you hit the action buttons with a thumb without looking? A and D pass easily; B trades card size for the feed; C is the most readable but the least tappable."
+      "y": -170,
+      "w": 700,
+      "text": "Archived: the original four direction sketches (A/B/C/D) from the first round, kept here for reference. D was picked as the base for the Final page.",
+      "page": "directions"
     }
   ],
-  "launch": { "view": "canvas" }
+  "launch": { "view": "canvas", "page": "final" }
 }

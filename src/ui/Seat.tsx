@@ -1,6 +1,8 @@
 import type { Card } from '../poker/card'
 import type { PositionLabel } from '../poker/position'
 import { CardView } from './CardView'
+import { ChipIcon } from './icons'
+import { avatarInitial, avatarStyle } from './avatar'
 
 export interface SeatProps {
   name: string
@@ -11,17 +13,15 @@ export interface SeatProps {
   isEliminated: boolean
   isDealer: boolean
   isCurrentTurn: boolean
-  isHero: boolean
   isWinner: boolean
   position?: PositionLabel
   /** What this player did on the CURRENT street only. */
   lastAction?: string
   cards: Card[]
   revealCards: boolean
-  left: number
-  top: number
 }
 
+/** A compact opponent tile in the strip above the board — the human player's own seat renders separately, in HeroBar. */
 export function Seat({
   name,
   stack,
@@ -31,57 +31,52 @@ export function Seat({
   isEliminated,
   isDealer,
   isCurrentTurn,
-  isHero,
   isWinner,
   position,
   lastAction,
   cards,
   revealCards,
-  left,
-  top,
 }: SeatProps) {
   if (isEliminated) return null
 
-  const classes = [
-    'seat',
-    folded && 'seat-folded',
-    isCurrentTurn && 'seat-active',
-    isHero && 'seat-hero',
-    isWinner && 'seat-winner',
-  ]
+  const classes = ['seat', folded && 'seat-folded', isCurrentTurn && 'seat-active', isWinner && 'seat-winner']
     .filter(Boolean)
     .join(' ')
 
   return (
-    <div className={classes} style={{ left: `${left}%`, top: `${top}%` }}>
-      <div className="seat-cards">
-        {cards.length > 0 ? (
-          cards.map((card, i) => (
-            <CardView key={i} card={card} faceDown={!revealCards} size={isHero ? 'lg' : 'sm'} />
-          ))
-        ) : (
-          <>
-            <CardView faceDown size={isHero ? 'lg' : 'sm'} />
-            <CardView faceDown size={isHero ? 'lg' : 'sm'} />
-          </>
-        )}
-      </div>
-
-      <div className="seat-plate">
-        {isDealer && <span className="seat-badge seat-badge-dealer">D</span>}
-        <div className="seat-head">
-          <span className="seat-name">{name}</span>
-          {position && <span className="seat-position">{position}</span>}
+    <div className={classes}>
+      <div className="seat-head">
+        <div className="seat-avatar" style={avatarStyle(name)}>
+          {avatarInitial(name)}
         </div>
-        <div className="seat-stack">${stack.toLocaleString()}</div>
-        <div className="seat-status">{folded ? 'Folded' : isAllIn ? 'All-in' : (lastAction ?? '')}</div>
+        <div className="seat-id">
+          <span className="seat-name">{name}</span>
+          <span className="seat-position">
+            {position}
+            {isDealer && <span className="seat-dealer-disc">D</span>}
+          </span>
+        </div>
       </div>
 
-      {betThisStreet > 0 && !folded && (
-        <div className="seat-bet-chip">
-          <span className="chip-dot" />${betThisStreet.toLocaleString()}
+      {revealCards && cards.length > 0 && (
+        <div className="seat-cards">
+          {cards.map((card, i) => (
+            <CardView key={i} card={card} size="sm" />
+          ))}
         </div>
       )}
+
+      <div className="seat-foot">
+        <span className="seat-stack">{stack.toLocaleString()}</span>
+        {betThisStreet > 0 && !folded ? (
+          <span className="seat-bet">
+            <ChipIcon className="seat-bet-icon" />
+            {betThisStreet.toLocaleString()}
+          </span>
+        ) : (
+          <span className="seat-status">{folded ? 'FOLD' : isAllIn ? 'ALL-IN' : (lastAction ?? '')}</span>
+        )}
+      </div>
     </div>
   )
 }
