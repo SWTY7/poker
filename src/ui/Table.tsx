@@ -12,6 +12,8 @@ import { HandOddsPanel } from './HandOddsPanel'
 import { Controls, PreActionBar, SpectatingBar, WaitingBar, RevealGate } from './Controls'
 import { HandFeed } from './HandFeed'
 import { TableHud } from './TableHud'
+import { PositionLegend } from './PositionLegend'
+import { LeaveDialog } from './LeaveDialog'
 import type { PreAction, Speed } from './useHoldemGame'
 
 interface TableProps {
@@ -40,6 +42,7 @@ interface TableProps {
   onNextHand: () => void
   onExit: () => void
   showHandOdds: boolean
+  startingStack: number
 }
 
 const STREET_BANNER: Record<string, string> = {
@@ -102,6 +105,7 @@ export function Table({
   onNextHand,
   onExit,
   showHandOdds,
+  startingStack,
 }: TableProps) {
   const activePlayer = state.players.find((p) => p.id === activeHumanId)
   const currentPlayer = state.handInProgress ? state.players[state.currentPlayerIndex] : undefined
@@ -117,6 +121,8 @@ export function Table({
   // The hand log is opt-in — most players only want the table itself in
   // front of them, not a running transcript, so it starts closed.
   const [showLog, setShowLog] = useState(false)
+  const [showPositions, setShowPositions] = useState(false)
+  const [showLeave, setShowLeave] = useState(false)
 
   // Keyed by the actual cards rather than object identity — the GameState
   // reference changes on every action (including opponents' actions that
@@ -148,12 +154,7 @@ export function Table({
 
   const soleNet = isSolo && humanIds[0] !== undefined ? (session.netByPlayer[humanIds[0]] ?? 0) : null
 
-  const handleExit = () => {
-    if (state.handInProgress && !window.confirm('Leave the table? The hand in progress will be forfeited.')) {
-      return
-    }
-    onExit()
-  }
+
 
   // Space deals the next hand; P pauses; S single-steps.
   useEffect(() => {
@@ -193,7 +194,8 @@ export function Table({
         onToggleAutoNextHand={() => onSetAutoNextHand(!autoNextHand)}
         showLog={showLog}
         onToggleLog={() => setShowLog((v) => !v)}
-        onExit={handleExit}
+        onShowPositions={() => setShowPositions(true)}
+        onExit={() => setShowLeave(true)}
       />
 
       <div className="table-body">
@@ -301,6 +303,22 @@ export function Table({
 
         {showLog && <HandFeed log={state.handLog} activeId={activeHumanId} />}
       </div>
+
+      {showPositions && (
+        <PositionLegend inUse={new Set(positions.values())} onClose={() => setShowPositions(false)} />
+      )}
+
+      {showLeave && (
+        <LeaveDialog
+          handsPlayed={session.handsPlayed}
+          net={soleNet}
+          stack={activePlayer?.stack ?? startingStack}
+          startingStack={startingStack}
+          handInProgress={state.handInProgress}
+          onConfirm={onExit}
+          onCancel={() => setShowLeave(false)}
+        />
+      )}
     </div>
   )
 }

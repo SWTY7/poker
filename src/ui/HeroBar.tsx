@@ -1,5 +1,5 @@
 import type { Card } from '../poker/card'
-import type { PositionLabel } from '../poker/position'
+import { POSITION_NAMES, type PositionLabel } from '../poker/position'
 import { CardView } from './CardView'
 
 interface HeroBarProps {
@@ -32,7 +32,11 @@ export function HeroBar({ name, stack, cards, position, isDealer, toCall, potOdd
       <div className="hero-id">
         <div className="hero-id-top">
           <span className="hero-name">{name}</span>
-          {position && <span className="seat-position">{position}</span>}
+          {position && (
+            <span className="seat-position" title={POSITION_NAMES[position]}>
+              {position}
+            </span>
+          )}
           {isDealer && <span className="seat-dealer-disc">D</span>}
         </div>
         <span className="hero-stack">${stack.toLocaleString()}</span>

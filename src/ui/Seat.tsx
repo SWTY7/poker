@@ -1,5 +1,5 @@
 import type { Card } from '../poker/card'
-import type { PositionLabel } from '../poker/position'
+import { POSITION_NAMES, type PositionLabel } from '../poker/position'
 import { CardView } from './CardView'
 import { CoinIcon } from './icons'
 import { avatarInitial, avatarStyle } from './avatar'
@@ -51,7 +51,7 @@ export function Seat({
         </div>
         <div className="seat-id">
           <span className="seat-name">{name}</span>
-          <span className="seat-position">
+          <span className="seat-position" title={position && POSITION_NAMES[position]}>
             {position}
             {isDealer && <span className="seat-dealer-disc">D</span>}
           </span>
