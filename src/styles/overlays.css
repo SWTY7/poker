@@ -1,0 +1,377 @@
+/* ---------- overlays: leave/cash-out + the position legend ---------- */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: max(1rem, env(safe-area-inset-top)) 1rem max(1rem, env(safe-area-inset-bottom));
+  box-sizing: border-box;
+  background: var(--scrim);
+  backdrop-filter: blur(3px);
+  animation: overlay-in 0.14s ease-out;
+}
+
+@keyframes overlay-in {
+  from {
+    opacity: 0;
+  }
+}
+
+.dialog {
+  width: min(24rem, 100%);
+  max-height: 100%;
+  overflow-y: auto;
+  box-sizing: border-box;
+  background: var(--hud-bg);
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  padding: 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  box-shadow: 0 1.5rem 3rem rgba(0, 0, 0, 0.55);
+}
+
+.dialog-wide {
+  width: min(34rem, 100%);
+}
+
+.dialog-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.dialog-title {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.dialog-lede,
+.dialog-foot {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.55;
+  color: var(--text-dim);
+}
+
+.dialog-foot {
+  border-top: 1px solid var(--line-soft);
+  padding-top: 0.8rem;
+  color: var(--text-faint);
+}
+
+.dialog-warn {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.55;
+  color: var(--text-dim);
+  background: rgba(238, 125, 153, 0.08);
+  border: 1px solid var(--red-deep);
+  border-radius: 0.6rem;
+  padding: 0.7rem 0.8rem;
+}
+
+.dialog-actions {
+  display: flex;
+  gap: 0.6rem;
+}
+
+.dialog-actions .btn {
+  flex: 1 1 0;
+}
+
+
+
+/* ---------- cash-out summary ---------- */
+
+.cashout-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.7rem;
+}
+
+.cashout-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  background: var(--surface);
+  border: 1px solid var(--line-soft);
+  border-radius: 0.6rem;
+  padding: 0.55rem 0.7rem;
+}
+
+.cashout-label {
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.cashout-value {
+  font-family: var(--font-mono);
+  font-size: 1.05rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.cashout-up {
+  color: var(--green);
+}
+
+.cashout-down {
+  color: var(--red);
+}
+
+/* ---------- position legend ---------- */
+
+.legend-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.legend-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+}
+
+.legend-tag,
+.legend-tag-inline {
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+  background: var(--surface);
+  border: 1px solid var(--line-soft);
+  border-radius: 0.35rem;
+  padding: 0.2rem 0.35rem;
+}
+
+.legend-tag {
+  flex-shrink: 0;
+  min-width: 2.6rem;
+  text-align: center;
+}
+
+.legend-row-live .legend-tag {
+  color: var(--violet);
+  border-color: var(--violet-deep);
+  background: var(--violet-tint);
+}
+
+.legend-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.legend-name {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.legend-live-dot {
+  font-family: var(--font-mono);
+  font-size: 0.54rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--violet);
+}
+
+.legend-blurb {
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--text-dim);
+}
+
+
+/* ---------- phone control sheet ----------
+
+   The tempo controls (speed, pause, step, auto-deal, log, positions) live in
+   a sheet on a phone instead of in the bar. Slides up from the bottom edge,
+   where a thumb already is. */
+
+.overlay-sheet {
+  align-items: flex-end;
+  padding: 0;
+}
+
+.sheet {
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--hud-bg);
+  border-top: 1px solid var(--line);
+  border-radius: 1rem 1rem 0 0;
+  padding: 1rem 1rem max(1rem, env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  max-height: 80dvh;
+  overflow-y: auto;
+  animation: sheet-in 0.18s ease-out;
+}
+
+@keyframes sheet-in {
+  from {
+    transform: translateY(1.5rem);
+    opacity: 0;
+  }
+}
+
+.sheet-meta {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--text-faint);
+}
+
+.sheet-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+/* In the sheet there's room to make these real touch targets rather than
+   the compressed chips the top bar needs. */
+.sheet-controls .hud-btn {
+  flex: 1 1 7rem;
+  padding: 0.6rem 0.7rem;
+  font-size: 0.8rem;
+  text-align: center;
+  justify-content: center;
+}
+
+.sheet-controls .segmented {
+  flex: 1 1 100%;
+}
+
+.sheet-controls .segment {
+  flex: 1 1 0;
+  padding: 0.55rem 0.4rem;
+  font-size: 0.78rem;
+}
+
+/* ---------- hand potential (study aid) ----------
+
+   Deliberately short: it opens from the bottom edge and the board and pot
+   stay visible above it, so it can be read against the hand it describes
+   rather than instead of it. */
+
+.potential-made {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-3);
+}
+
+.potential-made-name {
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  color: var(--violet);
+}
+
+.potential-note {
+  margin: 0;
+  font-size: var(--fs-xs);
+  line-height: 1.5;
+  color: var(--text-dim);
+}
+
+.potential-rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+/* Best outcome first — the question being asked of this panel is "what can I
+   still make", and the answer people look for is at the top of the hand
+   rankings, not the bottom. */
+.potential-row {
+  display: grid;
+  grid-template-columns: 7.5rem 1fr 2.6rem;
+  align-items: center;
+  gap: var(--sp-3);
+}
+
+.potential-label {
+  font-size: var(--fs-xs);
+  color: var(--text-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.potential-track {
+  height: 0.4rem;
+  background: rgba(255, 255, 255, 0.07);
+  border-radius: var(--r-pill);
+  overflow: hidden;
+}
+
+.potential-fill {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--violet-deep), var(--violet));
+  border-radius: var(--r-pill);
+}
+
+.potential-value {
+  font-size: var(--fs-xs);
+  text-align: right;
+  color: var(--text);
+}
+
+.potential-foot {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
+  color: var(--text-faint);
+}
+
+@media (max-width: 400px) {
+  .potential-row {
+    grid-template-columns: 6.2rem 1fr 2.4rem;
+    gap: var(--sp-2);
+  }
+}
+
+/* The hand log, as a phone sheet. Taller than the control sheet because its
+   whole purpose is reading back a list. */
+.sheet-log {
+  max-height: 70dvh;
+}
+
+/* Section headings inside the phone control sheet: Tempo (how fast the table
+   moves) and View (what's on screen). Two groups is enough to stop it reading
+   as an undifferentiated pile of buttons. */
+.sheet-group {
+  flex: 1 1 100%;
+  margin: var(--sp-1) 0 0;
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
+  font-weight: 700;
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.sheet-group:first-child {
+  margin-top: 0;
+}

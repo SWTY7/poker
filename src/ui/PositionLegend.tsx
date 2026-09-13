@@ -55,7 +55,7 @@ export function PositionLegend({ onClose, inUse }: PositionLegendProps) {
       >
         <div className="dialog-head">
           <h2 className="dialog-title">Table positions</h2>
-          <button ref={closeRef} type="button" className="hud-btn" onClick={onClose}>
+          <button ref={closeRef} type="button" className="btn btn-sm btn-ghost" onClick={onClose}>
             Close
           </button>
         </div>

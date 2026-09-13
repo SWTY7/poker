@@ -1,0 +1,128 @@
+/* ==========================================================================
+   Design tokens
+   --------------------------------------------------------------------------
+   Every size, colour and radius in the app resolves to something here. The
+   rule for adding to this file: a token exists because more than one place
+   needs the same decision, not because a value appeared once.
+   ========================================================================== */
+
+:root {
+  color-scheme: dark;
+
+  /* --- colour -------------------------------------------------------------
+     Dark plum ground, violet as the single interactive accent, gold reserved
+     for chips and money, green/red only for won/lost. Nothing else gets to
+     use a hue — that is what keeps "this is interactive" and "this is money"
+     from competing. */
+  --bg: #0d0b13;
+  --felt: #17132a;
+  --felt-rim: #2e2748;
+
+  --surface: rgba(255, 255, 255, 0.035);
+  --surface-strong: rgba(255, 255, 255, 0.07);
+  --panel: #171426;
+  --hud-bg: #14111f;
+  --scrim: rgba(6, 4, 12, 0.72);
+
+  --line: #322c46;
+  --line-soft: #2c2740;
+
+  --text: #f3f0fa;
+  --text-dim: #a8a0be;
+  --text-faint: #857e9a;
+
+  --violet: #a98bf5;
+  --violet-mid: #8b6ef0;
+  --violet-deep: #6a4bc4;
+  --violet-tint: rgba(169, 139, 245, 0.14);
+
+  --gold: #d5ae57;
+  --green: #7ecf95;
+  --red: #ee7d99;
+  --red-deep: #6d3a4a;
+  --warn: #e6b970;
+
+  /* Focus ring. One value, used by every interactive element — a keyboard
+     user should never have to work out which widget invented its own. */
+  --focus: #cbb4ff;
+
+  /* --- type ---------------------------------------------------------------
+     Space Grotesk carries headings and card ranks; Space Mono carries every
+     number on the table (stacks, pot, bets) — tabular, so chip counts line up
+     instead of jittering as they change. Bebas Neue is the menu wordmark
+     only. */
+  --font-display: 'Space Grotesk', system-ui, sans-serif;
+  --font-mono: 'Space Mono', ui-monospace, monospace;
+  --font-wordmark: 'Bebas Neue', 'Space Grotesk', system-ui, sans-serif;
+
+  /* A 1.2-ish scale. Labels live at the bottom, the pot at the top. */
+  --fs-2xs: 0.58rem;
+  --fs-xs: 0.68rem;
+  --fs-sm: 0.78rem;
+  --fs-md: 0.88rem;
+  --fs-lg: 1.05rem;
+  --fs-xl: 1.3rem;
+  --fs-2xl: 1.7rem;
+  --fs-3xl: 2.2rem;
+
+  --track: 0.1em; /* letter-spacing for small uppercase labels */
+
+  /* --- space --------------------------------------------------------------
+     4px-ish steps at the 16px root, scaling with it. */
+  --sp-1: 0.25rem;
+  --sp-2: 0.4rem;
+  --sp-3: 0.6rem;
+  --sp-4: 0.85rem;
+  --sp-5: 1.15rem;
+  --sp-6: 1.6rem;
+  --sp-7: 2.2rem;
+
+  /* --- shape --------------------------------------------------------------- */
+  --r-sm: 0.4rem;
+  --r-md: 0.6rem;
+  --r-lg: 0.9rem;
+  --r-xl: 1.3rem;
+  --r-pill: 999px;
+
+  --sh-1: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --sh-2: 0 4px 14px rgba(0, 0, 0, 0.4);
+  --sh-3: 0 1.2rem 2.6rem rgba(0, 0, 0, 0.55);
+
+  /* --- motion -------------------------------------------------------------
+     Three speeds, no more. Anything that needs its own timing is probably a
+     decoration that shouldn't exist. */
+  --t-fast: 0.12s;
+  --t-mid: 0.22s;
+  --t-slow: 0.4s;
+  --ease: cubic-bezier(0.2, 0.7, 0.3, 1);
+
+  /* --- layout -------------------------------------------------------------- */
+  --feed-w: 16.75rem;
+  --dock-h: auto;
+
+  --table-bg:
+    radial-gradient(120% 50% at 50% 0%, oklch(0.27 0.025 300 / 0.3) 0%, transparent 50%),
+    radial-gradient(90% 70% at 50% 85%, oklch(0.21 0.028 295) 0%, oklch(0.14 0.016 285) 60%, oklch(0.1 0.012 285) 100%);
+}
+
+/* Every size below is expressed in rem off this root, so one clamp scales the
+   whole interface with the viewport. A fixed 16px root left the table looking
+   lost on a large monitor — correct in absolute terms, tiny relative to the
+   screen it had. Phones stay at the 16px floor. */
+html {
+  font-size: clamp(16px, 0.9vw + 9px, 26px);
+}
+
+/* Motion is feedback, never decoration, so removing it must never remove
+   information. Everything animated here also reads correctly as a static
+   end-state. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

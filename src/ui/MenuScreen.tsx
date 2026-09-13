@@ -90,6 +90,8 @@ export function MenuScreen({ onStart }: MenuScreenProps) {
         </div>
 
         <div className="menu-card">
+          <h2 className="menu-section">Table</h2>
+
           <div className="menu-field-row">
             <div className="menu-field-heading" style={{ marginBottom: 0 }}>
               <span className="menu-field-icon menu-field-icon-violet">
@@ -161,12 +163,17 @@ export function MenuScreen({ onStart }: MenuScreenProps) {
 
           <div className="menu-divider" />
 
+          <h2 className="menu-section">Stakes</h2>
+
           <div>
             <div className="menu-field-heading">
               <span className="menu-field-icon menu-field-icon-gold">
                 <CoinIcon />
               </span>
               <span className="menu-field-label">Starting stack</span>
+            </div>
+            <div className="menu-hint menu-hint-block">
+              What everyone buys in for. Bigger stacks mean deeper play and longer sessions.
             </div>
             <div className="menu-options">
               {STACK_OPTIONS.map((stack) => (
@@ -189,6 +196,11 @@ export function MenuScreen({ onStart }: MenuScreenProps) {
               </span>
               <span className="menu-field-label">Blinds</span>
             </div>
+            <div className="menu-hint menu-hint-block">
+              Forced bets posted before the cards, by the two seats left of the button. They are what makes a hand
+              worth playing for. Relative to a ${config.startingStack.toLocaleString()} stack, this is{' '}
+              {Math.round(config.startingStack / config.bigBlind)} big blinds deep.
+            </div>
             <div className="menu-options">
               {BLIND_OPTIONS.map((b) => (
                 <button
@@ -210,6 +222,10 @@ export function MenuScreen({ onStart }: MenuScreenProps) {
               </span>
               <span className="menu-field-label">Ante</span>
             </div>
+            <div className="menu-hint menu-hint-block">
+              An extra forced bet from every player, every hand. Builds bigger pots and gives everyone a reason to
+              enter them.
+            </div>
             <div className="menu-options">
               {ANTE_OPTIONS.map((ante) => (
                 <button
@@ -226,15 +242,19 @@ export function MenuScreen({ onStart }: MenuScreenProps) {
 
           <div className="menu-divider" />
 
+          <h2 className="menu-section">Study aids</h2>
+
           <div className="menu-field-row">
             <div className="menu-field-heading" style={{ marginBottom: 0 }}>
               <span className="menu-field-icon menu-field-icon-violet">
                 <PercentIcon />
               </span>
               <div>
-                <span className="menu-field-label">Hand odds</span>
+                <span className="menu-field-label">Hand potential</span>
                 <div className="menu-hint" style={{ marginLeft: 0, marginTop: '0.15rem' }}>
-                  Show the exact odds of ending up with each hand type as the board comes out.
+                  Adds a panel at the table showing the exact chance your hand finishes as each hand type, over every
+                  way the board could still come. It says nothing about your opponents’ cards, so it is not your
+                  chance of winning the pot.
                 </div>
               </div>
             </div>

@@ -1,0 +1,274 @@
+/* ==========================================================================
+   Base + primitives
+   --------------------------------------------------------------------------
+   Buttons, focus, and playing cards. These are the three things every screen
+   uses, so they are defined once here rather than re-invented per component.
+   ========================================================================== */
+
+/* --- focus ---------------------------------------------------------------
+   One ring, every control, always visible against the dark ground. Keyboard
+   only (:focus-visible) so a mouse click doesn't leave a ring behind. */
+:where(button, input, a, [tabindex]):focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: var(--r-sm);
+}
+
+/* --- buttons -------------------------------------------------------------
+   One shape, one type scale, four variants. Every button in the app is
+   `.btn` plus at most one variant; sizes come from `.btn-sm` / `.btn-lg`. */
+.btn {
+  --btn-bg: var(--surface);
+  --btn-border: var(--line);
+  --btn-fg: var(--text);
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+  min-height: 2.6rem;
+  padding: var(--sp-3) var(--sp-4);
+  box-sizing: border-box;
+
+  font-family: inherit;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  line-height: 1.15;
+  color: var(--btn-fg);
+
+  background: var(--btn-bg);
+  border: 1px solid var(--btn-border);
+  border-radius: var(--r-md);
+  cursor: pointer;
+
+  transition:
+    background var(--t-fast) var(--ease),
+    border-color var(--t-fast) var(--ease),
+    transform var(--t-fast) var(--ease),
+    opacity var(--t-fast) var(--ease);
+}
+
+@media (hover: hover) {
+  .btn:hover:not(:disabled) {
+    --btn-bg: var(--surface-strong);
+    --btn-border: var(--violet-deep);
+  }
+
+  .btn-primary:hover:not(:disabled) {
+    --btn-bg: var(--violet);
+  }
+
+  .btn-danger:hover:not(:disabled) {
+    --btn-bg: rgba(238, 125, 153, 0.18);
+    --btn-border: var(--red);
+  }
+}
+
+/* A real press, not a colour change — on a phone the finger is covering the
+   button, so the only feedback the player can see is the edge moving. */
+.btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  --btn-bg: var(--violet-mid);
+  --btn-border: var(--violet);
+  --btn-fg: #17122a;
+}
+
+
+.btn-secondary {
+  --btn-bg: var(--surface-strong);
+  --btn-border: var(--line);
+}
+
+.btn-danger {
+  --btn-bg: rgba(238, 125, 153, 0.1);
+  --btn-border: var(--red-deep);
+  --btn-fg: var(--red);
+}
+
+
+.btn-ghost {
+  --btn-bg: transparent;
+  --btn-border: var(--line-soft);
+  --btn-fg: var(--text-dim);
+}
+
+.btn-sm {
+  min-height: 2rem;
+  padding: var(--sp-2) var(--sp-3);
+  font-size: var(--fs-xs);
+}
+
+.btn-lg {
+  min-height: 3.1rem;
+  padding: var(--sp-3) var(--sp-5);
+  font-size: var(--fs-md);
+}
+
+/* Keyboard hint chips inside buttons. Hidden wherever there is no keyboard. */
+.btn kbd {
+  font-family: inherit;
+  font-size: var(--fs-2xs);
+  font-weight: 700;
+  opacity: 0.5;
+  border: 1px solid currentcolor;
+  border-radius: 0.2rem;
+  padding: 0 0.22rem;
+  line-height: 1.3;
+}
+
+@media (pointer: coarse) {
+  .btn kbd {
+    display: none;
+  }
+}
+
+/* --- small uppercase labels ---------------------------------------------
+   "TO CALL", "POT", "STACK" — the caption above a number. */
+.label {
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+/* --- money ---------------------------------------------------------------
+   Every chip figure in the app. Tabular so digits don't shuffle sideways as
+   a stack changes. */
+.money {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- playing cards -------------------------------------------------------
+   Three sizes, all the same object: sm on opponent seats, md on the board,
+   lg in the hero's hand. Rank top-left, suit bottom-right, high contrast —
+   nothing decorative, because the only job is being read instantly. */
+.card {
+  box-sizing: border-box;
+  border-radius: var(--r-sm);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-shrink: 0;
+  font-family: var(--font-display);
+}
+
+.card-face {
+  background: linear-gradient(170deg, #fffdf8, #ece7f3);
+  box-shadow: var(--sh-1);
+}
+
+.card-red {
+  color: #d2365c;
+}
+
+.card-black {
+  color: #171226;
+}
+
+.card-back {
+  background:
+    repeating-linear-gradient(45deg, rgba(169, 139, 245, 0.16) 0 3px, transparent 3px 6px),
+    linear-gradient(165deg, #3a2f5c, #241c3c);
+  border: 1px solid #4a3d72;
+  box-shadow: var(--sh-1);
+}
+
+/* An empty board slot: the shape of a card that hasn't been dealt yet. Keeps
+   the board five cards wide from the first street, so the flop/turn/river
+   reads as filling in rather than as the board jumping wider each time. */
+.card-slot {
+  border: 1px dashed var(--line);
+  background: rgba(255, 255, 255, 0.015);
+  box-shadow: none;
+}
+
+.card-rank {
+  font-weight: 700;
+  line-height: 1;
+}
+
+.card-suit {
+  align-self: flex-end;
+}
+
+.card-sm {
+  width: 1.7rem;
+  height: 2.35rem;
+  padding: 0.16rem 0.2rem;
+}
+
+.card-sm .card-rank {
+  font-size: 0.85rem;
+}
+
+.card-sm .card-suit {
+  width: 0.75rem;
+  height: 0.75rem;
+}
+
+.card-md {
+  width: 2.6rem;
+  height: 3.6rem;
+  padding: 0.24rem 0.3rem;
+}
+
+.card-md .card-rank {
+  font-size: 1.15rem;
+}
+
+.card-md .card-suit {
+  width: 1.05rem;
+  height: 1.05rem;
+}
+
+.card-lg {
+  width: 3.4rem;
+  height: 4.7rem;
+  padding: 0.32rem 0.4rem;
+  border-radius: var(--r-md);
+}
+
+.card-lg .card-rank {
+  font-size: 1.55rem;
+}
+
+.card-lg .card-suit {
+  width: 1.4rem;
+  height: 1.4rem;
+}
+
+/* Cards land rather than appear. Staggered by --i so a flop reads left to
+   right, which is the order a dealer actually turns them. */
+@keyframes card-land {
+  from {
+    opacity: 0;
+    transform: translateY(-0.5rem) scale(0.94);
+  }
+}
+
+.card-dealt {
+  animation: card-land var(--t-mid) var(--ease) backwards;
+  animation-delay: calc(var(--i, 0) * 90ms);
+}
+
+.app-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100dvh;
+  font-family: var(--font-display);
+  color: var(--text);
+  background: var(--bg);
+}
