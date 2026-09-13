@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { ActionType } from '../poker/game-state'
 import type { PreAction } from './useHoldemGame'
 
@@ -9,6 +9,10 @@ interface ControlsProps {
   maxRaiseTo: number
   /** Everything already in the middle, plus this street's bets. */
   potSize: number
+  /** The hero's remaining chips — used to tell a max-size raise apart from a shove. */
+  stack: number
+  /** True on a phone-width screen: the sizing panel replaces the buttons instead of sitting above them. */
+  compact: boolean
   onAction: (type: ActionType, amount?: number) => void
 }
 
@@ -17,10 +21,37 @@ function potFractionTarget(potSize: number, toCall: number, fraction: number): n
   return Math.round(toCall + (potSize + toCall) * fraction)
 }
 
-export function Controls({ legalActions, toCall, minRaiseTo, maxRaiseTo, potSize, onAction }: ControlsProps) {
+/**
+ * The action bar.
+ *
+ * Two rules shape it. First, it only ever shows actions that are legal right
+ * now — there is no greyed-out furniture to read past. Second, every button
+ * says what it will actually cost: "Call $50", "Raise to $150", never a bare
+ * "Bet" that leaves the player working out whether the number beside it is
+ * the amount added or the total wagered.
+ *
+ * On a phone the sizing panel (slider, presets, numeric entry) is a second
+ * step behind the Bet/Raise button rather than permanently occupying a third
+ * of the screen. That panel is only relevant once you have decided to put
+ * chips in; until then it is display competing with the table. On a wider
+ * screen there is room for both at once, so it stays inline.
+ */
+export function Controls({
+  legalActions,
+  toCall,
+  minRaiseTo,
+  maxRaiseTo,
+  potSize,
+  stack,
+  compact,
+  onAction,
+}: ControlsProps) {
   const canRaise = legalActions.includes('bet') || legalActions.includes('raise')
   const raiseType: ActionType = legalActions.includes('bet') ? 'bet' : 'raise'
+  const raiseVerb = raiseType === 'bet' ? 'Bet' : 'Raise to'
   const [amount, setAmount] = useState(minRaiseTo)
+  const [sizing, setSizing] = useState(false)
+  const amountRef = useRef<HTMLInputElement>(null)
 
   // Each new betting round should offer the minimum raise again rather than
   // whatever was dialled in last street. Adjusting during render (rather than
@@ -30,10 +61,12 @@ export function Controls({ legalActions, toCall, minRaiseTo, maxRaiseTo, potSize
   if (lastBounds !== bounds) {
     setLastBounds(bounds)
     setAmount(Math.min(minRaiseTo, maxRaiseTo))
+    setSizing(false)
   }
 
   const clamp = (value: number) => Math.min(Math.max(value, minRaiseTo), maxRaiseTo)
   const clampedAmount = clamp(amount)
+  const isShove = clampedAmount >= maxRaiseTo && maxRaiseTo >= stack
 
   // Keyboard is the difference between choosing an action and hunting for a
   // button before the table moves on.
@@ -70,6 +103,9 @@ export function Controls({ legalActions, toCall, minRaiseTo, maxRaiseTo, potSize
           break
         case '3':
           if (canRaise) setAmount(clamp(potFractionTarget(potSize, toCall, 1)))
+          break
+        case 'escape':
+          setSizing(false)
           break
         default:
           break
@@ -144,66 +180,145 @@ export function Controls({ legalActions, toCall, minRaiseTo, maxRaiseTo, potSize
 
   if (legalActions.length === 0) return null
 
-  return (
-    <div className="controls">
-      {canRaise && (
-        <div className="raise-controls">
-          <div className="raise-readout">
-            <span className="raise-readout-label">{raiseType === 'bet' ? 'Bet' : 'Raise'} to</span>
-            <span className="raise-readout-amount">${clampedAmount.toLocaleString()}</span>
-          </div>
+  const presets: { label: string; hint?: string; value: number }[] = [
+    { label: 'Min', value: minRaiseTo },
+    { label: '½ pot', hint: '1', value: potFractionTarget(potSize, toCall, 0.5) },
+    { label: '¾ pot', hint: '2', value: potFractionTarget(potSize, toCall, 0.75) },
+    { label: 'Pot', hint: '3', value: potFractionTarget(potSize, toCall, 1) },
+    { label: 'All-in', value: maxRaiseTo },
+  ]
+
+  const sizer = (
+    <div className="sizer">
+      <div className="sizer-readout">
+        <span className="label">{raiseVerb}</span>
+        <div className="sizer-amount">
+          <span className="sizer-currency" aria-hidden="true">
+            $
+          </span>
+          {/* Typing the number beats hunting for it on a slider whenever the
+              player already knows what they want to make it. */}
           <input
-            type="range"
+            ref={amountRef}
+            className="sizer-input money"
+            type="number"
+            inputMode="numeric"
             min={minRaiseTo}
             max={maxRaiseTo}
-            value={clampedAmount}
-            aria-label="Raise amount"
+            step={1}
+            value={amount}
+            aria-label={`${raiseVerb} amount in dollars`}
             onChange={(e) => setAmount(Number(e.target.value))}
+            onBlur={() => setAmount(clampedAmount)}
           />
-          <div className="raise-quick-buttons">
-            <button className="btn btn-quick" onClick={() => setAmount(minRaiseTo)}>
-              Min
-            </button>
-            <button className="btn btn-quick" onClick={() => setAmount(clamp(potFractionTarget(potSize, toCall, 0.5)))}>
-              ½ pot <kbd>1</kbd>
-            </button>
-            <button className="btn btn-quick" onClick={() => setAmount(clamp(potFractionTarget(potSize, toCall, 0.75)))}>
-              ¾ pot <kbd>2</kbd>
-            </button>
-            <button className="btn btn-quick" onClick={() => setAmount(clamp(potFractionTarget(potSize, toCall, 1)))}>
-              Pot <kbd>3</kbd>
-            </button>
-            <button className="btn btn-quick" onClick={() => setAmount(maxRaiseTo)}>
-              Max
-            </button>
-          </div>
         </div>
-      )}
+        {isShove && <span className="sizer-shove">Your whole stack</span>}
+      </div>
 
-      <div className="action-buttons">
+      <input
+        className="sizer-slider"
+        type="range"
+        min={minRaiseTo}
+        max={maxRaiseTo}
+        value={clampedAmount}
+        aria-label={`${raiseVerb} amount`}
+        aria-valuetext={`$${clampedAmount.toLocaleString()}`}
+        onChange={(e) => setAmount(Number(e.target.value))}
+      />
+
+      <div className="sizer-bounds" aria-hidden="true">
+        <span>min ${minRaiseTo.toLocaleString()}</span>
+        <span>max ${maxRaiseTo.toLocaleString()}</span>
+      </div>
+
+      <div className="sizer-presets">
+        {presets.map((preset) => {
+          const value = clamp(preset.value)
+          const active = value === clampedAmount
+          return (
+            <button
+              key={preset.label}
+              type="button"
+              className={`btn btn-sm btn-preset ${active ? 'btn-preset-on' : ''}`}
+              onClick={() => setAmount(value)}
+              aria-pressed={active}
+            >
+              {preset.label}
+              {preset.hint && <kbd>{preset.hint}</kbd>}
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+
+  const raiseLabel = isShove
+    ? `All-in $${clampedAmount.toLocaleString()}`
+    : `${raiseVerb} $${clampedAmount.toLocaleString()}`
+
+  // Phone, mid-raise: the sizing panel takes the dock over entirely, with one
+  // way forward and one way back. Nothing else competes for the thumb.
+  if (compact && sizing && canRaise) {
+    return (
+      <div className="dock dock-sizing">
+        {sizer}
+        <div className="dock-row">
+          <button type="button" className="btn btn-secondary dock-back" onClick={() => setSizing(false)}>
+            Back
+          </button>
+          <button
+            type="button"
+            className="btn btn-lg btn-primary dock-confirm"
+            onClick={() => onAction(raiseType, clampedAmount)}
+          >
+            {raiseLabel}
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="dock">
+      {!compact && canRaise && sizer}
+
+      <div className="dock-row">
         {legalActions.includes('fold') && (
-          <button className="btn btn-action btn-fold" onClick={() => onAction('fold')}>
+          <button type="button" className="btn btn-lg btn-danger dock-fold" onClick={() => onAction('fold')}>
             Fold <kbd>F</kbd>
           </button>
         )}
+
         {legalActions.includes('check') && (
-          <button className="btn btn-action btn-check" onClick={() => onAction('check')}>
+          <button type="button" className="btn btn-lg btn-primary dock-continue" onClick={() => onAction('check')}>
             Check <kbd>C</kbd>
           </button>
         )}
+
         {legalActions.includes('call') && (
-          <button className="btn btn-action btn-call" onClick={() => onAction('call')}>
+          <button type="button" className="btn btn-lg btn-primary dock-continue" onClick={() => onAction('call')}>
             Call ${toCall.toLocaleString()} <kbd>C</kbd>
           </button>
         )}
-        {canRaise && (
-          <button className="btn btn-action btn-raise" onClick={() => onAction(raiseType, clampedAmount)}>
-            {raiseType === 'bet' ? 'Bet' : 'Raise to'} ${clampedAmount.toLocaleString()} <kbd>R</kbd>
-          </button>
-        )}
+
+        {canRaise &&
+          (compact ? (
+            <button type="button" className="btn btn-lg btn-accent dock-raise" onClick={() => setSizing(true)}>
+              {raiseType === 'bet' ? 'Bet' : 'Raise'} <span aria-hidden="true">▸</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="btn btn-lg btn-accent dock-raise"
+              onClick={() => onAction(raiseType, clampedAmount)}
+            >
+              {raiseLabel} <kbd>R</kbd>
+            </button>
+          ))}
+
         {legalActions.includes('all-in') && !canRaise && (
-          <button className="btn btn-action btn-allin" onClick={() => onAction('all-in')}>
-            All-in <kbd>A</kbd>
+          <button type="button" className="btn btn-lg btn-accent dock-raise" onClick={() => onAction('all-in')}>
+            All-in ${stack.toLocaleString()} <kbd>A</kbd>
           </button>
         )}
       </div>
@@ -222,8 +337,8 @@ interface PreActionBarProps {
 }
 
 /**
- * Occupies the control bar whenever it is not the player's turn, so the bottom
- * of the screen never collapses and reflows. While an opponent is deciding it
+ * Occupies the dock whenever it is not the player's turn, so the bottom of
+ * the screen never collapses and reflows. While an opponent is deciding it
  * also offers pre-actions: committing a decision in advance turns dead time
  * into a choice the player is making, rather than time they sit through.
  */
@@ -231,21 +346,25 @@ export function PreActionBar({ toCall, value, onChange, waitingOn, dealing }: Pr
   const toggle = (next: PreAction) => onChange(value === next ? null : next)
 
   return (
-    <div className="controls controls-waiting">
-      <span className="waiting-label">
+    <div className="dock dock-waiting">
+      <span className="dock-status">
         {dealing ? 'Dealing…' : waitingOn ? `${waitingOn} is deciding…` : 'Waiting…'}
       </span>
       {!dealing && (
-        <div className="pre-actions">
+        <div className="dock-row dock-row-pre">
           <button
-            className={`btn btn-pre ${value === 'check-fold' ? 'btn-pre-on' : ''}`}
+            type="button"
+            className={`btn btn-sm ${value === 'check-fold' ? 'btn-preset-on' : ''}`}
             onClick={() => toggle('check-fold')}
+            aria-pressed={value === 'check-fold'}
           >
-            {toCall > 0 ? 'Fold' : 'Check / fold'}
+            {toCall > 0 ? 'Fold when it’s me' : 'Check / fold'}
           </button>
           <button
-            className={`btn btn-pre ${value === 'call-any' ? 'btn-pre-on' : ''}`}
+            type="button"
+            className={`btn btn-sm ${value === 'call-any' ? 'btn-preset-on' : ''}`}
             onClick={() => toggle('call-any')}
+            aria-pressed={value === 'call-any'}
           >
             Call any
           </button>
@@ -261,16 +380,16 @@ interface SpectatingBarProps {
 }
 
 /**
- * Takes over the control bar once nobody at the table has a decision left to
- * make this hand — folded, or all-in — but the hand itself is still being
- * played out. Without this the bottom of the screen simply went empty, which
- * reads as the game having stalled rather than as "nothing left to decide".
+ * Takes over the dock once nobody at the table has a decision left to make
+ * this hand — folded, or all-in — but the hand itself is still being played
+ * out. Without this the bottom of the screen simply went empty, which reads
+ * as the game having stalled rather than as "nothing left to decide".
  */
 export function SpectatingBar({ message, onSkip }: SpectatingBarProps) {
   return (
-    <div className="controls controls-waiting">
-      <span className="waiting-label">{message}</span>
-      <button className="btn btn-skip" onClick={onSkip}>
+    <div className="dock dock-waiting">
+      <span className="dock-status">{message}</span>
+      <button type="button" className="btn btn-secondary" onClick={onSkip}>
         Skip to end of hand
       </button>
     </div>
@@ -282,15 +401,15 @@ interface WaitingBarProps {
 }
 
 /**
- * A plain, button-less placeholder for the control bar. Used in pass-and-play
- * games while bots are deciding between two humans' turns — nobody is holding
- * the device on anyone's behalf then, so there is nothing to pre-arm and
- * nothing that should be shown, just a reason the screen is quiet.
+ * A plain, button-less placeholder for the dock. Used in pass-and-play games
+ * while bots are deciding between two humans' turns — nobody is holding the
+ * device on anyone's behalf then, so there is nothing to pre-arm and nothing
+ * that should be shown, just a reason the screen is quiet.
  */
 export function WaitingBar({ label }: WaitingBarProps) {
   return (
-    <div className="controls controls-waiting">
-      <span className="waiting-label">{label}</span>
+    <div className="dock dock-waiting">
+      <span className="dock-status">{label}</span>
     </div>
   )
 }
@@ -309,9 +428,9 @@ interface RevealGateProps {
  */
 export function RevealGate({ playerName, onReveal }: RevealGateProps) {
   return (
-    <div className="controls controls-waiting">
-      <span className="waiting-label">Pass the device to {playerName}</span>
-      <button className="btn btn-reveal" onClick={onReveal}>
+    <div className="dock dock-waiting">
+      <span className="dock-status">Pass the device to {playerName}</span>
+      <button type="button" className="btn btn-primary" onClick={onReveal}>
         I&rsquo;m {playerName} — show my hand
       </button>
     </div>

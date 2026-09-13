@@ -1,0 +1,304 @@
+/* ---------- menu screen ---------- */
+
+.menu-scene {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  overflow: hidden;
+  background: var(--table-bg);
+  font-family: var(--font-display);
+  color: var(--text);
+}
+
+.menu-watermark {
+  position: absolute;
+  opacity: 0.05;
+  pointer-events: none;
+}
+
+.menu-watermark-a {
+  width: 22rem;
+  height: 22rem;
+  left: -6rem;
+  top: -4rem;
+  color: var(--violet);
+  transform: rotate(-12deg);
+}
+
+.menu-watermark-b {
+  width: 20rem;
+  height: 20rem;
+  right: -5.5rem;
+  bottom: -5rem;
+  color: #d0425e;
+  transform: rotate(18deg);
+}
+
+.menu-content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.9rem;
+  width: 100%;
+}
+
+.menu-wordmark-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.menu-wordmark {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.menu-wordmark-glyph {
+  width: 0.9rem;
+  height: 0.9rem;
+  color: var(--gold);
+  opacity: 0.85;
+  flex-shrink: 0;
+}
+
+.menu-wordmark-text {
+  font-family: var(--font-wordmark);
+  font-size: clamp(2rem, 7vw, 3.1rem);
+  line-height: 1;
+  letter-spacing: 0.05em;
+  color: #f6f2fe;
+  text-align: center;
+}
+
+.menu-wordmark-accent {
+  color: var(--violet);
+}
+
+.menu-subtitle {
+  font-size: 0.85rem;
+  color: var(--text-dim);
+}
+
+.menu-card {
+  width: min(28rem, 100%);
+  box-sizing: border-box;
+  background: var(--surface);
+  backdrop-filter: blur(18px);
+  border: 1px solid var(--line);
+  border-radius: 1.2rem;
+  padding: 1.7rem 1.6rem;
+  box-shadow:
+    0 30px 70px rgba(0, 0, 0, 0.5),
+    0 1px 0 rgba(255, 255, 255, 0.05) inset;
+  display: flex;
+  flex-direction: column;
+  gap: 1.3rem;
+}
+
+.menu-divider {
+  height: 1px;
+  background: var(--line-soft);
+}
+
+.menu-field-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.menu-field-heading {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin-bottom: 0.7rem;
+}
+
+.menu-field-icon {
+  width: 1.85rem;
+  height: 1.85rem;
+  border-radius: 0.55rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.menu-field-icon svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.menu-field-icon-violet {
+  background: var(--violet-tint);
+  color: var(--violet);
+}
+
+.menu-field-icon-gold {
+  background: rgba(201, 162, 74, 0.14);
+  color: var(--gold);
+}
+
+.menu-field-label {
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.menu-hint {
+  font-size: 0.74rem;
+  color: var(--text-faint);
+  margin-top: 0.55rem;
+  margin-left: 2.5rem;
+}
+
+.menu-options {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.menu-option {
+  min-width: 0;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--text-dim);
+  border-radius: 0.6rem;
+  padding: 0.55rem 0.4rem;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.menu-option:hover {
+  border-color: var(--violet);
+  color: var(--text);
+}
+
+.menu-option-on {
+  background: var(--violet-tint);
+  border-color: var(--violet);
+  color: #c3adfa;
+  box-shadow: 0 0 0 1px rgba(169, 139, 245, 0.15) inset;
+}
+
+.menu-toggle {
+  flex-shrink: 0;
+  min-width: 3.6rem;
+  padding: 0.5rem 0.9rem;
+}
+
+.stepper {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.stepper-btn {
+  width: 2.1rem;
+  height: 2.1rem;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--text-dim);
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.stepper-btn:hover:not(:disabled) {
+  border-color: var(--violet);
+  color: var(--text);
+}
+
+.stepper-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.stepper-value {
+  min-width: 1.4rem;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.menu-start {
+  margin-top: 0.2rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  background: linear-gradient(180deg, #b79cf7 0%, #8b6ef0 45%, #6a4bc4 100%);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.35) inset,
+    0 14px 32px rgba(107, 79, 196, 0.4);
+  color: #150f26;
+  padding: 0.85rem 1rem;
+  font-size: 0.95rem;
+  border-radius: 0.8rem;
+}
+
+.menu-start-icon {
+  width: 1.05rem;
+  height: 1.05rem;
+}
+
+
+/* Section headings. The setup screen had eight controls in one undifferentiated
+   column; grouping them into Table / Stakes / Study aids means a player looking
+   for the blinds can skip two thirds of the list. */
+.menu-section {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
+  font-weight: 700;
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+  color: var(--violet);
+}
+
+/* An explanation under a setting, rather than an unexplained row of buttons.
+   Every control on this screen changes how a session plays; saying how is
+   cheaper than making the player find out by starting one. */
+.menu-hint-block {
+  margin-left: 0;
+  margin-top: -0.25rem;
+  margin-bottom: 0.5rem;
+}
+
+/* At 375px the blind options ("$100/$200") were being ellipsised down to
+   "$100/…", which defeats the point of showing the stakes. Smaller type in a
+   narrower gutter fits them whole. */
+@media (max-width: 430px) {
+  .menu-options {
+    gap: 0.35rem;
+  }
+
+  .menu-option {
+    padding: 0.55rem 0.2rem;
+    font-size: 0.62rem;
+  }
+
+  .menu-toggle {
+    font-size: 0.72rem;
+    padding-left: 0.6rem;
+    padding-right: 0.6rem;
+  }
+}

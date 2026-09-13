@@ -5,15 +5,17 @@ import { committedPot, streetBetTotal, totalPot } from '../poker/pot'
 import { positionLabels } from '../poker/position'
 import { cardToString } from '../poker/card'
 import { estimateHandOdds } from '../poker/equity'
+import { currentHandName } from '../poker/hand-name'
 import { Seat } from './Seat'
-import { HeroBar } from './HeroBar'
-import { PotDisplay } from './PotDisplay'
-import { HandOddsPanel } from './HandOddsPanel'
+import { HeroZone } from './HeroZone'
+import { Board } from './Board'
+import { HandPotential } from './HandPotential'
 import { Controls, PreActionBar, SpectatingBar, WaitingBar, RevealGate } from './Controls'
 import { HandFeed } from './HandFeed'
 import { TableHud } from './TableHud'
 import { PositionLegend } from './PositionLegend'
 import { LeaveDialog } from './LeaveDialog'
+import { useMediaQuery } from './useMediaQuery'
 import type { PreAction, Speed } from './useHoldemGame'
 
 interface TableProps {
@@ -43,6 +45,8 @@ interface TableProps {
   onExit: () => void
   showHandOdds: boolean
   startingStack: number
+  /** False once fewer than two players still have chips — the table is finished. */
+  canStartHand: boolean
 }
 
 const STREET_BANNER: Record<string, string> = {
@@ -79,6 +83,29 @@ function lastActionThisStreet(log: HandLogEntry[], playerId: string, street: str
   return undefined
 }
 
+/** One line of plain English for the screen-reader live region. */
+function announce(log: HandLogEntry[], isHumanTurn: boolean, toCall: number): string {
+  if (isHumanTurn) return toCall > 0 ? `Your turn. $${toCall.toLocaleString()} to call.` : 'Your turn. You can check.'
+  const last = log[log.length - 1]
+  if (!last) return ''
+  if (last.kind === 'result') return last.message ?? ''
+  if (last.kind === 'deal') return `${last.street}: ${last.cards?.map(cardToString).join(', ')}`
+  if (last.kind !== 'action') return ''
+  const verb =
+    last.actionType === 'fold'
+      ? 'folds'
+      : last.actionType === 'check'
+        ? 'checks'
+        : last.actionType === 'call'
+          ? `calls $${last.amount?.toLocaleString()}`
+          : last.actionType === 'bet'
+            ? `bets $${last.toAmount?.toLocaleString()}`
+            : last.actionType === 'raise'
+              ? `raises to $${last.toAmount?.toLocaleString()}`
+              : 'is all-in'
+  return `${last.playerName} ${verb}`
+}
+
 export function Table({
   state,
   humanIds,
@@ -106,16 +133,28 @@ export function Table({
   onExit,
   showHandOdds,
   startingStack,
+  canStartHand,
 }: TableProps) {
+  /**
+   * "Compact" is about how much room the dock may take, so it is a question
+   * of height as much as width. A landscape phone is 844px wide and 390px
+   * tall: wide enough to have matched the desktop rules, and far too short to
+   * afford the inline bet sizer, which pushed the pot off the table. Either
+   * constraint puts bet sizing behind the Raise button instead.
+   */
+  const compact = useMediaQuery('(max-width: 820px), (max-height: 620px)')
+
   const activePlayer = state.players.find((p) => p.id === activeHumanId)
   const currentPlayer = state.handInProgress ? state.players[state.currentPlayerIndex] : undefined
   const positions = positionLabels(state)
   const dealerId = state.players[state.dealerIndex]?.id
-  // Every seat renders in the opponent strip except whichever human is
-  // currently revealed — that one gets the fixed hero zone at the bottom,
-  // large cards and all, regardless of where they'd sit around a real table.
-  // In pass-and-play, between two humans' turns nobody is revealed, so
-  // everyone (humans included) shows up as a plain opponent tile.
+  const smallBlindId = state.players[state.smallBlindIndex]?.id
+  const bigBlindId = state.players[state.bigBlindIndex]?.id
+  // Every seat renders in the seat row except whichever human is currently
+  // revealed — that one gets the fixed hero zone at the bottom, large cards
+  // and all, regardless of where they'd sit around a real table. In
+  // pass-and-play, between two humans' turns nobody is revealed, so everyone
+  // (humans included) shows up as a plain seat.
   const opponents = state.players.filter((p) => p.id !== activeHumanId)
 
   // The hand log is opt-in — most players only want the table itself in
@@ -123,6 +162,7 @@ export function Table({
   const [showLog, setShowLog] = useState(false)
   const [showPositions, setShowPositions] = useState(false)
   const [showLeave, setShowLeave] = useState(false)
+  const [showPotential, setShowPotential] = useState(false)
 
   // Keyed by the actual cards rather than object identity — the GameState
   // reference changes on every action (including opponents' actions that
@@ -139,6 +179,12 @@ export function Table({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showHandOdds, holeKey, boardKey])
 
+  const madeHand = useMemo(() => {
+    if (!activePlayer || activePlayer.holeCards.length < 2) return null
+    return currentHandName(activePlayer.holeCards, state.communityCards)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [holeKey, boardKey])
+
   // At showdown the engine has already swept the bets into `pots`; before that
   // the middle holds only what earlier streets contributed.
   const settled = state.pots.length > 0
@@ -146,15 +192,24 @@ export function Table({
   const inPlay = settled ? 0 : streetBetTotal(state.players)
   const potForSizing = totalPot(state.players)
 
-  const heroLegalActions =
-    activePlayer && isHumanTurn ? getLegalActions(state, activePlayer.id) : []
+  const heroLegalActions = activePlayer && isHumanTurn ? getLegalActions(state, activePlayer.id) : []
   const revealAll = state.street === 'showdown'
   const lastResult = !state.handInProgress && state.lastResults.length > 0 ? state.lastResults : null
   const winnerIds = new Set(lastResult?.flatMap((r) => r.winnerIds) ?? [])
 
   const soleNet = isSolo && humanIds[0] !== undefined ? (session.netByPlayer[humanIds[0]] ?? 0) : null
 
-
+  /**
+   * The winning hand by name — "Kings full of fours", not "full-house". The
+   * engine records the category only, but at showdown every winner's cards
+   * are known, so the table can say what a dealer would say.
+   */
+  const nameWinningHand = (winnerId: string, fallback?: string): string | undefined => {
+    const winner = state.players.find((p) => p.id === winnerId)
+    if (!winner || winner.holeCards.length < 2) return fallback?.replace(/-/g, ' ')
+    return currentHandName(winner.holeCards, state.communityCards) ?? fallback?.replace(/-/g, ' ')
+  }
+  const heroToCall = activePlayer ? Math.max(state.currentBet - activePlayer.betThisStreet, 0) : 0
 
   // Space deals the next hand; P pauses; S single-steps.
   useEffect(() => {
@@ -163,7 +218,7 @@ export function Table({
       const target = event.target as HTMLElement | null
       if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) return
 
-      if (event.key === ' ' && lastResult) {
+      if (event.key === ' ' && lastResult && canStartHand) {
         event.preventDefault()
         onNextHand()
       } else if (event.key.toLowerCase() === 'p') {
@@ -174,7 +229,7 @@ export function Table({
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [lastResult, onNextHand, onSetPaused, onStep, paused])
+  }, [lastResult, canStartHand, onNextHand, onSetPaused, onStep, paused])
 
   return (
     <div className="table-scene">
@@ -200,8 +255,13 @@ export function Table({
 
       <div className="table-body">
         <div className="table-main">
-          <div className="board-scene">
-            <div className="opponent-strip">
+          {/* The felt is a real object, not a background: everything that
+              belongs to the table — the seats around it and the board in the
+              middle — lives inside this one bounded surface, which is what
+              makes it read as the centre of the screen rather than as another
+              row of panels. */}
+          <section className="felt" aria-label="Table">
+            <div className="felt-seats" data-count={opponents.length}>
               {opponents.map((player) => (
                 <Seat
                   key={player.id}
@@ -212,8 +272,13 @@ export function Table({
                   isAllIn={player.isAllIn}
                   isEliminated={player.isEliminated}
                   isDealer={player.id === dealerId}
+                  isSmallBlind={player.id === smallBlindId}
+                  isBigBlind={player.id === bigBlindId}
                   isCurrentTurn={state.handInProgress && player.id === currentPlayer?.id && !paused}
                   isWinner={winnerIds.has(player.id)}
+                  // Once a hand has been decided, everyone who didn't win it
+                  // steps back so the seat that did is the one you see.
+                  hasLost={Boolean(lastResult) && !winnerIds.has(player.id)}
                   position={positions.get(player.id)}
                   lastAction={lastActionThisStreet(state.handLog, player.id, state.street)}
                   cards={revealAll ? player.holeCards : []}
@@ -222,9 +287,12 @@ export function Table({
               ))}
             </div>
 
-            <PotDisplay potSize={middlePot} inPlay={inPlay} communityCards={state.communityCards} />
-
-            {handOdds && <HandOddsPanel odds={handOdds} />}
+            <Board
+              communityCards={state.communityCards}
+              potSize={middlePot}
+              inPlay={inPlay}
+              street={state.street}
+            />
 
             {dealingStreet && STREET_BANNER[dealingStreet] && (
               <div className="street-banner" key={dealingStreet}>
@@ -233,48 +301,76 @@ export function Table({
             )}
 
             {paused && <div className="paused-badge">Paused — S to step, P to resume</div>}
-          </div>
+          </section>
 
-          {activePlayer &&
-            (() => {
-              const heroToCall = Math.max(state.currentBet - activePlayer.betThisStreet, 0)
-              return (
-                <HeroBar
-                  name={activePlayer.name}
-                  stack={activePlayer.stack}
-                  cards={activePlayer.holeCards}
-                  position={positions.get(activePlayer.id)}
-                  isDealer={activePlayer.id === dealerId}
-                  toCall={heroToCall}
-                  potOdds={heroToCall > 0 ? heroToCall / (potForSizing + heroToCall) : null}
-                  folded={activePlayer.folded}
-                  isAllIn={activePlayer.isAllIn}
-                />
-              )
-            })()}
+          {activePlayer && (
+            <HeroZone
+              name={activePlayer.name}
+              stack={activePlayer.stack}
+              cards={activePlayer.holeCards}
+              position={positions.get(activePlayer.id)}
+              isDealer={activePlayer.id === dealerId}
+              toCall={heroToCall}
+              potOdds={heroToCall > 0 ? heroToCall / (potForSizing + heroToCall) : null}
+              folded={activePlayer.folded}
+              isAllIn={activePlayer.isAllIn}
+              isMyTurn={isHumanTurn}
+              madeHand={madeHand}
+              onShowPotential={handOdds ? () => setShowPotential(true) : undefined}
+              potentialOpen={showPotential}
+            />
+          )}
 
-          {lastResult && (
-            <div className="hand-result-banner">
-              {lastResult.map((r, i) => (
-                <div key={i} className="hand-result-line">
-                  {r.winnerIds.map((id) => state.players.find((p) => p.id === id)?.name).join(' & ')} won $
-                  {r.potAmount.toLocaleString()}
-                  {r.category ? ` with ${r.category.replace(/-/g, ' ')}` : ''}
+          {lastResult && !canStartHand ? (
+            /* Terminal state. Offering "Next hand" here used to throw — the
+               engine refuses to deal with fewer than two funded players — so
+               the button that could not work is replaced by the one that
+               can. */
+            <div className="dock dock-result dock-over">
+              <div className="result-lines">
+                <div className="result-line">
+                  <span className="result-winner">
+                    {(activePlayer?.stack ?? 0) > 0 ? 'You took the table' : 'You’re out of chips'}
+                  </span>
+                  <span className="result-how">
+                    {(activePlayer?.stack ?? 0) > 0
+                      ? 'Everyone else is busted — there’s no one left to deal to.'
+                      : 'That’s the session. Cash out to set up a new table.'}
+                  </span>
                 </div>
-              ))}
-              <button className="btn btn-next-hand" onClick={onNextHand}>
+              </div>
+              <button type="button" className="btn btn-lg btn-primary" onClick={() => setShowLeave(true)}>
+                Cash out
+              </button>
+            </div>
+          ) : lastResult ? (
+            <div className="dock dock-result">
+              <div className="result-lines">
+                {lastResult.map((r, i) => (
+                  <div key={i} className="result-line">
+                    <span className="result-winner">
+                      {r.winnerIds.map((id) => state.players.find((p) => p.id === id)?.name).join(' & ')}
+                    </span>
+                    <span className="result-amount money">+${r.potAmount.toLocaleString()}</span>
+                    {r.category && (
+                      <span className="result-how">{nameWinningHand(r.winnerIds[0], r.category)}</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <button type="button" className="btn btn-lg btn-primary" onClick={onNextHand}>
                 Next hand <kbd>Space</kbd>
               </button>
             </div>
-          )}
-
-          {isHumanTurn && activePlayer ? (
+          ) : isHumanTurn && activePlayer ? (
             <Controls
               legalActions={heroLegalActions}
-              toCall={state.currentBet - activePlayer.betThisStreet}
+              toCall={heroToCall}
               minRaiseTo={minRaiseTargetAmount(state)}
               maxRaiseTo={maxRaiseTargetAmount(state, activePlayer.id)}
               potSize={potForSizing}
+              stack={activePlayer.stack}
+              compact={compact}
               onAction={onAction}
             />
           ) : needsReveal && currentPlayer ? (
@@ -290,7 +386,7 @@ export function Table({
             />
           ) : isSolo && state.handInProgress ? (
             <PreActionBar
-              toCall={activePlayer ? state.currentBet - activePlayer.betThisStreet : 0}
+              toCall={heroToCall}
               value={preAction}
               onChange={onSetPreAction}
               waitingOn={waitingOn}
@@ -301,11 +397,46 @@ export function Table({
           ) : null}
         </div>
 
-        {showLog && <HandFeed log={state.handLog} activeId={activeHumanId} />}
+        {/* On a wide screen the log is a side panel beside the table. On a
+            phone there is no "beside", and stacking it under the table put it
+            below the action dock — off the bottom of the screen, under the
+            one thing that must always be reachable. So it becomes a sheet,
+            like every other secondary surface on a phone. */}
+        {showLog && !compact && <HandFeed log={state.handLog} activeId={activeHumanId} />}
+      </div>
+
+      {showLog && compact && (
+        <div className="overlay overlay-sheet" onClick={() => setShowLog(false)}>
+          <div
+            className="sheet sheet-log"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Hand log"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="dialog-head">
+              <h2 className="dialog-title">This hand</h2>
+              <button type="button" className="btn btn-sm btn-ghost" onClick={() => setShowLog(false)}>
+                Done
+              </button>
+            </div>
+            <HandFeed log={state.handLog} activeId={activeHumanId} />
+          </div>
+        </div>
+      )}
+
+      {/* Everything the table does, in one sentence, for anyone who can't see
+          the seats light up. */}
+      <div className="sr-only" role="status" aria-live="polite">
+        {announce(state.handLog, isHumanTurn, heroToCall)}
       </div>
 
       {showPositions && (
         <PositionLegend inUse={new Set(positions.values())} onClose={() => setShowPositions(false)} />
+      )}
+
+      {showPotential && handOdds && (
+        <HandPotential odds={handOdds} madeHand={madeHand} onClose={() => setShowPotential(false)} />
       )}
 
       {showLeave && (

@@ -65,9 +65,11 @@ function TempoControls({
   showLog,
   onToggleLog,
   onShowPositions,
-}: TempoProps) {
+  grouped = false,
+}: TempoProps & { grouped?: boolean }) {
   return (
     <>
+      {grouped && <h3 className="sheet-group">Tempo</h3>}
       <div className="segmented">
         {SPEEDS.map((s) => (
           <button key={s} type="button" className={`segment ${speed === s ? 'segment-on' : ''}`} onClick={() => onSpeed(s)}>
@@ -76,25 +78,27 @@ function TempoControls({
         ))}
       </div>
 
-      <button type="button" className="hud-btn" onClick={onTogglePause} title="Pause the table (P)">
+      <button type="button" className="btn hud-btn" onClick={onTogglePause} title="Pause the table (P)">
         {paused ? 'Resume' : 'Pause'}
       </button>
-      <button type="button" className="hud-btn" onClick={onStep} disabled={!paused} title="Play exactly one opponent action (S)">
+      <button type="button" className="btn hud-btn" onClick={onStep} disabled={!paused} title="Play exactly one opponent action (S)">
         Step
       </button>
 
       <button
         type="button"
-        className={`hud-btn ${autoNextHand ? 'hud-btn-on' : ''}`}
+        className={`btn hud-btn ${autoNextHand ? 'hud-btn-on' : ''}`}
         onClick={onToggleAutoNextHand}
         title="Deal the next hand without waiting for you"
       >
         Auto-deal
       </button>
 
+      {grouped && <h3 className="sheet-group">View</h3>}
+
       <button
         type="button"
-        className={`hud-btn ${showLog ? 'hud-btn-on' : ''}`}
+        className={`btn hud-btn ${showLog ? 'hud-btn-on' : ''}`}
         onClick={onToggleLog}
         title="Show the running hand log"
       >
@@ -103,7 +107,7 @@ function TempoControls({
 
       <button
         type="button"
-        className="hud-btn"
+        className="btn hud-btn"
         onClick={onShowPositions}
         title="What do BTN, SB, BB, UTG… mean?"
       >
@@ -161,11 +165,11 @@ export function TableHud({
   return (
     <div className="hud">
       <div className="hud-group">
-        <button type="button" className="hud-btn" onClick={onExit} title="Cash out and leave this table">
+        <button type="button" className="btn hud-btn" onClick={onExit} title="Cash out and leave this table">
           Leave
         </button>
         <span className="hud-sep" />
-        <span className="hud-strong">Hand {handNumber}</span>
+        <span className="hud-hand">Hand {handNumber}</span>
         <span className="hud-sep" />
         <span className="hud-dim">
           ${smallBlind} / ${bigBlind}
@@ -195,7 +199,7 @@ export function TableHud({
         {compact ? (
           <button
             type="button"
-            className={`hud-btn hud-btn-icon ${sheetOpen ? 'hud-btn-on' : ''}`}
+            className={`btn hud-btn hud-btn-icon ${sheetOpen ? 'hud-btn-on' : ''}`}
             onClick={() => setSheetOpen(true)}
             aria-label="Table controls"
             aria-expanded={sheetOpen}
@@ -212,7 +216,7 @@ export function TableHud({
           <div className="sheet" role="dialog" aria-modal="true" aria-label="Table controls" onClick={(e) => e.stopPropagation()}>
             <div className="dialog-head">
               <h2 className="dialog-title">Table</h2>
-              <button type="button" className="hud-btn" onClick={() => setSheetOpen(false)}>
+              <button type="button" className="btn hud-btn" onClick={() => setSheetOpen(false)}>
                 Done
               </button>
             </div>
@@ -226,6 +230,7 @@ export function TableHud({
             <div className="sheet-controls">
               <TempoControls
                 {...tempo}
+                grouped
                 onToggleLog={() => {
                   setSheetOpen(false)
                   tempo.onToggleLog()
