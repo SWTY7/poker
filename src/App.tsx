@@ -44,6 +44,7 @@ function GameScreen({ config, onExit }: GameScreenProps) {
       onNextHand={game.startHand}
       onExit={onExit}
       showHandOdds={config.showHandOdds}
+      startingStack={config.startingStack}
     />
   )
 }

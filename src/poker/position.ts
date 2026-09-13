@@ -14,6 +14,26 @@ export type PositionLabel =
   | 'CO'
 
 /**
+ * Long names for the abbreviations, for tooltips on the seat tags. The full
+ * explanation of what each seat means lives in PositionLegend.tsx; this is
+ * only the expansion, so a player who forgets what "CO" stands for doesn't
+ * have to open anything.
+ */
+export const POSITION_NAMES: Record<PositionLabel, string> = {
+  BTN: 'Button (dealer) — acts last after the flop',
+  SB: 'Small blind — posts half a bet, acts first after the flop',
+  BB: 'Big blind — posts the full bet, acts last before the flop',
+  UTG: 'Under the gun — first to act before the flop',
+  'UTG+1': 'One seat after under the gun',
+  'UTG+2': 'Two seats after under the gun',
+  MP: 'Middle position',
+  'MP+1': 'Middle position, one seat later',
+  'MP+2': 'Middle position, two seats later',
+  HJ: 'Hijack — two seats right of the button',
+  CO: 'Cutoff — one seat right of the button',
+}
+
+/**
  * Names for the seats between the big blind and the button, in the order they
  * act preflop, indexed by how many such seats there are.
  *

@@ -33,6 +33,11 @@
   --font-mono: 'Space Mono', ui-monospace, monospace;
   --font-wordmark: 'Bebas Neue', 'Space Grotesk', system-ui, sans-serif;
 
+  /* Opaque backdrop for the bars that overlay the felt (HUD, dialogs).
+     Matches the top of --table-bg rather than being a translucent wash. */
+  --hud-bg: #171426;
+  --scrim: rgba(6, 4, 12, 0.72);
+
   --feed-w: 16.75rem;
   --table-bg:
     radial-gradient(110% 45% at 50% 0%, oklch(0.27 0.025 300 / 0.28) 0%, transparent 45%),
@@ -52,12 +57,19 @@
 .table-scene {
   position: relative;
   width: 100%;
+  /* 100dvh (not 100vh) so the table is sized to what is actually visible on
+     a phone: iOS Safari's URL bar and tab bar slide in and out, and 100vh
+     measures the *largest* possible viewport, which puts the bottom of the
+     layout underneath the browser chrome. */
   height: 100vh;
   height: 100dvh;
   display: flex;
   flex-direction: column;
   background: var(--table-bg);
   overflow: hidden;
+  /* No page-level rubber-band on iOS — the only thing that should ever
+     scroll is the board area, which opts back in below. */
+  overscroll-behavior: none;
   font-family: var(--font-display);
   font-weight: 500;
   color: var(--text);
@@ -344,8 +356,14 @@
   gap: 0.75rem;
   flex-wrap: nowrap;
   border-bottom: 1px solid var(--line-soft);
-  background: rgba(255, 255, 255, 0.02);
-  z-index: 6;
+  /* Opaque, not a 2%-white wash. The HUD sits above the board area, and a
+     see-through bar meant that anything the board couldn't fit showed
+     straight through it — the seats appeared to be printed on top of the
+     Menu/Hand/blinds row. */
+  background: var(--hud-bg);
+  position: relative;
+  z-index: 20;
+  padding-top: max(0.5rem, env(safe-area-inset-top));
 }
 
 .hud-group {
@@ -361,8 +379,11 @@
 /* The controls group is the one that can genuinely run out of room (speed
    toggle, pause, step, auto-deal, log) — it scrolls horizontally rather
    than wrapping or being cut off. */
+/* The controls keep their size; it's the street stepper in the middle that
+   gives way on a narrow window. Letting this group shrink instead sliced the
+   first speed segment in half. */
 .hud-controls {
-  flex-shrink: 1;
+  flex-shrink: 0;
   min-width: 0;
   overflow-x: auto;
   scrollbar-width: none;
@@ -429,7 +450,16 @@
   border-color: var(--violet);
 }
 
+.hud-btn-icon {
+  min-width: 1.85rem;
+  padding-left: 0;
+  padding-right: 0;
+  text-align: center;
+  font-weight: 700;
+}
+
 .segmented {
+  flex-shrink: 0;
   display: flex;
   border: 1px solid var(--line);
   border-radius: 0.3rem;
@@ -454,6 +484,9 @@
 }
 
 .street-stepper {
+  flex-shrink: 1;
+  min-width: 0;
+  overflow: hidden;
   display: flex;
   align-items: center;
   gap: 0.85rem;
@@ -504,7 +537,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
-  padding: 0.8rem 1rem 1rem;
+  padding: 0.8rem 1rem max(1rem, env(safe-area-inset-bottom));
   box-sizing: border-box;
 }
 
@@ -514,10 +547,32 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  /* `safe` is what keeps the table off the HUD. A plain centred flex column
+     whose content is taller than the box overflows equally out of BOTH ends,
+     so on a short screen the seats slid up under the HUD and the odds panel
+     slid down over the hero's cards. `safe center` centres only while the
+     content fits and falls back to start-alignment the moment it doesn't, so
+     the overflow only ever goes one way — downwards, where it can be
+     scrolled to. */
+  align-items: safe center;
+  justify-content: safe center;
+  /* ...and that overflow is reachable instead of being clipped away. */
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
   gap: 1.3rem;
   padding: 1rem 0;
+}
+
+/* A hairline scrollbar, so the board can scroll without a chunky track
+   cutting into the felt. */
+.board-scene::-webkit-scrollbar {
+  width: 4px;
+}
+
+.board-scene::-webkit-scrollbar-thumb {
+  background: var(--line);
+  border-radius: 2px;
 }
 
 .opponent-strip {
@@ -612,11 +667,66 @@
   gap: 0.4rem;
 }
 
+.hand-odds-header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  background: none;
+  border: 0;
+  padding: 0;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
 .hand-odds-title {
   font-size: 0.62rem;
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--text-faint);
+  flex-shrink: 0;
+}
+
+/* Collapsed state: the three likeliest outcomes, inline, in the same row as
+   the title — enough to read mid-hand without the panel eating the board. */
+.hand-odds-summary {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  justify-content: flex-end;
+}
+
+.hand-odds-chip {
+  font-family: var(--font-mono);
+  font-size: 0.64rem;
+  white-space: nowrap;
+  color: var(--text-dim);
+  background: var(--surface);
+  border: 1px solid var(--line-soft);
+  border-radius: 0.4rem;
+  padding: 0.1rem 0.35rem;
+}
+
+/* One of these two is displayed at a time — see the width rules further
+   down. "Your hand odds" is the honest label, but at phone widths the
+   collapsed row has to share its line with the percentages. */
+.hand-odds-title-short {
+  display: none;
+}
+
+.hand-odds-chip:first-child {
+  color: var(--violet);
+  border-color: var(--violet-deep);
+}
+
+.hand-odds-caret {
+  flex-shrink: 0;
+  color: var(--text-faint);
+  font-size: 0.7rem;
 }
 
 .hand-odds-rows {
@@ -1485,5 +1595,535 @@
 
   .menu-hint {
     margin-left: 0;
+  }
+}
+
+
+/* ---------- overlays: leave/cash-out + the position legend ---------- */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: max(1rem, env(safe-area-inset-top)) 1rem max(1rem, env(safe-area-inset-bottom));
+  box-sizing: border-box;
+  background: var(--scrim);
+  backdrop-filter: blur(3px);
+  animation: overlay-in 0.14s ease-out;
+}
+
+@keyframes overlay-in {
+  from {
+    opacity: 0;
+  }
+}
+
+.dialog {
+  width: min(24rem, 100%);
+  max-height: 100%;
+  overflow-y: auto;
+  box-sizing: border-box;
+  background: var(--hud-bg);
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  padding: 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  box-shadow: 0 1.5rem 3rem rgba(0, 0, 0, 0.55);
+}
+
+.dialog-wide {
+  width: min(34rem, 100%);
+}
+
+.dialog-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.dialog-title {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.dialog-lede,
+.dialog-foot {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.55;
+  color: var(--text-dim);
+}
+
+.dialog-foot {
+  border-top: 1px solid var(--line-soft);
+  padding-top: 0.8rem;
+  color: var(--text-faint);
+}
+
+.dialog-warn {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.55;
+  color: var(--text-dim);
+  background: rgba(238, 125, 153, 0.08);
+  border: 1px solid var(--red-deep);
+  border-radius: 0.6rem;
+  padding: 0.7rem 0.8rem;
+}
+
+.dialog-actions {
+  display: flex;
+  gap: 0.6rem;
+}
+
+.dialog-actions .btn {
+  flex: 1 1 0;
+}
+
+.btn-secondary {
+  background: var(--surface-strong);
+  border-color: var(--line);
+}
+
+.btn-primary {
+  background: var(--violet-mid);
+  border-color: var(--violet);
+  color: #17122a;
+}
+
+/* ---------- cash-out summary ---------- */
+
+.cashout-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.7rem;
+}
+
+.cashout-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  background: var(--surface);
+  border: 1px solid var(--line-soft);
+  border-radius: 0.6rem;
+  padding: 0.55rem 0.7rem;
+}
+
+.cashout-label {
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.cashout-value {
+  font-family: var(--font-mono);
+  font-size: 1.05rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.cashout-up {
+  color: var(--green);
+}
+
+.cashout-down {
+  color: var(--red);
+}
+
+/* ---------- position legend ---------- */
+
+.legend-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.legend-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+}
+
+.legend-tag,
+.legend-tag-inline {
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+  background: var(--surface);
+  border: 1px solid var(--line-soft);
+  border-radius: 0.35rem;
+  padding: 0.2rem 0.35rem;
+}
+
+.legend-tag {
+  flex-shrink: 0;
+  min-width: 2.6rem;
+  text-align: center;
+}
+
+.legend-row-live .legend-tag {
+  color: var(--violet);
+  border-color: var(--violet-deep);
+  background: var(--violet-tint);
+}
+
+.legend-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.legend-name {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.legend-live-dot {
+  font-family: var(--font-mono);
+  font-size: 0.54rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--violet);
+}
+
+.legend-blurb {
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--text-dim);
+}
+
+/* ---------- phone compaction ----------
+
+   A six-handed table has to fit five opponent tiles, the board, the pot, the
+   hero's own cards and a full betting control stack into roughly 600px of
+   height. The rules below buy that space back: opponents collapse to a single
+   non-wrapping row of narrow tiles (two wrapped rows cost ~130px on their
+   own), and every remaining block loses a little padding and type size.
+   Anything that still doesn't fit scrolls inside .board-scene rather than
+   overflowing onto the bars above and below it. */
+
+@media (max-width: 820px) {
+  .opponent-strip {
+    flex-wrap: nowrap;
+    width: 100%;
+    gap: 0.28rem;
+  }
+
+  .seat {
+    /* Equal shares of one row instead of a fixed width, so 2 opponents and 8
+       opponents both fill the strip without wrapping. */
+    width: auto;
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 0.35rem 0.28rem 0.4rem;
+    gap: 0.2rem;
+    border-radius: 0.55rem;
+  }
+
+  /* Avatar above the name rather than beside it — at ~70px per tile there
+     isn't room for both on one line. */
+  .seat-head {
+    flex-direction: column;
+    gap: 0.18rem;
+  }
+
+  .seat-avatar {
+    width: 1.35rem;
+    height: 1.35rem;
+    font-size: 0.55rem;
+  }
+
+  .seat-id {
+    align-items: center;
+    width: 100%;
+  }
+
+  .seat-name {
+    font-size: 0.62rem;
+    max-width: 100%;
+  }
+
+  .seat-position {
+    font-size: 0.5rem;
+    gap: 0.2rem;
+  }
+
+  .seat-dealer-disc {
+    width: 0.8rem;
+    height: 0.8rem;
+    font-size: 0.46rem;
+  }
+
+  .seat-foot {
+    flex-direction: column;
+    align-items: center;
+    gap: 0.05rem;
+  }
+
+  .seat-stack {
+    font-size: 0.66rem;
+  }
+
+  .seat-status,
+  .seat-bet {
+    font-size: 0.5rem;
+  }
+
+  .seat-cards {
+    justify-content: center;
+  }
+
+  .board-scene {
+    gap: 0.55rem;
+    padding: 0.3rem 0;
+  }
+
+  .pot-display {
+    gap: 0.4rem;
+  }
+
+  .pot-amount {
+    font-size: 1.2rem;
+  }
+
+  .board-street {
+    gap: 0.45rem;
+  }
+
+  .board-street-label {
+    font-size: 0.58rem;
+  }
+
+  .hand-odds {
+    padding: 0.5rem 0.6rem;
+    gap: 0.3rem;
+    border-radius: 0.6rem;
+  }
+
+  .hand-odds-row {
+    grid-template-columns: 6.4rem 1fr 2rem;
+  }
+
+  .hand-odds-label,
+  .hand-odds-value {
+    font-size: 0.72rem;
+  }
+
+  /* Full width, short title, two chips — enough that nothing in the
+     collapsed row gets cut off at 360px. */
+  .hand-odds {
+    width: 100%;
+  }
+
+  .hand-odds-title-long {
+    display: none;
+  }
+
+  .hand-odds-title-short {
+    display: inline;
+  }
+
+  .hand-odds-chip {
+    flex-shrink: 0;
+  }
+
+  .hand-odds-chip:nth-child(n + 3) {
+    display: none;
+  }
+
+  .hero-bar {
+    padding: 0.5rem 0.6rem;
+    gap: 0.55rem;
+    border-radius: 0.7rem;
+  }
+
+  .hero-stack {
+    font-size: 0.95rem;
+  }
+
+  .controls {
+    padding: 0.45rem 0.5rem;
+    gap: 0.35rem;
+    border-radius: 0.7rem;
+  }
+
+  .raise-controls {
+    gap: 0.3rem;
+  }
+
+  .dialog {
+    padding: 1rem;
+    gap: 0.7rem;
+  }
+
+  .legend-blurb {
+    font-size: 0.72rem;
+  }
+}
+
+/* Very short viewports (a phone in landscape, or a small window): the board
+   has almost no height left, so drop the decorative spacing entirely. */
+@media (max-height: 620px) {
+  .board-scene {
+    gap: 0.4rem;
+    padding: 0.2rem 0;
+  }
+
+  .table-main {
+    gap: 0.4rem;
+    padding-top: 0.5rem;
+  }
+
+  .pot-amount {
+    font-size: 1.1rem;
+  }
+}
+
+/* ---------- phone control sheet ----------
+
+   The tempo controls (speed, pause, step, auto-deal, log, positions) live in
+   a sheet on a phone instead of in the bar. Slides up from the bottom edge,
+   where a thumb already is. */
+
+.overlay-sheet {
+  align-items: flex-end;
+  padding: 0;
+}
+
+.sheet {
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--hud-bg);
+  border-top: 1px solid var(--line);
+  border-radius: 1rem 1rem 0 0;
+  padding: 1rem 1rem max(1rem, env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  max-height: 80dvh;
+  overflow-y: auto;
+  animation: sheet-in 0.18s ease-out;
+}
+
+@keyframes sheet-in {
+  from {
+    transform: translateY(1.5rem);
+    opacity: 0;
+  }
+}
+
+.sheet-meta {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--text-faint);
+}
+
+.sheet-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+/* In the sheet there's room to make these real touch targets rather than
+   the compressed chips the top bar needs. */
+.sheet-controls .hud-btn {
+  flex: 1 1 7rem;
+  padding: 0.6rem 0.7rem;
+  font-size: 0.8rem;
+  text-align: center;
+  justify-content: center;
+}
+
+.sheet-controls .segmented {
+  flex: 1 1 100%;
+}
+
+.sheet-controls .segment {
+  flex: 1 1 0;
+  padding: 0.55rem 0.4rem;
+  font-size: 0.78rem;
+}
+
+/* A phone held in landscape leaves ~380px of height, most of which the
+   betting controls need. Shrink the pieces that can afford it so the board
+   itself stays on screen rather than being scrolled to. */
+@media (max-height: 470px) {
+  .card-lg {
+    width: 2.4rem;
+    height: 3.4rem;
+    padding: 0.2rem 0.25rem;
+  }
+
+  .card-lg .card-rank {
+    font-size: 1rem;
+  }
+
+  .card-lg .card-suit {
+    width: 0.9rem;
+    height: 0.9rem;
+  }
+
+  .hero-bar {
+    padding: 0.35rem 0.5rem;
+  }
+
+  .hero-stack {
+    font-size: 0.85rem;
+  }
+
+  .btn-quick {
+    padding: 0.22rem 0.2rem;
+  }
+
+  .btn-action {
+    padding: 0.4rem 0.4rem;
+  }
+
+  .community-cards {
+    min-height: 0;
+  }
+}
+
+/* Below ~400px the action and sizing buttons start wrapping their own labels
+   onto a second line, which both looks ragged and makes the control stack
+   taller. Keep each label on one line and let the type shrink instead. */
+@media (max-width: 400px) {
+  .btn-quick,
+  .btn-action {
+    white-space: nowrap;
+  }
+
+  .btn-quick {
+    font-size: 0.62rem;
+    padding: 0.3rem 0.15rem;
+  }
+
+  .btn-action {
+    font-size: 0.72rem;
+    padding: 0.6rem 0.3rem;
+  }
+
+  .btn-action kbd {
+    display: none;
   }
 }
