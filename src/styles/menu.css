@@ -3,14 +3,26 @@
 .menu-scene {
   position: relative;
   width: 100%;
+  /* Bounded height + overflow-y:auto is what makes this scroll: #root above
+     it is height:100% with overflow:hidden, so a min-height here would just
+     grow past the clip and scroll nothing.
+     This box used to be overflow:hidden with align-items:center, so once the
+     card grew taller than the screen it overflowed out of BOTH ends and was
+     clipped — with the Deal button in the clipped part and no way to reach
+     it. `safe center` keeps it centred while it fits and falls back to
+     start-alignment when it doesn't, so overflow only ever goes downward,
+     where the scroll can get to it. */
   height: 100vh;
   height: 100dvh;
   box-sizing: border-box;
   display: flex;
-  align-items: center;
+  align-items: safe center;
   justify-content: center;
   padding: 1.5rem;
-  overflow: hidden;
+  padding-top: max(1.5rem, env(safe-area-inset-top));
+  padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
+  overflow-y: auto;
+  overflow-x: hidden;
   background: var(--table-bg);
   font-family: var(--font-display);
   color: var(--text);
@@ -46,7 +58,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1.9rem;
+  gap: 1.2rem;
   width: 100%;
 }
 
@@ -96,13 +108,13 @@
   backdrop-filter: blur(18px);
   border: 1px solid var(--line);
   border-radius: 1.2rem;
-  padding: 1.7rem 1.6rem;
+  padding: 1.3rem 1.4rem;
   box-shadow:
     0 30px 70px rgba(0, 0, 0, 0.5),
     0 1px 0 rgba(255, 255, 255, 0.05) inset;
   display: flex;
   flex-direction: column;
-  gap: 1.3rem;
+  gap: 0.95rem;
 }
 
 .menu-divider {
@@ -300,5 +312,62 @@
     font-size: 0.72rem;
     padding-left: 0.6rem;
     padding-right: 0.6rem;
+  }
+}
+
+
+/* A scroll container that reaches the bottom of a long form needs the button
+   at the end of it to be obviously the end. */
+.menu-scene::-webkit-scrollbar {
+  width: 4px;
+}
+
+.menu-scene::-webkit-scrollbar-thumb {
+  background: var(--line);
+  border-radius: 2px;
+}
+
+/* The setup form scrolls when it has to (see .menu-scene), but it should only
+   have to on a genuinely small screen — so the decorative header gives up its
+   space first, and the field rhythm tightens, before the scroll is needed. */
+.menu-wordmark-row {
+  gap: 0.35rem;
+}
+
+.menu-wordmark-text {
+  font-size: clamp(1.7rem, 5.5vw, 2.4rem);
+}
+
+.menu-subtitle {
+  font-size: 0.78rem;
+}
+
+.menu-field-heading {
+  margin-bottom: 0.5rem;
+}
+
+.menu-hint {
+  margin-top: 0.35rem;
+  line-height: 1.35;
+}
+
+.menu-hint-block {
+  margin-top: -0.1rem;
+  margin-bottom: 0.4rem;
+}
+
+/* On a short screen the wordmark is the first thing worth losing: the page it
+   sits on is unmistakable without it. */
+@media (max-height: 720px) {
+  .menu-subtitle {
+    display: none;
+  }
+
+  .menu-wordmark-text {
+    font-size: 1.5rem;
+  }
+
+  .menu-watermark {
+    display: none;
   }
 }

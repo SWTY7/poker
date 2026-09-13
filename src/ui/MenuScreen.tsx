@@ -172,9 +172,7 @@ export function MenuScreen({ onStart }: MenuScreenProps) {
               </span>
               <span className="menu-field-label">Starting stack</span>
             </div>
-            <div className="menu-hint menu-hint-block">
-              What everyone buys in for. Bigger stacks mean deeper play and longer sessions.
-            </div>
+            <div className="menu-hint menu-hint-block">What everyone buys in for.</div>
             <div className="menu-options">
               {STACK_OPTIONS.map((stack) => (
                 <button
@@ -197,9 +195,8 @@ export function MenuScreen({ onStart }: MenuScreenProps) {
               <span className="menu-field-label">Blinds</span>
             </div>
             <div className="menu-hint menu-hint-block">
-              Forced bets posted before the cards, by the two seats left of the button. They are what makes a hand
-              worth playing for. Relative to a ${config.startingStack.toLocaleString()} stack, this is{' '}
-              {Math.round(config.startingStack / config.bigBlind)} big blinds deep.
+              Forced bets before the cards. You start {Math.round(config.startingStack / config.bigBlind)} big blinds
+              deep.
             </div>
             <div className="menu-options">
               {BLIND_OPTIONS.map((b) => (
@@ -222,10 +219,7 @@ export function MenuScreen({ onStart }: MenuScreenProps) {
               </span>
               <span className="menu-field-label">Ante</span>
             </div>
-            <div className="menu-hint menu-hint-block">
-              An extra forced bet from every player, every hand. Builds bigger pots and gives everyone a reason to
-              enter them.
-            </div>
+            <div className="menu-hint menu-hint-block">An extra bet from everyone each hand — bigger pots.</div>
             <div className="menu-options">
               {ANTE_OPTIONS.map((ante) => (
                 <button
@@ -252,9 +246,8 @@ export function MenuScreen({ onStart }: MenuScreenProps) {
               <div>
                 <span className="menu-field-label">Hand potential</span>
                 <div className="menu-hint" style={{ marginLeft: 0, marginTop: '0.15rem' }}>
-                  Adds a panel at the table showing the exact chance your hand finishes as each hand type, over every
-                  way the board could still come. It says nothing about your opponents’ cards, so it is not your
-                  chance of winning the pot.
+                  The chance your hand finishes as each hand type. Not your chance of winning the pot — opponents’
+                  cards aren’t part of it.
                 </div>
               </div>
             </div>

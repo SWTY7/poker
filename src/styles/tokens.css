@@ -108,9 +108,15 @@
 /* Every size below is expressed in rem off this root, so one clamp scales the
    whole interface with the viewport. A fixed 16px root left the table looking
    lost on a large monitor — correct in absolute terms, tiny relative to the
-   screen it had. Phones stay at the 16px floor. */
-html {
-  font-size: clamp(16px, 0.9vw + 9px, 26px);
+   screen it had.
+
+   Scaling on width ALONE was wrong, though: a 1280x800 laptop got a 20.5px
+   root, which inflated the setup form past the bottom of a viewport that had
+   not grown with it. `min()` against a height term means the smaller of the
+   two constraints wins, so a wide-but-short window is sized by its height.
+   Phones are unaffected — their width term is already under the 16px floor. */
+:root {
+  font-size: clamp(16px, min(0.9vw + 9px, 2.15vh), 26px);
 }
 
 /* Motion is feedback, never decoration, so removing it must never remove
