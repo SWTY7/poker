@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ActionType } from '../poker/game-state'
-import type { PreAction } from './useHoldemGame'
 
 interface ControlsProps {
   legalActions: ActionType[]
@@ -326,50 +325,34 @@ export function Controls({
   )
 }
 
-interface PreActionBarProps {
-  /** What it costs to stay in right now, from the hero's seat. */
-  toCall: number
-  value: PreAction | null
-  onChange: (value: PreAction | null) => void
+interface WaitingBarProps {
+  /** Name of whoever the table is waiting on, if it isn't you. */
   waitingOn: string | null
   /** True while the board is being dealt — nobody may act, hero included. */
   dealing: boolean
+  /** Fast-forwards the opponents and stops when the action reaches you. */
+  onSkip: () => void
 }
 
 /**
- * Occupies the dock whenever it is not the player's turn, so the bottom of
- * the screen never collapses and reflows. While an opponent is deciding it
- * also offers pre-actions: committing a decision in advance turns dead time
- * into a choice the player is making, rather than time they sit through.
+ * Occupies the dock whenever it is not your turn, so the bottom of the screen
+ * never collapses and reflows.
+ *
+ * This used to offer pre-actions — check/fold and call-any, armed before the
+ * action reached you. They were removed: committing to a decision before
+ * seeing the price you'd face is a worse deal than simply not waiting, and
+ * that is what the skip does. Space, or a tap on the table, runs the
+ * opponents at full speed and hands control back the moment it's yours.
  */
-export function PreActionBar({ toCall, value, onChange, waitingOn, dealing }: PreActionBarProps) {
-  const toggle = (next: PreAction) => onChange(value === next ? null : next)
-
+export function WaitingBar({ waitingOn, dealing, onSkip }: WaitingBarProps) {
   return (
     <div className="dock dock-waiting">
       <span className="dock-status">
         {dealing ? 'Dealing…' : waitingOn ? `${waitingOn} is deciding…` : 'Waiting…'}
       </span>
-      {!dealing && (
-        <div className="dock-row dock-row-pre">
-          <button
-            type="button"
-            className={`btn btn-sm ${value === 'check-fold' ? 'btn-preset-on' : ''}`}
-            onClick={() => toggle('check-fold')}
-            aria-pressed={value === 'check-fold'}
-          >
-            {toCall > 0 ? 'Fold when it’s me' : 'Check / fold'}
-          </button>
-          <button
-            type="button"
-            className={`btn btn-sm ${value === 'call-any' ? 'btn-preset-on' : ''}`}
-            onClick={() => toggle('call-any')}
-            aria-pressed={value === 'call-any'}
-          >
-            Call any
-          </button>
-        </div>
-      )}
+      <button type="button" className="btn btn-secondary" onClick={onSkip}>
+        Skip to my turn <kbd>Space</kbd>
+      </button>
     </div>
   )
 }
@@ -390,23 +373,23 @@ export function SpectatingBar({ message, onSkip }: SpectatingBarProps) {
     <div className="dock dock-waiting">
       <span className="dock-status">{message}</span>
       <button type="button" className="btn btn-secondary" onClick={onSkip}>
-        Skip to end of hand
+        Skip to end of hand <kbd>Space</kbd>
       </button>
     </div>
   )
 }
 
-interface WaitingBarProps {
+interface IdleBarProps {
   label: string
 }
 
 /**
  * A plain, button-less placeholder for the dock. Used in pass-and-play games
  * while bots are deciding between two humans' turns — nobody is holding the
- * device on anyone's behalf then, so there is nothing to pre-arm and nothing
- * that should be shown, just a reason the screen is quiet.
+ * device on anyone's behalf then, so there is nothing to skip on anyone's
+ * behalf either, just a reason the screen is quiet.
  */
-export function WaitingBar({ label }: WaitingBarProps) {
+export function IdleBar({ label }: IdleBarProps) {
   return (
     <div className="dock dock-waiting">
       <span className="dock-status">{label}</span>

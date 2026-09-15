@@ -1538,3 +1538,10 @@
     display: none;
   }
 }
+
+/* While there is something to skip past, the felt is a button in all but
+   name — say so with the cursor. On touch there is no cursor to say it with,
+   so the dock's "Skip to my turn" carries the affordance instead. */
+.felt-skippable {
+  cursor: pointer;
+}
