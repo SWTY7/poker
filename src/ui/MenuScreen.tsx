@@ -3,6 +3,7 @@ import type { GameConfigOptions } from './useHoldemGame'
 import { readJSON, writeJSON } from '../utils/storage'
 import { SUIT_PATH } from './suit-icons'
 import { CoinIcon, DealIcon, PeopleIcon, PercentIcon, PersonIcon } from './icons'
+import { InfoTip } from './InfoTip'
 
 interface MenuScreenProps {
   onStart: (options: GameConfigOptions) => void
@@ -90,7 +91,8 @@ export function MenuScreen({ onStart }: MenuScreenProps) {
         </div>
 
         <div className="menu-card">
-          <h2 className="menu-section">Table</h2>
+          <section className="menu-group">
+            <h2 className="menu-section">Table</h2>
 
           <div className="menu-field-row">
             <div className="menu-field-heading" style={{ marginBottom: 0 }}>
@@ -98,6 +100,9 @@ export function MenuScreen({ onStart }: MenuScreenProps) {
                 <PeopleIcon />
               </span>
               <span className="menu-field-label">Players</span>
+              <InfoTip label="Players">
+                Seats at the table, you included. Two is heads-up; six is the most common online game.
+              </InfoTip>
             </div>
             <div className="stepper">
               <button
@@ -131,6 +136,10 @@ export function MenuScreen({ onStart }: MenuScreenProps) {
                   <PersonIcon />
                 </span>
                 <span className="menu-field-label">Human players</span>
+                <InfoTip label="Human players">
+                  More than one means pass-and-play on this single device: the table hides each player’s cards until
+                  they confirm it’s their turn, so you can hand the phone around.
+                </InfoTip>
               </div>
               <div className="stepper">
                 <button
@@ -155,15 +164,14 @@ export function MenuScreen({ onStart }: MenuScreenProps) {
               </div>
             </div>
             <div className="menu-hint">
-              {config.humanCount > 1
-                ? "Pass-and-play — everyone shares this device. Hands stay hidden until it's your turn."
-                : 'Just you, against the rest at the table.'}
+              {config.humanCount > 1 ? 'Pass-and-play on one device.' : 'Just you, against the bots.'}
             </div>
           </div>
 
-          <div className="menu-divider" />
+          </section>
 
-          <h2 className="menu-section">Stakes</h2>
+          <section className="menu-group">
+            <h2 className="menu-section">Stakes</h2>
 
           <div>
             <div className="menu-field-heading">
@@ -171,9 +179,10 @@ export function MenuScreen({ onStart }: MenuScreenProps) {
                 <CoinIcon />
               </span>
               <span className="menu-field-label">Starting stack</span>
-            </div>
-            <div className="menu-hint menu-hint-block">
-              What everyone buys in for. Bigger stacks mean deeper play and longer sessions.
+              <InfoTip label="Starting stack">
+                What everyone buys in for. Bigger stacks mean more room to play after the flop, and longer before
+                anyone busts.
+              </InfoTip>
             </div>
             <div className="menu-options">
               {STACK_OPTIONS.map((stack) => (
@@ -195,11 +204,11 @@ export function MenuScreen({ onStart }: MenuScreenProps) {
                 <CoinIcon />
               </span>
               <span className="menu-field-label">Blinds</span>
-            </div>
-            <div className="menu-hint menu-hint-block">
-              Forced bets posted before the cards, by the two seats left of the button. They are what makes a hand
-              worth playing for. Relative to a ${config.startingStack.toLocaleString()} stack, this is{' '}
-              {Math.round(config.startingStack / config.bigBlind)} big blinds deep.
+              <InfoTip label="Blinds">
+                Forced bets the two seats left of the button post before any cards are dealt — they are what makes a
+                hand worth playing for. Against a ${config.startingStack.toLocaleString()} stack these leave you{' '}
+                {Math.round(config.startingStack / config.bigBlind)} big blinds deep.
+              </InfoTip>
             </div>
             <div className="menu-options">
               {BLIND_OPTIONS.map((b) => (
@@ -221,10 +230,10 @@ export function MenuScreen({ onStart }: MenuScreenProps) {
                 <CoinIcon />
               </span>
               <span className="menu-field-label">Ante</span>
-            </div>
-            <div className="menu-hint menu-hint-block">
-              An extra forced bet from every player, every hand. Builds bigger pots and gives everyone a reason to
-              enter them.
+              <InfoTip label="Ante">
+                An extra forced bet from every player, every hand, on top of the blinds. Builds bigger pots and gives
+                everyone a reason to contest them.
+              </InfoTip>
             </div>
             <div className="menu-options">
               {ANTE_OPTIONS.map((ante) => (
@@ -240,23 +249,22 @@ export function MenuScreen({ onStart }: MenuScreenProps) {
             </div>
           </div>
 
-          <div className="menu-divider" />
+          </section>
 
-          <h2 className="menu-section">Study aids</h2>
+          <section className="menu-group menu-group-study">
+            <h2 className="menu-section">Study aids</h2>
 
           <div className="menu-field-row">
             <div className="menu-field-heading" style={{ marginBottom: 0 }}>
               <span className="menu-field-icon menu-field-icon-violet">
                 <PercentIcon />
               </span>
-              <div>
-                <span className="menu-field-label">Hand potential</span>
-                <div className="menu-hint" style={{ marginLeft: 0, marginTop: '0.15rem' }}>
-                  Adds a panel at the table showing the exact chance your hand finishes as each hand type, over every
-                  way the board could still come. It says nothing about your opponents’ cards, so it is not your
-                  chance of winning the pot.
-                </div>
-              </div>
+              <span className="menu-field-label">Hand potential</span>
+              <InfoTip label="Hand potential">
+                Adds a panel at the table showing the chance your hand finishes as each hand type, over every way the
+                board could still come. Your opponents’ cards are not part of it, so it is not your chance of winning
+                the pot.
+              </InfoTip>
             </div>
             <button
               type="button"
@@ -267,6 +275,8 @@ export function MenuScreen({ onStart }: MenuScreenProps) {
               {config.showHandOdds ? 'On' : 'Off'}
             </button>
           </div>
+
+          </section>
 
           <button type="button" className="btn menu-start" onClick={handleStart}>
             <DealIcon className="menu-start-icon" />
