@@ -12,26 +12,6 @@ const BOT_NAMES = ['Chip', 'Chris', 'Darla', 'Holly', 'Scarlet', 'Sparky', 'Conn
 
 export type Speed = 'slow' | 'normal' | 'fast'
 
-/**
- * A decision the human commits to BEFORE the action reaches them. Real poker
- * clients call these pre-actions; they are the main way a player stays ahead
- * of the table instead of only ever reacting to it.
- *
- * Only offered solo — see `needsReveal` below for why pass-and-play tables
- * don't get this.
- */
-export type PreAction = 'check-fold' | 'call-any'
-
-/**
- * Turns a pre-action into a concrete move against the price the player
- * actually faces by the time their turn arrives — which may not be the price
- * they saw when they armed it.
- */
-export function resolvePreAction(preAction: PreAction, toCall: number): ActionType {
-  if (preAction === 'call-any') return toCall > 0 ? 'call' : 'check'
-  return toCall > 0 ? 'fold' : 'check'
-}
-
 /** Wall-clock multiplier applied to every scripted pause. */
 const SPEED_FACTOR: Record<Speed, number> = { slow: 1.7, normal: 1, fast: 0.4 }
 
@@ -51,8 +31,6 @@ const THINK_TIME: Record<ActionType, number> = {
 
 /** Beat held after cards hit the board, before anyone may act on them. */
 const DEAL_PAUSE = 950
-/** Beat held before a pre-action fires, so the player sees it happen. */
-const PRE_ACTION_PAUSE = 320
 /** Gap before the next hand when auto-deal is on. */
 const NEXT_HAND_PAUSE = 2400
 
@@ -121,8 +99,13 @@ function buildTable(options: GameConfigOptions): {
 export function useHoldemGame(options: GameConfigOptions) {
   const hasStartedRef = useRef(false)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  /** Set while fast-forwarding a hand no human can still act in. */
-  const turboRef = useRef(false)
+  /**
+   * Collapses every scripted pause while set. 'hand' runs to the end of the
+   * hand; 'turn' stops as soon as the action reaches the player holding the
+   * device. Both are the same mechanism — the only difference is when they
+   * switch themselves off.
+   */
+  const turboRef = useRef<false | 'hand' | 'turn'>(false)
 
   const [{ engine, agents, humanIds }] = useState(() => buildTable(options))
   /** Solo play never gates — there's only ever one person holding the device. */
@@ -134,7 +117,6 @@ export function useHoldemGame(options: GameConfigOptions) {
   const [autoNextHand, setAutoNextHandState] = useState(
     () => readEnum('poker.autoNextHand', ['on', 'off'] as const, 'off') === 'on',
   )
-  const [preAction, setPreAction] = useState<PreAction | null>(null)
   /** Non-null while the board is being dealt; nobody may act during it. */
   const [dealingStreet, setDealingStreet] = useState<Street | null>(null)
   const [session, setSession] = useState<SessionStats>({ handsPlayed: 0, netByPlayer: {} })
@@ -194,7 +176,6 @@ export function useHoldemGame(options: GameConfigOptions) {
   const startHand = useCallback(() => {
     clearTimer()
     turboRef.current = false
-    setPreAction(null)
     setDealingStreet(null)
     setRevealedFor(null)
     engine.startHand()
@@ -207,7 +188,6 @@ export function useHoldemGame(options: GameConfigOptions) {
   const humanAct = useCallback(
     (type: ActionType, amount?: number) => {
       if (!activeHumanId) return
-      setPreAction(null)
       // Re-lock immediately — before the device visibly changes hands, not
       // after — so nothing from this decision lingers on screen for whoever
       // it's passed to next.
@@ -261,14 +241,11 @@ export function useHoldemGame(options: GameConfigOptions) {
     if (!current) return
 
     if (current.id === activeHumanId) {
-      // Pre-actions only exist solo — see the PreAction doc comment.
-      if (!soloHumanId || !preAction) return
-      const resolved = resolvePreAction(preAction, state.currentBet - current.betThisStreet)
-      timerRef.current = setTimeout(() => {
-        setPreAction(null)
-        applyAndPace({ playerId: activeHumanId, type: resolved })
-      }, pace(PRE_ACTION_PAUSE))
-      return () => clearTimer()
+      // Arrived. A "skip to my turn" has done its job and switches itself off
+      // here rather than on a timer, so the table is back at normal speed the
+      // instant the decision is yours.
+      if (turboRef.current === 'turn') turboRef.current = false
+      return
     }
 
     if (humanIds.includes(current.id)) {
@@ -286,7 +263,6 @@ export function useHoldemGame(options: GameConfigOptions) {
     state,
     paused,
     dealingStreet,
-    preAction,
     autoNextHand,
     engine,
     agents,
@@ -339,7 +315,18 @@ export function useHoldemGame(options: GameConfigOptions) {
   )
 
   const skipToEnd = useCallback(() => {
-    turboRef.current = true
+    turboRef.current = 'hand'
+    setDealingStreet(null)
+    setPaused(false)
+  }, [])
+
+  /**
+   * Fast-forwards the opponents' deliberation and stops when the action gets
+   * back to you. Replaces pre-actions: rather than committing to a decision
+   * before seeing the price, you skip the waiting and then decide.
+   */
+  const skipToMyTurn = useCallback(() => {
+    turboRef.current = 'turn'
     setDealingStreet(null)
     setPaused(false)
   }, [])
@@ -364,11 +351,10 @@ export function useHoldemGame(options: GameConfigOptions) {
     setPaused,
     step,
     skipToEnd,
+    skipToMyTurn,
     isSpectating,
     autoNextHand,
     setAutoNextHand,
-    preAction,
-    setPreAction,
     startHand,
     humanAct,
     canStartHand: () => engine.canStartHand(),

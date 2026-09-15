@@ -35,11 +35,10 @@ function GameScreen({ config, onExit }: GameScreenProps) {
       onSetPaused={game.setPaused}
       onStep={game.step}
       onSkipToEnd={game.skipToEnd}
+      onSkipToMyTurn={game.skipToMyTurn}
       isSpectating={game.isSpectating}
       autoNextHand={game.autoNextHand}
       onSetAutoNextHand={game.setAutoNextHand}
-      preAction={game.preAction}
-      onSetPreAction={game.setPreAction}
       onAction={game.humanAct}
       onNextHand={game.startHand}
       onExit={onExit}

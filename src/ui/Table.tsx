@@ -10,13 +10,13 @@ import { Seat } from './Seat'
 import { HeroZone } from './HeroZone'
 import { Board } from './Board'
 import { HandPotential } from './HandPotential'
-import { Controls, PreActionBar, SpectatingBar, WaitingBar, RevealGate } from './Controls'
+import { Controls, SpectatingBar, WaitingBar, IdleBar, RevealGate } from './Controls'
 import { HandFeed } from './HandFeed'
 import { TableHud } from './TableHud'
 import { PositionLegend } from './PositionLegend'
 import { LeaveDialog } from './LeaveDialog'
 import { useMediaQuery } from './useMediaQuery'
-import type { PreAction, Speed } from './useHoldemGame'
+import type { Speed } from './useHoldemGame'
 
 interface TableProps {
   state: GameState
@@ -35,11 +35,11 @@ interface TableProps {
   onSetPaused: (paused: boolean) => void
   onStep: () => void
   onSkipToEnd: () => void
+  /** Fast-forwards the opponents and stops when the action reaches the hero. */
+  onSkipToMyTurn: () => void
   isSpectating: boolean
   autoNextHand: boolean
   onSetAutoNextHand: (value: boolean) => void
-  preAction: PreAction | null
-  onSetPreAction: (value: PreAction | null) => void
   onAction: (type: ActionType, amount?: number) => void
   onNextHand: () => void
   onExit: () => void
@@ -123,11 +123,10 @@ export function Table({
   onSetPaused,
   onStep,
   onSkipToEnd,
+  onSkipToMyTurn,
   isSpectating,
   autoNextHand,
   onSetAutoNextHand,
-  preAction,
-  onSetPreAction,
   onAction,
   onNextHand,
   onExit,
@@ -200,6 +199,15 @@ export function Table({
   const soleNet = isSolo && humanIds[0] !== undefined ? (session.netByPlayer[humanIds[0]] ?? 0) : null
 
   /**
+   * There is something to skip past: a hand is running, it isn't your turn,
+   * and you still have a decision coming. Pass-and-play is excluded — nobody
+   * is holding the device on anyone's behalf between two humans' turns.
+   */
+  const canSkipToMyTurn = Boolean(
+    isSolo && state.handInProgress && !isHumanTurn && !isSpectating && !needsReveal && !paused,
+  )
+
+  /**
    * The winning hand by name — "Kings full of fours", not "full-house". The
    * engine records the category only, but at showdown every winner's cards
    * are known, so the table can say what a dealer would say.
@@ -211,16 +219,30 @@ export function Table({
   }
   const heroToCall = activePlayer ? Math.max(state.currentBet - activePlayer.betThisStreet, 0) : 0
 
-  // Space deals the next hand; P pauses; S single-steps.
+  /**
+   * Space means one thing throughout: skip whatever you are waiting on and
+   * get to the next decision that is actually yours. What that is depends on
+   * where the hand is — deal the next one, run out a hand you can no longer
+   * act in, or fast-forward the opponents back round to you. P pauses; S
+   * single-steps while paused.
+   */
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
       if (event.metaKey || event.ctrlKey || event.altKey) return
       const target = event.target as HTMLElement | null
       if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) return
 
-      if (event.key === ' ' && lastResult && canStartHand) {
-        event.preventDefault()
-        onNextHand()
+      if (event.key === ' ') {
+        if (lastResult && canStartHand) {
+          event.preventDefault()
+          onNextHand()
+        } else if (isSpectating) {
+          event.preventDefault()
+          onSkipToEnd()
+        } else if (canSkipToMyTurn) {
+          event.preventDefault()
+          onSkipToMyTurn()
+        }
       } else if (event.key.toLowerCase() === 'p') {
         onSetPaused(!paused)
       } else if (event.key.toLowerCase() === 's' && paused) {
@@ -229,7 +251,18 @@ export function Table({
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [lastResult, canStartHand, onNextHand, onSetPaused, onStep, paused])
+  }, [
+    lastResult,
+    canStartHand,
+    isSpectating,
+    canSkipToMyTurn,
+    onNextHand,
+    onSkipToEnd,
+    onSkipToMyTurn,
+    onSetPaused,
+    onStep,
+    paused,
+  ])
 
   return (
     <div className="table-scene">
@@ -260,7 +293,18 @@ export function Table({
               middle — lives inside this one bounded surface, which is what
               makes it read as the centre of the screen rather than as another
               row of panels. */}
-          <section className="felt" aria-label="Table">
+          {/* Tapping the felt is the touch equivalent of Space: the table is
+              the biggest target on screen and there is nothing else to press
+              while you're waiting. Buttons inside it keep their own handlers. */}
+          <section
+            className={`felt ${canSkipToMyTurn ? 'felt-skippable' : ''}`}
+            aria-label="Table"
+            onClick={(event) => {
+              if (!canSkipToMyTurn) return
+              if ((event.target as HTMLElement).closest('button, input, a')) return
+              onSkipToMyTurn()
+            }}
+          >
             <div className="felt-seats" data-count={opponents.length}>
               {opponents.map((player) => (
                 <Seat
@@ -385,15 +429,13 @@ export function Table({
               onSkip={onSkipToEnd}
             />
           ) : isSolo && state.handInProgress ? (
-            <PreActionBar
-              toCall={heroToCall}
-              value={preAction}
-              onChange={onSetPreAction}
+            <WaitingBar
               waitingOn={waitingOn}
               dealing={dealingStreet !== null}
+              onSkip={onSkipToMyTurn}
             />
           ) : state.handInProgress ? (
-            <WaitingBar label={currentPlayer ? `${currentPlayer.name} is deciding…` : 'Waiting…'} />
+            <IdleBar label={currentPlayer ? `${currentPlayer.name} is deciding…` : 'Waiting…'} />
           ) : null}
         </div>
 
