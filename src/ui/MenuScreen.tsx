@@ -91,7 +91,8 @@ export function MenuScreen({ onStart }: MenuScreenProps) {
         </div>
 
         <div className="menu-card">
-          <h2 className="menu-section">Table</h2>
+          <section className="menu-group">
+            <h2 className="menu-section">Table</h2>
 
           <div className="menu-field-row">
             <div className="menu-field-heading" style={{ marginBottom: 0 }}>
@@ -167,9 +168,10 @@ export function MenuScreen({ onStart }: MenuScreenProps) {
             </div>
           </div>
 
-          <div className="menu-divider" />
+          </section>
 
-          <h2 className="menu-section">Stakes</h2>
+          <section className="menu-group">
+            <h2 className="menu-section">Stakes</h2>
 
           <div>
             <div className="menu-field-heading">
@@ -247,9 +249,10 @@ export function MenuScreen({ onStart }: MenuScreenProps) {
             </div>
           </div>
 
-          <div className="menu-divider" />
+          </section>
 
-          <h2 className="menu-section">Study aids</h2>
+          <section className="menu-group menu-group-study">
+            <h2 className="menu-section">Study aids</h2>
 
           <div className="menu-field-row">
             <div className="menu-field-heading" style={{ marginBottom: 0 }}>
@@ -272,6 +275,8 @@ export function MenuScreen({ onStart }: MenuScreenProps) {
               {config.showHandOdds ? 'On' : 'Off'}
             </button>
           </div>
+
+          </section>
 
           <button type="button" className="btn menu-start" onClick={handleStart}>
             <DealIcon className="menu-start-icon" />
