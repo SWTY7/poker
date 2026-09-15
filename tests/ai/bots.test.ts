@@ -35,7 +35,7 @@ function playHandsToCompletion(engine: HoldemEngine, agents: Record<string, Agen
 
 describe('RandomBot', () => {
   it('only ever picks legal actions and keeps chips conserved over many hands', () => {
-    const engine = new HoldemEngine(makePlayers(5), config)
+    const engine = new HoldemEngine(makePlayers(5), config, createRng(7))
     const startingTotal = engine.state.players.reduce((s, p) => s + p.stack, 0)
     const agents = Object.fromEntries(
       engine.state.players.map((p, i) => [p.id, new RandomBot(createRng(100 + i))]),
@@ -48,7 +48,7 @@ describe('RandomBot', () => {
 
 describe('HeuristicBot', () => {
   it('only ever picks legal actions and keeps chips conserved over many hands', () => {
-    const engine = new HoldemEngine(makePlayers(4), config)
+    const engine = new HoldemEngine(makePlayers(4), config, createRng(11))
     const startingTotal = engine.state.players.reduce((s, p) => s + p.stack, 0)
     const agents = Object.fromEntries(
       engine.state.players.map((p, i) => [p.id, new HeuristicBot(createRng(200 + i))]),

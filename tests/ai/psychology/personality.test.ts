@@ -66,7 +66,7 @@ describe('PersonalityBot', () => {
   }
 
   it('with NEUTRAL_PERSONALITY behaves like a normal HeuristicBot and conserves chips over many hands', () => {
-    const engine = new HoldemEngine(makePlayers(4), config)
+    const engine = new HoldemEngine(makePlayers(4), config, createRng(13))
     const startingTotal = engine.state.players.reduce((s, p) => s + p.stack, 0)
     const agents = Object.fromEntries(
       engine.state.players.map((p, i) => [p.id, new PersonalityBot(NEUTRAL_PERSONALITY, createRng(300 + i))]),
@@ -77,7 +77,7 @@ describe('PersonalityBot', () => {
   })
 
   it('a mix of extreme personalities still only ever takes legal actions and conserves chips', () => {
-    const engine = new HoldemEngine(makePlayers(4), config)
+    const engine = new HoldemEngine(makePlayers(4), config, createRng(13))
     const startingTotal = engine.state.players.reduce((s, p) => s + p.stack, 0)
     const profiles = [
       { aggression: 1, tightness: 0, bluffFrequency: 0 },

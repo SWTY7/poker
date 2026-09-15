@@ -148,8 +148,28 @@ export class HoldemEngine {
       }
     }
 
-    const firstToAct = headsUp ? sbIndex : (nextActingPlayerIndex(state, bbIndex) ?? bbIndex)
-    state.currentPlayerIndex = firstToAct
+    // A blind can be bigger than a short stack, which puts that player all-in
+    // before anyone has had a decision to make. If that leaves fewer than two
+    // players able to act, there is no preflop betting round at all: run the
+    // board out and go to showdown.
+    //
+    // Without this the next line handed the action to whoever the blind had
+    // just put all-in — a player with no legal actions — and the hand stopped
+    // dead there. In the app that is a table frozen forever, waiting for an
+    // action that cannot be made. It is reachable in any heads-up pot where
+    // the small blind cannot cover the small blind.
+    const canAct = state.players.filter((p) => !p.folded && !p.isEliminated && !p.isAllIn)
+    if (canAct.length <= 1) {
+      this.advanceStreet()
+      return
+    }
+
+    // Heads-up the small blind acts first preflop; otherwise it is the seat
+    // after the big blind. The check above guarantees both can actually act,
+    // which is why there is no fallback here — the old `?? bbIndex` fallback
+    // was itself a way of seating the action on a player who could not act.
+    const firstToAct = headsUp ? sbIndex : nextActingPlayerIndex(state, bbIndex)
+    state.currentPlayerIndex = firstToAct as number
   }
 
   getLegalActions(playerId: string) {
