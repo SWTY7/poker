@@ -5,6 +5,9 @@ import type { ActionType, GameState, PokerAction, Street } from '../poker/game-s
 import { HeuristicBot } from '../ai/heuristic-bot'
 import { buildObservation } from '../ai/observation'
 import type { Agent } from '../ai/agent'
+import { psychBotsEnabled } from '../ai/psychology/flag'
+import { PsychBot } from '../ai/psychology/psych-bot'
+import { CAST } from '../ai/psychology/profile'
 import { createRng } from '../utils/random'
 import { readEnum, writeString } from '../utils/storage'
 
@@ -89,9 +92,12 @@ function buildTable(options: GameConfigOptions): {
 
   const humanIds = players.slice(0, humanCount).map((p) => p.id)
   const agents: Record<string, Agent> = {}
-  for (const p of players.slice(humanCount)) {
-    agents[p.id] = new HeuristicBot(createRng())
-  }
+  const psych = psychBotsEnabled()
+  players.slice(humanCount).forEach((p, i) => {
+    agents[p.id] = psych
+      ? new PsychBot(CAST[i % CAST.length], options.startingStack, createRng())
+      : new HeuristicBot(createRng())
+  })
 
   return { engine, agents, humanIds }
 }
@@ -140,10 +146,32 @@ export function useHoldemGame(options: GameConfigOptions) {
     [speed],
   )
 
+  /**
+   * Tells every agent that wants to know how the hand it just played ended.
+   * Only the psychological bots do — it is what feeds tilt, and tilt is the
+   * one part of a bot here that carries anything from one hand to the next.
+   */
+  const reportResults = useCallback(() => {
+    const results = engine.state.lastResults
+    if (results.length === 0) return
+    const potSize = results.reduce((sum, r) => sum + r.potAmount, 0)
+    if (potSize === 0) return
+    for (const player of engine.state.players) {
+      const agent = agents[player.id]
+      if (!agent?.observeResult) continue
+      const won = results.reduce(
+        (sum, r) => sum + (r.winnerIds.includes(player.id) ? r.potAmount / r.winnerIds.length : 0),
+        0,
+      )
+      agent.observeResult({ stack: player.stack, shareWon: won / potSize, potSize })
+    }
+  }, [engine, agents])
+
   const commit = useCallback(() => {
     setState({ ...engine.state })
     if (!engine.state.handInProgress) {
       turboRef.current = false
+      reportResults()
       setSession({
         handsPlayed: engine.state.handNumber,
         netByPlayer: Object.fromEntries(
@@ -154,7 +182,7 @@ export function useHoldemGame(options: GameConfigOptions) {
         ),
       })
     }
-  }, [engine, humanIds, options.startingStack])
+  }, [engine, humanIds, options.startingStack, reportResults])
 
   /**
    * Applies an action and, when it turned a new street, holds the table still
