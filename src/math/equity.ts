@@ -238,3 +238,164 @@ function drawWithoutReplacement(deck: CardInt[], k: number, out: CardInt[], rng:
     out[i] = SCRATCH[i]
   }
 }
+
+/**
+ * Equity against one or more ranges at once, sampled jointly.
+ *
+ * `handVsRange` answers every villain combo separately and exactly, which is
+ * the right thing when the answer is being shown to a person. A bot deciding
+ * inside a turn wants one number quickly and does not care about a
+ * percentage point of sampling error, so this draws a hand for each opponent
+ * and a board completion together: the cost is a fixed budget rather than a
+ * function of how wide the ranges are.
+ *
+ * Multiway is the reason this exists rather than a loop over `handVsRange`.
+ * Beating five opponents is not beating one of them five times: the pairwise
+ * results are strongly correlated, because the board that beats one of them
+ * usually beats the rest too. Multiplying five pairwise equities together
+ * says a random hand wins a six-way pot 3% of the time when the true answer
+ * is 17% — an error big enough to make a bot fold everything, which is
+ * exactly what it did. Dealing every opponent a hand in the same sample gets
+ * the correlation for free.
+ *
+ * Weighted sampling of each villain combo is what keeps it unbiased: a combo
+ * a range holds half the time is drawn half as often, so nothing needs
+ * reweighting afterwards.
+ *
+ * `participation` is how often each opponent is in the hand at all. Everyone
+ * still to act behind is an opponent who will usually not be there, and
+ * counting them as if they always will is the other half of the mistake
+ * above: a hand is not up against five players just because five are seated.
+ */
+export function multiwayEquity(
+  hero: readonly [CardInt, CardInt],
+  villainRanges: Range[],
+  board: CardInt[] = [],
+  options: { samples?: number; rng?: Rng; participation?: number[] } = {},
+): number {
+  const samples = options.samples ?? 300
+  const random = options.rng ?? createRng()
+  const participation = options.participation
+  if (villainRanges.length === 0) return 1
+
+  const deadFromStart = new Uint8Array(DECK_SIZE)
+  deadFromStart[hero[0]] = 1
+  deadFromStart[hero[1]] = 1
+  for (const card of board) deadFromStart[card] = 1
+
+  // One cumulative-weight table per opponent, built once.
+  const tables = villainRanges.map((range) => {
+    const ids: number[] = []
+    const cumulative: number[] = []
+    let total = 0
+    for (let id = 0; id < COMBO_COUNT; id++) {
+      const weight = range[id]
+      if (weight <= 0) continue
+      if (deadFromStart[COMBO_A[id]] || deadFromStart[COMBO_B[id]]) continue
+      total += weight
+      ids.push(id)
+      cumulative.push(total)
+    }
+    return { ids, cumulative, total }
+  })
+  if (tables.some((table) => table.total === 0)) return 0
+
+  const need = 5 - board.length
+  const villainCount = villainRanges.length
+  const hands: CardInt[][] = [[hero[0], hero[1], ...board, 0, 0, 0, 0, 0].slice(0, 7)]
+  for (let v = 0; v < villainCount; v++) hands.push([0, 0, ...board, 0, 0, 0, 0, 0].slice(0, 7))
+  const slot = 2 + board.length
+  const deck: CardInt[] = []
+  const draw = new Array<CardInt>(Math.max(need, 1))
+  const dead = new Uint8Array(DECK_SIZE)
+  const inHand = new Array<number>(villainCount)
+
+  let score = 0
+  let counted = 0
+
+  for (let s = 0; s < samples; s++) {
+    // Deal every opponent a hand from their own range, rejecting deals where
+    // two of them want the same card. A handful of retries is plenty; ranges
+    // narrow enough to collide constantly are rare, and skipping a sample
+    // biases nothing because the conflicts are symmetric.
+    let dealt = false
+    let live = 0
+    for (let attempt = 0; attempt < 24 && !dealt; attempt++) {
+      dead.set(deadFromStart)
+      dealt = true
+      live = 0
+      for (let v = 0; v < villainCount; v++) {
+        if (participation && random() >= participation[v]) continue
+        const table = tables[v]
+        const id = table.ids[pickWeighted(table.cumulative, table.total, random())]
+        const a = COMBO_A[id]
+        const b = COMBO_B[id]
+        if (dead[a] || dead[b]) {
+          dealt = false
+          break
+        }
+        dead[a] = 1
+        dead[b] = 1
+        inHand[live] = v + 1
+        hands[v + 1][0] = a
+        hands[v + 1][1] = b
+        live++
+      }
+    }
+    if (!dealt) continue
+    if (live === 0) {
+      // Nobody came along. The hand is won without a showdown, which is a
+      // whole pot, not a walkover to be thrown away.
+      score += 1
+      counted++
+      continue
+    }
+
+    deck.length = 0
+    for (let card = 0; card < DECK_SIZE; card++) if (!dead[card]) deck.push(card)
+    drawWithoutReplacement(deck, need, draw, random)
+    for (let i = 0; i < need; i++) {
+      hands[0][slot + i] = draw[i]
+      for (let h = 0; h < live; h++) hands[inHand[h]][slot + i] = draw[i]
+    }
+
+    const heroScore = evaluateHand(hands[0])
+    let best = heroScore
+    let tied = 1
+    for (let h = 0; h < live; h++) {
+      const villainScore = evaluateHand(hands[inHand[h]])
+      if (villainScore > best) {
+        best = villainScore
+        tied = 1
+      } else if (villainScore === best) {
+        tied++
+      }
+    }
+    if (heroScore === best) score += 1 / tied
+    counted++
+  }
+
+  return counted === 0 ? 0 : score / counted
+}
+
+/** The one-opponent case, which is what most callers want. */
+export function quickEquity(
+  hero: readonly [CardInt, CardInt],
+  villainRange: Range,
+  board: CardInt[] = [],
+  options: { samples?: number; rng?: Rng } = {},
+): number {
+  return multiwayEquity(hero, [villainRange], board, options)
+}
+
+function pickWeighted(cumulative: number[], total: number, uniform: number): number {
+  const target = uniform * total
+  let low = 0
+  let high = cumulative.length - 1
+  while (low < high) {
+    const mid = (low + high) >> 1
+    if (cumulative[mid] < target) low = mid + 1
+    else high = mid
+  }
+  return low
+}
