@@ -145,6 +145,14 @@ function walk<State>(
       current: actions.map(() => 1 / actions.length),
     }
     nodes.set(key, node)
+  } else if (node.actions.length !== actions.length) {
+    // Two states sharing an information set must offer the same choice, or
+    // the regrets stored against it are regrets about different things. An
+    // abstraction that collapses them too far breaks this quietly, so it is
+    // checked rather than trusted.
+    throw new Error(
+      `Information set "${key}" offered ${node.actions.length} actions and now ${actions.length}`,
+    )
   }
 
   const strategy = node.current

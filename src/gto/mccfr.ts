@@ -50,6 +50,15 @@ export interface MccfrOptions {
 
 export interface MccfrResult {
   strategy: Strategy
+  /**
+   * How much evidence each information set's strategy rests on.
+   *
+   * Sampling reaches the common spots thousands of times and the rare ones
+   * twice, and an average strategy built from two visits is noise wearing a
+   * strategy's clothes. Keeping the weight lets a caller tell the two apart —
+   * which is what decides whether an entry is worth shipping.
+   */
+  weight: Map<string, number>
   nodeCount: number
   iterations: number
 }
@@ -71,8 +80,12 @@ export function trainMccfr<State>(
   }
 
   const strategy: Strategy = new Map()
-  for (const [key, node] of nodes) strategy.set(key, normalize(node.strategySum, node.actions.length))
-  return { strategy, nodeCount: nodes.size, iterations }
+  const weight = new Map<string, number>()
+  for (const [key, node] of nodes) {
+    strategy.set(key, normalize(node.strategySum, node.actions.length))
+    weight.set(key, node.strategySum.reduce((sum, value) => sum + value, 0))
+  }
+  return { strategy, weight, nodeCount: nodes.size, iterations }
 }
 
 /** Expected utility to `player`, along one sampled path through everyone else's choices. */
@@ -91,7 +104,10 @@ function walk<State>(
 
   const actor = game.actor(state)
   if (actor === CHANCE) {
-    return walk(game, game.apply(state, sample(game.chanceOutcomes(state), rng)), player, nodes, rng, plus)
+    const outcome = game.sampleChance
+      ? game.sampleChance(state, rng)
+      : sample(game.chanceOutcomes(state), rng)
+    return walk(game, game.apply(state, outcome), player, nodes, rng, plus)
   }
 
   const key = game.infoSet(state)
@@ -100,6 +116,14 @@ function walk<State>(
   if (!node) {
     node = { actions, regretSum: actions.map(() => 0), strategySum: actions.map(() => 0) }
     nodes.set(key, node)
+  } else if (node.actions.length !== actions.length) {
+    // Two states sharing an information set must offer the same choice, or
+    // the regrets stored against it are regrets about different things. An
+    // abstraction that collapses them too far breaks this quietly, so it is
+    // checked rather than trusted.
+    throw new Error(
+      `Information set "${key}" offered ${node.actions.length} actions and now ${actions.length}`,
+    )
   }
   const strategy = regretMatch(node.regretSum)
 

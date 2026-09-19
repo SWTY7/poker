@@ -5,7 +5,7 @@ import type { ActionType, GameState, PokerAction, Street } from '../poker/game-s
 import { HeuristicBot } from '../ai/heuristic-bot'
 import { buildObservation } from '../ai/observation'
 import type { Agent } from '../ai/agent'
-import { psychBotsEnabled } from '../ai/psychology/flag'
+import { blueprintBotsEnabled, psychBotsEnabled } from '../ai/psychology/flag'
 import { PsychBot } from '../ai/psychology/psych-bot'
 import { CAST } from '../ai/psychology/profile'
 import { createRng } from '../utils/random'
@@ -183,6 +183,40 @@ export function useHoldemGame(options: GameConfigOptions) {
       })
     }
   }, [engine, humanIds, options.startingStack, reportResults])
+
+  /**
+   * Swaps the solved bot in once its strategy has downloaded.
+   *
+   * The blueprint is a few hundred kilobytes of probabilities, which is not
+   * something to put in front of everyone who opens the page for a game it is
+   * not even playing — so it is fetched only when asked for, and the bots it
+   * replaces keep playing until it lands. `agents` is deliberately mutated
+   * rather than replaced: the driver reads it by seat id at the moment it
+   * needs a decision, so a bot that arrives mid-hand simply takes over from
+   * the next one.
+   */
+  useEffect(() => {
+    if (!blueprintBotsEnabled()) return
+    const botIds = Object.keys(agents)
+    if (humanIds.length + botIds.length !== 2) return
+
+    let cancelled = false
+    void Promise.all([
+      import('../gto/holdem/blueprint-bot'),
+      import('../gto/holdem/blueprint.json'),
+    ]).then(([module, file]) => {
+      if (cancelled) return
+      for (const id of botIds) {
+        agents[id] = new module.BlueprintBot(file.default as never, {
+          fallback: agents[id],
+          rng: createRng(),
+        })
+      }
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [agents, humanIds.length])
 
   /**
    * Applies an action and, when it turned a new street, holds the table still

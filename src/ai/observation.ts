@@ -28,6 +28,13 @@ export interface AIObservation {
   minRaiseTo: number
   maxRaiseTo: number
   actionHistory: PokerAction[]
+  /**
+   * The big blind, in chips. Every bet an agent reasons about is really a
+   * multiple of it — a 300 chip raise means nothing without knowing whether
+   * that is three big blinds or thirty — and a solved strategy is stated in
+   * big blinds, so it needs the conversion.
+   */
+  bigBlind: number
 }
 
 export function buildObservation(engine: HoldemEngine, playerId: string): AIObservation {
@@ -56,5 +63,6 @@ export function buildObservation(engine: HoldemEngine, playerId: string): AIObse
     minRaiseTo: minRaiseTargetAmount(state),
     maxRaiseTo: maxRaiseTargetAmount(state, playerId),
     actionHistory: state.actionHistory,
+    bigBlind: state.config.bigBlind,
   }
 }
