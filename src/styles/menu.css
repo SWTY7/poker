@@ -204,11 +204,23 @@
   color: var(--text);
 }
 
+/* A filled chip, not a tint — the previous version (a 14%-opacity background
+   plus a 1px border) read as "selected" only while the mouse was still
+   hovering it; the moment it wasn't, the actual resting state was too close
+   to an unselected option to tell apart at a glance. This is deliberately
+   as loud as .btn-primary, because that's exactly the question this state
+   answers: which of these is the one that's actually going to happen. */
 .menu-option-on {
-  background: var(--accent-tint);
+  background: var(--accent);
   border-color: var(--accent);
-  color: #ecdcb0;
-  box-shadow: 0 0 0 1px rgba(205, 174, 112, 0.15) inset;
+  color: #241a0c;
+  box-shadow: 0 0 0 1px var(--accent) inset;
+}
+
+@media (hover: hover) {
+  .menu-option-on:hover {
+    border-color: var(--accent-mid);
+  }
 }
 
 .menu-toggle {

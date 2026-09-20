@@ -263,6 +263,18 @@
   cursor: not-allowed;
 }
 
+/* A compound selector, not just .menu-option-on — this file imports after
+   menu.css, so a bare .menu-option-on rule ties on specificity with
+   .buyin-option's own background/border above and loses to it on source
+   order, leaving the selected chip with only its box-shadow ring and none
+   of the actual fill. .buyin-option.menu-option-on outranks both regardless
+   of import order. */
+.buyin-option.menu-option-on {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #241a0c;
+}
+
 .buyin-option-chip {
   width: 1.5rem;
   height: 1.5rem;
@@ -283,6 +295,7 @@
 }
 
 .tournament-structure-card {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -298,6 +311,30 @@
 
 .tournament-structure-card:hover {
   border-color: var(--accent);
+}
+
+/* This card carries its own name/copy/meta colours, so the shared
+   .menu-option-on (a solid brass fill) would either wash them out or need
+   three separate overrides just to stay readable. A stronger border plus a
+   colored name and an explicit checkmark say "this one" just as loudly
+   without touching the body text. */
+.tournament-structure-card.menu-option-on {
+  background: var(--accent-tint);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent) inset;
+}
+
+.tournament-structure-card.menu-option-on .tournament-structure-name {
+  color: var(--accent);
+}
+
+.tournament-structure-check {
+  position: absolute;
+  top: 0.7rem;
+  right: 0.85rem;
+  width: 1.05rem;
+  height: 1.05rem;
+  color: var(--accent);
 }
 
 .tournament-structure-name {
