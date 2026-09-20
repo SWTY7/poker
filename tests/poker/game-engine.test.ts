@@ -3,6 +3,7 @@ import type { Card, Rank, Suit } from '../../src/poker/card'
 import { Deck } from '../../src/poker/deck'
 import { HoldemEngine } from '../../src/poker/game-engine'
 import type { PlayerSetup } from '../../src/poker/game-engine'
+import { isTournamentOver, tournamentStandings } from '../../src/game/tournament'
 
 const SUIT_LETTER: Record<string, Suit> = { c: 'clubs', d: 'diamonds', h: 'hearts', s: 'spades' }
 
@@ -196,5 +197,98 @@ describe('HoldemEngine side pots and showdown', () => {
       const total = engine.state.players.reduce((s, p) => s + p.stack, 0)
       expect(total).toBe(startingTotal)
     }
+  })
+})
+
+describe('HoldemEngine elimination order', () => {
+  it('records a bust, keeps it across the next hand, and never records the same player twice', () => {
+    const players: PlayerSetup[] = [
+      { id: 'p0', name: 'Short', stack: 30 },
+      { id: 'p1', name: 'Mid', stack: 500 },
+      { id: 'p2', name: 'Big', stack: 500 },
+    ]
+    const engine = new HoldemEngine(players, config)
+    expect(engine.state.eliminationOrder).toEqual([])
+
+    // Draw order for 3 players with dealer = p0 is sb, bb, dealer, twice over:
+    // p1 (sb), p2 (bb), p0 (dealer/button). p0 acts first preflop (UTG, which
+    // in three-handed play is the button). Weak hand for p0, unbeatable pair
+    // for p1, garbage for p2 so their fold costs nothing.
+    engine.startHand(
+      Deck.fromCards([
+        ...cards('Ah'), // p1 card 1
+        ...cards('2c'), // p2 card 1
+        ...cards('7h'), // p0 card 1
+        ...cards('Ad'), // p1 card 2
+        ...cards('3c'), // p2 card 2
+        ...cards('2s'), // p0 card 2
+        ...cards('Kd Qd Jc'), // flop
+        ...cards('9s'), // turn
+        ...cards('4d'), // river
+      ]),
+    )
+
+    engine.act({ playerId: 'p0', type: 'all-in' }) // shoves the whole 30
+    engine.act({ playerId: 'p1', type: 'call' }) // covers it easily
+    engine.act({ playerId: 'p2', type: 'fold' }) // dead money, no showdown stake
+
+    expect(engine.state.handInProgress).toBe(false)
+    const p0 = engine.state.players.find((p) => p.id === 'p0')!
+    expect(p0.stack).toBe(0)
+    expect(p0.isEliminated).toBe(true)
+    expect(engine.state.eliminationOrder).toEqual(['p0'])
+
+    const p1Stack = engine.state.players.find((p) => p.id === 'p1')!.stack
+    const p2Stack = engine.state.players.find((p) => p.id === 'p2')!.stack
+
+    // Heads-up now: p0 is skipped entirely (dead, not dealt to, not the
+    // button). Whichever of p1/p2 is now short shoves and loses, so the
+    // whole thing is fully covered and actually busts them — no uncalled
+    // chips returned to muddy the arithmetic.
+    const shortId = p1Stack <= p2Stack ? 'p1' : 'p2'
+
+    engine.startHand(
+      Deck.fromCards([
+        ...cards(shortId === 'p1' ? '2c' : 'Ks'), // sb card 1 (order below fixes seats)
+        ...cards(shortId === 'p1' ? 'Ks' : '2c'), // bb card 1
+        ...cards(shortId === 'p1' ? '3c' : 'Kd'), // sb card 2
+        ...cards(shortId === 'p1' ? 'Kd' : '3c'), // bb card 2
+        ...cards('Ah Qh Jc'), // flop
+        ...cards('9s'), // turn
+        ...cards('4d'), // river
+      ]),
+    )
+
+    // Still eliminationOrder-stable going into the second hand: starting a
+    // new hand must not reset it, only `eliminateBustedPlayers` appends.
+    expect(engine.state.eliminationOrder).toEqual(['p0'])
+
+    // Heads-up, the small blind acts first preflop. Limp, then the big
+    // blind shoves with the option, then the small blind calls it off.
+    const firstActor = engine.state.players[engine.state.currentPlayerIndex].id
+    engine.act({ playerId: firstActor, type: 'call' })
+    const secondActor = engine.state.players[engine.state.currentPlayerIndex].id
+    engine.act({ playerId: secondActor, type: 'all-in' })
+    engine.act({ playerId: firstActor, type: 'call' })
+
+    expect(engine.state.handInProgress).toBe(false)
+    expect(isTournamentOver(engine.state)).toBe(true)
+
+    const busted = engine.state.players.find((p) => p.isEliminated && p.id !== 'p0')!
+    const champion = engine.state.players.find((p) => !p.isEliminated)!
+
+    // p0 is still recorded exactly once, first — the guard against
+    // re-recording an already-eliminated player on a later hand's cleanup
+    // is what this line is checking.
+    expect(engine.state.eliminationOrder).toEqual(['p0', busted.id])
+
+    const standings = tournamentStandings(engine.state, 3)
+    expect(standings).toEqual(
+      expect.arrayContaining([
+        { playerId: champion.id, position: 1 },
+        { playerId: busted.id, position: 2 },
+        { playerId: 'p0', position: 3 },
+      ]),
+    )
   })
 })

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { Street } from '../poker/game-state'
+import type { TournamentHudInfo } from '../game/tournament'
 import type { Speed } from './useHoldemGame'
 import { useMediaQuery } from './useMediaQuery'
 
@@ -32,6 +33,8 @@ interface TableHudProps {
   onToggleLog: () => void
   onShowPositions: () => void
   onExit: () => void
+  /** Present for a tournament: replaces the flat blinds readout with the live level, clock and payout ladder. */
+  tournament?: TournamentHudInfo
 }
 
 type TempoProps = Pick<
@@ -136,6 +139,7 @@ export function TableHud({
   handsPlayed,
   net,
   onExit,
+  tournament,
   ...tempo
 }: TableHudProps) {
   const currentIndex = STREETS.findIndex((s) => s.key === street)
@@ -165,7 +169,12 @@ export function TableHud({
   return (
     <div className="hud">
       <div className="hud-group">
-        <button type="button" className="btn hud-btn" onClick={onExit} title="Cash out and leave this table">
+        <button
+          type="button"
+          className="btn hud-btn"
+          onClick={onExit}
+          title={tournament ? 'Quit this tournament' : 'Cash out and leave this table'}
+        >
           Leave
         </button>
         <span className="hud-sep" />
@@ -173,7 +182,21 @@ export function TableHud({
         <span className="hud-sep" />
         <span className="hud-dim">
           ${smallBlind} / ${bigBlind}
+          {tournament && tournament.ante > 0 ? ` +$${tournament.ante}` : ''}
         </span>
+        {tournament && (
+          <>
+            <span className="hud-sep" />
+            <span className="hud-dim hud-tournament-level" title={`Blinds go up in ${tournament.handsUntilNextLevel} hand${tournament.handsUntilNextLevel === 1 ? '' : 's'}`}>
+              Level {tournament.level}
+            </span>
+            <span className="hud-sep" />
+            <span className={`hud-dim ${tournament.bubble ? 'hud-tournament-bubble' : ''}`}>
+              {tournament.playersRemaining} of {tournament.fieldSize} left
+              {tournament.bubble ? ' · bubble' : ''}
+            </span>
+          </>
+        )}
       </div>
 
       <div className="street-stepper">

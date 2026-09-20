@@ -8,6 +8,7 @@ import type { Agent } from '../ai/agent'
 import { blueprintBotsEnabled, psychBotsEnabled } from '../ai/psychology/flag'
 import { PsychBot } from '../ai/psychology/psych-bot'
 import { CAST } from '../ai/psychology/profile'
+import { blindLevel, levelForHandsCompleted, type TournamentStructure } from '../game/tournament'
 import { createRng } from '../utils/random'
 import { readEnum, writeString } from '../utils/storage'
 
@@ -51,12 +52,20 @@ export interface GameConfigOptions {
   ante: number
   /** Shows the hero the exact probability of ending up with each hand category, computed purely from their own cards and the board — a study aid, not something a real player would see. */
   showHandOdds: boolean
+  /**
+   * Present for a tournament: blinds escalate on the structure's own
+   * schedule instead of staying fixed at `smallBlind`/`bigBlind`/`ante`
+   * above, which still supply the opening level.
+   */
+  tournament?: { structure: TournamentStructure }
 }
 
 export interface SessionStats {
   handsPlayed: number
   /** Net profit/loss per human seat, keyed by player id. */
   netByPlayer: Record<string, number>
+  /** Largest pot won by anyone, any hand, this session — a lifetime-stat feed, not shown at the table. */
+  biggestPot: number
 }
 
 /**
@@ -125,7 +134,15 @@ export function useHoldemGame(options: GameConfigOptions) {
   )
   /** Non-null while the board is being dealt; nobody may act during it. */
   const [dealingStreet, setDealingStreet] = useState<Street | null>(null)
-  const [session, setSession] = useState<SessionStats>({ handsPlayed: 0, netByPlayer: {} })
+  const [session, setSession] = useState<SessionStats>({ handsPlayed: 0, netByPlayer: {}, biggestPot: 0 })
+  /**
+   * The running max survives in a ref rather than folding into `session`
+   * directly because it has to accumulate across hands while everything
+   * else in `session` is a snapshot of the one that just ended — putting it
+   * in state too would mean reading the previous state to update it, inside
+   * a setter that also needs the engine's fresh numbers.
+   */
+  const biggestPotRef = useRef(0)
   /**
    * Which human's cards and controls are currently exposed on screen, in a
    * pass-and-play game. Only meaningful when there's more than one human —
@@ -172,8 +189,12 @@ export function useHoldemGame(options: GameConfigOptions) {
     if (!engine.state.handInProgress) {
       turboRef.current = false
       reportResults()
+      for (const result of engine.state.lastResults) {
+        biggestPotRef.current = Math.max(biggestPotRef.current, result.potAmount)
+      }
       setSession({
         handsPlayed: engine.state.handNumber,
+        biggestPot: biggestPotRef.current,
         netByPlayer: Object.fromEntries(
           humanIds.map((id) => {
             const player = engine.state.players.find((p) => p.id === id)
@@ -240,9 +261,20 @@ export function useHoldemGame(options: GameConfigOptions) {
     turboRef.current = false
     setDealingStreet(null)
     setRevealedFor(null)
+    // Rising blinds are a fact about the hand that's about to be dealt, not
+    // about the engine, so this is the one line that makes a tournament a
+    // tournament: mutate the config the engine is about to read, using
+    // however many hands it has played so far to find the level. No engine
+    // change earns its keep here — `startHand()` already re-reads
+    // `state.config` from scratch every time.
+    if (options.tournament) {
+      const level = levelForHandsCompleted(options.tournament.structure, engine.state.handNumber)
+      const { smallBlind, bigBlind, ante } = blindLevel(options.tournament.structure, level)
+      engine.setBlinds({ smallBlind, bigBlind, ante })
+    }
     engine.startHand()
     commit()
-  }, [engine, clearTimer, commit])
+  }, [engine, clearTimer, commit, options.tournament])
 
   /** The human whose action controls are currently live: revealed, and it's their turn. */
   const activeHumanId = soloHumanId ?? revealedFor

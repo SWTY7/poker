@@ -611,7 +611,13 @@
 }
 
 @media (min-width: 900px) {
-  .menu-card {
+  /* Scoped to the cash-game setup card specifically — not every `.menu-card`
+     wants this. Applying it to a bare `.menu-card` used to reach the lobby
+     and the results screens too: neither has `.menu-group` children, so
+     nothing supplied the `grid-column` overrides below, and their content
+     fell into the grid's default auto-placement instead, splitting across
+     two columns with the right one empty. */
+  .menu-card.menu-card-columns {
     width: min(50rem, 100%);
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -622,23 +628,27 @@
   }
 
   /* Stakes is the tall column, so it takes the right-hand side on its own and
-     the two short groups stack down the left. */
-  .menu-group:nth-of-type(2) {
+     the two short groups stack down the left. Scoped the same way, and for
+     the same reason: TournamentSetup also has `.menu-group`/`.menu-start`
+     children, on a card that is `display: flex` outside this class, and a
+     `grid-column` on a flex item is simply ignored — but naming what these
+     rules are actually for beats relying on that being harmless. */
+  .menu-card-columns .menu-group:nth-of-type(2) {
     grid-column: 2;
     grid-row: 1 / span 2;
   }
 
-  .menu-group-study {
+  .menu-card-columns .menu-group-study {
     grid-column: 1;
   }
 
-  .menu-start {
+  .menu-card-columns .menu-start {
     grid-column: 1 / -1;
   }
 
   /* The columns do the separating; horizontal rules between groups would just
      be more lines. */
-  .menu-group .menu-divider {
+  .menu-card-columns .menu-group .menu-divider {
     display: none;
   }
 

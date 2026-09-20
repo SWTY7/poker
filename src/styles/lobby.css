@@ -1,0 +1,350 @@
+/* ---------- lobby, tournament setup, results ----------
+   Built on the same .menu-scene / .menu-card / .menu-section vocabulary as
+   the cash-game setup screen, so the four screens a player moves through
+   before ever seeing a card read as one system rather than four. */
+
+.lobby-card {
+  width: min(32rem, 100%);
+}
+
+/* ---------- bankroll ---------- */
+
+.lobby-bankroll {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  text-align: center;
+}
+
+.lobby-bankroll-label {
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
+  font-weight: 700;
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.lobby-bankroll-value {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--font-mono);
+  font-size: 2.4rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.lobby-bankroll-icon {
+  width: 1.5rem;
+  height: 1.5rem;
+  color: var(--gold);
+}
+
+.lobby-stake-btn {
+  margin-top: 0.2rem;
+}
+
+.lobby-stake-hint {
+  margin-top: 0.2rem;
+  font-size: var(--fs-xs);
+  color: var(--text-faint);
+}
+
+/* ---------- lifetime stats ---------- */
+
+.lobby-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+
+.lobby-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  text-align: center;
+}
+
+.lobby-stat-value {
+  font-family: var(--font-mono);
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  color: var(--text);
+}
+
+.lobby-stat-label {
+  font-size: var(--fs-2xs);
+  color: var(--text-faint);
+  text-align: center;
+}
+
+/* ---------- the two doors ---------- */
+
+.lobby-doors {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.lobby-door {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+  transition:
+    border-color var(--t-fast) var(--ease),
+    background var(--t-fast) var(--ease);
+}
+
+.lobby-door:hover {
+  border-color: var(--accent);
+  background: var(--accent-tint);
+}
+
+.lobby-door-icon {
+  width: 1.6rem;
+  height: 1.6rem;
+  color: var(--accent);
+}
+
+.lobby-door-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.lobby-door-title {
+  font-size: var(--fs-md);
+  font-weight: 700;
+}
+
+.lobby-door-copy {
+  font-size: var(--fs-xs);
+  color: var(--text-dim);
+  line-height: 1.4;
+}
+
+@media (max-width: 480px) {
+  .lobby-doors {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---------- recent history ---------- */
+
+.lobby-history-list {
+  list-style: none;
+  margin: 0.4rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.lobby-history-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: var(--fs-xs);
+  padding: 0.3rem 0;
+}
+
+.lobby-history-mode {
+  color: var(--text-dim);
+}
+
+.lobby-history-result {
+  font-family: var(--font-mono);
+  font-weight: 700;
+}
+
+/* ---------- reset ---------- */
+
+.lobby-reset-row {
+  display: flex;
+  justify-content: center;
+  margin-top: -0.3rem;
+}
+
+.lobby-reset-link {
+  background: none;
+  border: none;
+  color: var(--text-faint);
+  font-size: var(--fs-2xs);
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0.2rem 0.4rem;
+}
+
+.lobby-reset-link:hover {
+  color: var(--text-dim);
+}
+
+.lobby-reset-confirm {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  font-size: var(--fs-2xs);
+  color: var(--warn);
+  text-align: center;
+}
+
+/* ---------- the bankroll strip on the cash-game setup screen ---------- */
+
+.menu-bankroll-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.3rem;
+  font-size: var(--fs-xs);
+}
+
+.menu-bankroll {
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+}
+
+.menu-back-link {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: var(--fs-xs);
+  cursor: pointer;
+  padding: 0;
+}
+
+.menu-back-link:hover {
+  text-decoration: underline;
+}
+
+/* ---------- tournament structures ---------- */
+
+.tournament-structures {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.tournament-structure-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2rem;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  text-align: left;
+}
+
+.tournament-structure-card:hover {
+  border-color: var(--accent);
+}
+
+.tournament-structure-name {
+  font-weight: 700;
+  color: var(--text);
+}
+
+.tournament-structure-copy {
+  font-size: var(--fs-xs);
+  line-height: 1.4;
+}
+
+.tournament-structure-meta {
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
+  color: var(--text-faint);
+}
+
+.tournament-actions {
+  display: flex;
+  gap: 0.6rem;
+}
+
+.tournament-actions .menu-start {
+  flex: 1 1 auto;
+}
+
+/* ---------- results ---------- */
+
+.results-headline {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  text-align: center;
+}
+
+.results-prize {
+  font-family: var(--font-mono);
+  font-size: 2.2rem;
+  font-weight: 700;
+}
+
+.results-prize-detail {
+  font-size: var(--fs-xs);
+  color: var(--text-faint);
+}
+
+.results-list {
+  list-style: none;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.results-row {
+  display: grid;
+  grid-template-columns: 3rem 1fr auto;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.45rem 0.6rem;
+  border-radius: var(--r-sm);
+  font-size: var(--fs-sm);
+  color: var(--text-dim);
+}
+
+.results-row-paid {
+  background: var(--accent-tint);
+}
+
+.results-row-you {
+  color: var(--text);
+  font-weight: 700;
+  box-shadow: 0 0 0 1px var(--accent) inset;
+  border-radius: var(--r-sm);
+}
+
+.results-position {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.results-payout {
+  font-family: var(--font-mono);
+  text-align: right;
+}
+
+/* ---------- the tournament clock, in the table HUD ---------- */
+
+.hud-tournament-bubble {
+  color: var(--warn);
+  font-weight: 700;
+}

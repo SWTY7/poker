@@ -37,6 +37,7 @@ export class HoldemEngine {
       handInProgress: false,
       lastResults: [],
       deck: new Deck(rng),
+      eliminationOrder: [],
     }
   }
 
@@ -83,6 +84,17 @@ export class HoldemEngine {
 
   canStartHand(): boolean {
     return this.nonEliminatedCount() >= 2
+  }
+
+  /**
+   * Changes the blinds and ante that the *next* `startHand()` will post —
+   * this hand's config, if one is in progress, is untouched. This is the
+   * entire mechanism rising tournament blinds run on: `startHand()` already
+   * reads `state.config` from scratch every time, so a caller that knows
+   * what level a tournament is on has nothing else to do.
+   */
+  setBlinds(config: GameConfig): void {
+    this.state.config = config
   }
 
   /** `deckOverride` is a test/debug hook to force exact cards for a hand. */
@@ -342,9 +354,19 @@ export class HoldemEngine {
     state.handInProgress = false
   }
 
+  /**
+   * Marks anyone at zero chips as out, and records the order — the only
+   * place a tournament's finishing positions come from. Two players busting
+   * in the same hand (a three-way all-in, say) are recorded in seat order,
+   * which is an arbitrary but deterministic tiebreak rather than an attempt
+   * to rank simultaneous elimination by, say, chips carried into the hand.
+   */
   private eliminateBustedPlayers(): void {
     for (const p of this.state.players) {
-      if (p.stack === 0) p.isEliminated = true
+      if (p.stack === 0 && !p.isEliminated) {
+        p.isEliminated = true
+        this.state.eliminationOrder.push(p.id)
+      }
     }
   }
 }

@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { ordinal } from '../utils/format'
 
 interface LeaveDialogProps {
   handsPlayed: number
@@ -10,6 +11,12 @@ interface LeaveDialogProps {
   handInProgress: boolean
   onConfirm: () => void
   onCancel: () => void
+  /**
+   * Present for a tournament. Leaving one isn't a cash-out — there is no
+   * chip total to hand back, only a finishing position — so this replaces
+   * the whole cash-out summary with the one number that actually applies.
+   */
+  tournament?: { playersRemaining: number; fieldSize: number }
 }
 
 /**
@@ -18,6 +25,13 @@ interface LeaveDialogProps {
  * — you either play the hand out or fold and walk, and the pot stays.
  * That's the distinction the warning below draws, and it's why this is a
  * proper cash-out screen rather than a bare "are you sure?".
+ *
+ * A tournament changes what leaving even means. Cash chips convert back to
+ * bankroll at face value; tournament chips are markers for how long you
+ * survived; and the only thing this app can honestly report about "what
+ * happens to the tournament" if you quit is that it stops being simulated —
+ * see the note on `TournamentResults`'s `forfeited` flag for what standings
+ * mean after that.
  */
 export function LeaveDialog({
   handsPlayed,
@@ -27,6 +41,7 @@ export function LeaveDialog({
   handInProgress,
   onConfirm,
   onCancel,
+  tournament,
 }: LeaveDialogProps) {
   const cancelRef = useRef<HTMLButtonElement>(null)
 
@@ -47,35 +62,57 @@ export function LeaveDialog({
         className="dialog"
         role="dialog"
         aria-modal="true"
-        aria-label="Leave the table"
+        aria-label={tournament ? 'Quit the tournament' : 'Leave the table'}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="dialog-head">
-          <h2 className="dialog-title">Cash out?</h2>
+          <h2 className="dialog-title">{tournament ? 'Quit the tournament?' : 'Cash out?'}</h2>
         </div>
 
-        <div className="cashout-grid">
-          <div className="cashout-cell">
-            <span className="cashout-label">Hands played</span>
-            <span className="cashout-value">{handsPlayed}</span>
-          </div>
-          <div className="cashout-cell">
-            <span className="cashout-label">Bought in for</span>
-            <span className="cashout-value">${startingStack.toLocaleString()}</span>
-          </div>
-          <div className="cashout-cell">
-            <span className="cashout-label">Leaving with</span>
-            <span className="cashout-value">${stack.toLocaleString()}</span>
-          </div>
-          {net !== null && (
-            <div className="cashout-cell">
-              <span className="cashout-label">Result</span>
-              <span className={`cashout-value ${up ? 'cashout-up' : 'cashout-down'}`}>
-                {up ? '+' : '−'}${Math.abs(net).toLocaleString()}
-              </span>
+        {tournament ? (
+          <>
+            <p className="dialog-warn">
+              Tournament chips aren't cash — there's nothing to withdraw, only a place to finish. Quitting now
+              finishes you in <strong>{ordinal(tournament.playersRemaining)}</strong> of {tournament.fieldSize}, and
+              the rest of the field's own placings are never played out.
+            </p>
+            <div className="cashout-grid">
+              <div className="cashout-cell">
+                <span className="cashout-label">Hands played</span>
+                <span className="cashout-value">{handsPlayed}</span>
+              </div>
+              <div className="cashout-cell">
+                <span className="cashout-label">Finishing</span>
+                <span className="cashout-value">
+                  {ordinal(tournament.playersRemaining)} of {tournament.fieldSize}
+                </span>
+              </div>
             </div>
-          )}
-        </div>
+          </>
+        ) : (
+          <div className="cashout-grid">
+            <div className="cashout-cell">
+              <span className="cashout-label">Hands played</span>
+              <span className="cashout-value">{handsPlayed}</span>
+            </div>
+            <div className="cashout-cell">
+              <span className="cashout-label">Bought in for</span>
+              <span className="cashout-value">${startingStack.toLocaleString()}</span>
+            </div>
+            <div className="cashout-cell">
+              <span className="cashout-label">Leaving with</span>
+              <span className="cashout-value">${stack.toLocaleString()}</span>
+            </div>
+            {net !== null && (
+              <div className="cashout-cell">
+                <span className="cashout-label">Result</span>
+                <span className={`cashout-value ${up ? 'cashout-up' : 'cashout-down'}`}>
+                  {up ? '+' : '−'}${Math.abs(net).toLocaleString()}
+                </span>
+              </div>
+            )}
+          </div>
+        )}
 
         {handInProgress && (
           <p className="dialog-warn">
@@ -89,7 +126,7 @@ export function LeaveDialog({
             Keep playing
           </button>
           <button type="button" className="btn btn-primary" onClick={onConfirm}>
-            Leave table
+            {tournament ? 'Quit tournament' : 'Leave table'}
           </button>
         </div>
       </div>
