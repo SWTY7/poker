@@ -45,8 +45,8 @@ export function TournamentResults({ outcome, onBackToLobby }: TournamentResultsP
 
       <div className="menu-content">
         <div className="menu-wordmark-row">
-          <div className="menu-wordmark">
-            <TrophyIcon className="menu-wordmark-glyph" />
+          <div className={`menu-wordmark ${won ? 'results-won' : ''}`}>
+            <TrophyIcon className={`menu-wordmark-glyph ${won ? 'results-won-glyph' : ''}`} />
             <span className="menu-wordmark-text">{won ? 'You won!' : `${ordinal(humanPosition)} place`}</span>
           </div>
           <div className="menu-subtitle">

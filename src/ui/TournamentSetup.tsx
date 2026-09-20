@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { STRUCTURES, type TournamentStructure } from '../game/tournament'
 import { canAffordBuyIn } from '../game/profile'
-import { CoinIcon, PeopleIcon, TrophyIcon } from './icons'
+import { PeopleIcon, TrophyIcon } from './icons'
+import { ChipIcon } from './ChipIcon'
 import { SUIT_PATH } from './suit-icons'
 
 const BUY_IN_TIERS = [20, 50, 100, 500]
@@ -61,20 +62,20 @@ export function TournamentSetup({ bankroll, onBack, onRegister }: TournamentSetu
             <h2 className="menu-section">Buy-in</h2>
             <div className="menu-field-heading">
               <span className="menu-field-icon menu-field-icon-gold">
-                <CoinIcon />
+                <ChipIcon amount={buyIn} />
               </span>
               <span className="menu-field-label">From your ${bankroll.toLocaleString()} bankroll</span>
             </div>
-            <div className="menu-options">
+            <div className="buyin-options">
               {BUY_IN_TIERS.map((tier) => (
                 <button
                   key={tier}
                   type="button"
-                  className={`menu-option ${buyIn === tier ? 'menu-option-on' : ''}`}
+                  className={`buyin-option ${buyIn === tier ? 'menu-option-on' : ''}`}
                   disabled={tier > bankroll}
                   onClick={() => setBuyIn(tier)}
                 >
-                  ${tier.toLocaleString()}
+                  <ChipIcon amount={tier} className="buyin-option-chip" />${tier.toLocaleString()}
                 </button>
               ))}
             </div>

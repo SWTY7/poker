@@ -3,6 +3,7 @@ import type { GameConfigOptions } from './useHoldemGame'
 import { readJSON, writeJSON } from '../utils/storage'
 import { SUIT_PATH } from './suit-icons'
 import { CoinIcon, DealIcon, PeopleIcon, PercentIcon, PersonIcon } from './icons'
+import { ChipIcon } from './ChipIcon'
 import { InfoTip } from './InfoTip'
 
 interface MenuScreenProps {
@@ -208,7 +209,7 @@ export function MenuScreen({ onStart, bankroll, onBack }: MenuScreenProps) {
           <div>
             <div className="menu-field-heading">
               <span className="menu-field-icon menu-field-icon-gold">
-                <CoinIcon />
+                <ChipIcon amount={config.startingStack} />
               </span>
               <span className="menu-field-label">Starting stack</span>
               <InfoTip label="Starting stack">
@@ -216,16 +217,16 @@ export function MenuScreen({ onStart, bankroll, onBack }: MenuScreenProps) {
                 after the flop, and longer before anyone busts.
               </InfoTip>
             </div>
-            <div className="menu-options">
+            <div className="buyin-options">
               {STACK_OPTIONS.map((stack) => (
                 <button
                   key={stack}
                   type="button"
-                  className={`menu-option ${config.startingStack === stack ? 'menu-option-on' : ''}`}
+                  className={`buyin-option ${config.startingStack === stack ? 'menu-option-on' : ''}`}
                   disabled={bankroll !== undefined && stack > bankroll}
                   onClick={() => setConfig((c) => ({ ...c, startingStack: stack }))}
                 >
-                  ${stack.toLocaleString()}
+                  <ChipIcon amount={stack} className="buyin-option-chip" />${stack.toLocaleString()}
                 </button>
               ))}
             </div>

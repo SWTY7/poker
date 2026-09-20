@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import type { Profile } from '../game/profile'
 import { canClaimDailyStake, DAILY_STAKE_AMOUNT, DAILY_STAKE_THRESHOLD } from '../game/profile'
-import { CoinIcon, DealIcon, TrophyIcon } from './icons'
+import { DealIcon, TrophyIcon } from './icons'
+import { ChipIcon } from './ChipIcon'
 import { SUIT_PATH } from './suit-icons'
 import { ordinal } from '../utils/format'
 
@@ -56,7 +57,7 @@ export function Lobby({ profile, onClaimDailyStake, onResetProfile, onChooseCash
           <section className="lobby-bankroll">
             <span className="lobby-bankroll-label">Bankroll</span>
             <span className="lobby-bankroll-value">
-              <CoinIcon className="lobby-bankroll-icon" />
+              <ChipIcon amount={profile.bankroll} className="lobby-bankroll-icon" />
               {profile.bankroll.toLocaleString()}
             </span>
 

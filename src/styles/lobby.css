@@ -228,6 +228,52 @@
   text-decoration: underline;
 }
 
+/* ---------- buy-in chips ---------- */
+
+.buyin-options {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.buyin-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  min-width: 0;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--text-dim);
+  border-radius: var(--r-md);
+  padding: 0.6rem 0.4rem;
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.buyin-option:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.buyin-option:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.buyin-option-chip {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+@media (max-width: 480px) {
+  .buyin-options {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 /* ---------- tournament structures ---------- */
 
 .tournament-structures {
@@ -280,6 +326,30 @@
 }
 
 /* ---------- results ---------- */
+
+/* The one moment on these four screens that earns a flourish: winning the
+   whole thing. Everywhere else restraint is the point — a lobby, a setup
+   form and a loss are not occasions — so this is the only animated rule in
+   the file. */
+.results-won .menu-wordmark-text {
+  color: var(--accent);
+}
+
+.results-won-glyph {
+  color: var(--accent);
+  filter: drop-shadow(0 0 0.5rem var(--accent));
+  animation: results-glow 1.8s ease-in-out infinite;
+}
+
+@keyframes results-glow {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 0.3rem var(--accent));
+  }
+  50% {
+    filter: drop-shadow(0 0 0.9rem var(--accent));
+  }
+}
 
 .results-headline {
   display: flex;
@@ -344,7 +414,19 @@
 
 /* ---------- the tournament clock, in the table HUD ---------- */
 
-.hud-tournament-bubble {
+/* Compound selectors, not just `.hud-tournament-level` — table.css's own
+   `.hud-dim` sets a color too, and it is imported after this file, so a
+   single-class rule here would lose that fight on specificity ties and the
+   pill would render in the wrong colour. */
+.hud-dim.hud-tournament-level {
+  padding: 0.15rem 0.5rem;
+  border-radius: var(--r-pill);
+  background: var(--accent-tint);
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.hud-dim.hud-tournament-bubble {
   color: var(--warn);
   font-weight: 700;
 }
