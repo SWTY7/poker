@@ -15,6 +15,8 @@
  * defined, and CFR's convergence guarantee apply at all.
  */
 
+import type { Rng } from '../utils/random'
+
 export type Action = string
 
 /** Seat 0 acts first at the root. */
@@ -45,6 +47,19 @@ export interface Game<State> {
 
   /** Only called at chance nodes. Probabilities must sum to 1. */
   chanceOutcomes(state: State): ChanceOutcome[]
+
+  /**
+   * Draws one chance outcome directly, for games whose chance nodes are too
+   * wide to list.
+   *
+   * Kuhn has three cards and Leduc six, so enumerating what the deck might do
+   * is free and the full-tree solvers depend on it. Dealing two hole cards
+   * each from a real deck has 1.6 million outcomes and a flop has another
+   * 19,600, which is not a list anybody wants built at every visit — but a
+   * sampling solver only ever needed one of them. Games that can enumerate
+   * leave this out and sampling falls back to `chanceOutcomes`.
+   */
+  sampleChance?(state: State, rng: Rng): Action
 
   /**
    * Everything the player to act can tell apart, as a string.

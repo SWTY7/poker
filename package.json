@@ -11,7 +11,8 @@
     "test": "vitest run",
     "run": "node scripts/run.mjs",
     "generate:preflop-equity": "node scripts/run.mjs scripts/preflop-equity.ts",
-    "chart:pushfold": "node scripts/run.mjs scripts/push-fold-chart.ts"
+    "chart:pushfold": "node scripts/run.mjs scripts/push-fold-chart.ts",
+    "train:blueprint": "node scripts/run.mjs scripts/train-blueprint.ts"
   },
   "dependencies": {
     "react": "^19.2.8",
