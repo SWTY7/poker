@@ -167,9 +167,9 @@
 }
 
 .legend-row-live .legend-tag {
-  color: var(--violet);
-  border-color: var(--violet-deep);
-  background: var(--violet-tint);
+  color: var(--accent);
+  border-color: var(--accent-deep);
+  background: var(--accent-tint);
 }
 
 .legend-text {
@@ -192,7 +192,7 @@
   font-size: 0.54rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--violet);
+  color: var(--accent);
 }
 
 .legend-blurb {
@@ -284,7 +284,7 @@
 .potential-made-name {
   font-size: var(--fs-lg);
   font-weight: 700;
-  color: var(--violet);
+  color: var(--accent);
 }
 
 .potential-note {
@@ -328,7 +328,7 @@
 .potential-fill {
   display: block;
   height: 100%;
-  background: linear-gradient(90deg, var(--violet-deep), var(--violet));
+  background: linear-gradient(90deg, var(--accent-deep), var(--accent));
   border-radius: var(--r-pill);
 }
 

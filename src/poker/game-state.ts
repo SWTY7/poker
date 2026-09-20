@@ -76,4 +76,13 @@ export interface GameState {
   handInProgress: boolean
   lastResults: HandResult[]
   deck: Deck
+  /**
+   * Player ids in the order they busted, earliest first. Set once and never
+   * reset by `startHand` — unlike almost everything else in this file, it is
+   * scoped to the whole session (in practice, the whole tournament) rather
+   * than to one hand. This is what turns "who's left" into "who finished
+   * where": the first name here took last place, and whoever is never added
+   * because they never busted took first.
+   */
+  eliminationOrder: string[]
 }

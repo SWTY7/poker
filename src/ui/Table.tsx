@@ -13,10 +13,11 @@ import { HandPotential } from './HandPotential'
 import { Controls, SpectatingBar, WaitingBar, IdleBar, RevealGate } from './Controls'
 import { HandFeed } from './HandFeed'
 import { TableHud } from './TableHud'
+import type { TournamentHudInfo } from '../game/tournament'
 import { PositionLegend } from './PositionLegend'
 import { LeaveDialog } from './LeaveDialog'
 import { useMediaQuery } from './useMediaQuery'
-import type { Speed } from './useHoldemGame'
+import type { SessionStats, Speed } from './useHoldemGame'
 
 interface TableProps {
   state: GameState
@@ -28,7 +29,7 @@ interface TableProps {
   onRevealCurrentPlayer: () => void
   waitingOn: string | null
   dealingStreet: string | null
-  session: { handsPlayed: number; netByPlayer: Record<string, number> }
+  session: SessionStats
   speed: Speed
   onSpeed: (speed: Speed) => void
   paused: boolean
@@ -47,6 +48,8 @@ interface TableProps {
   startingStack: number
   /** False once fewer than two players still have chips — the table is finished. */
   canStartHand: boolean
+  /** Present for a tournament: the live level, blinds clock and payout ladder for the HUD. */
+  tournament?: TournamentHudInfo
 }
 
 const STREET_BANNER: Record<string, string> = {
@@ -133,6 +136,7 @@ export function Table({
   showHandOdds,
   startingStack,
   canStartHand,
+  tournament,
 }: TableProps) {
   /**
    * "Compact" is about how much room the dock may take, so it is a question
@@ -284,6 +288,7 @@ export function Table({
         onToggleLog={() => setShowLog((v) => !v)}
         onShowPositions={() => setShowPositions(true)}
         onExit={() => setShowLeave(true)}
+        tournament={tournament}
       />
 
       <div className="table-body">
@@ -490,6 +495,9 @@ export function Table({
           handInProgress={state.handInProgress}
           onConfirm={onExit}
           onCancel={() => setShowLeave(false)}
+          tournament={
+            tournament ? { playersRemaining: tournament.playersRemaining, fieldSize: tournament.fieldSize } : undefined
+          }
         />
       )}
     </div>

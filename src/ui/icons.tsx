@@ -87,3 +87,25 @@ export function RaiseIcon({ className }: IconProps) {
     />
   )
 }
+
+/**
+ * A prize/finish marker — tournament results and standings. Unlike the icons
+ * above, this one is hand-built rather than lifted from Bootstrap Icons: a
+ * bowl, two handles and a base, in plain path commands rather than a single
+ * dense fill path, so it stays checkable by eye.
+ */
+export function TrophyIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 16 16" className={className} fill="none" stroke="currentColor" strokeWidth="1.1" aria-hidden="true">
+      <path
+        d="M4.5 1.5h7v3.2c0 2.3-1.567 4.1-3.5 4.1s-3.5-1.8-3.5-4.1z"
+        fill="currentColor"
+        stroke="none"
+      />
+      <path d="M4.5 2.3H2.3c0 1.9.9 3.2 2.4 3.5" strokeLinecap="round" />
+      <path d="M11.5 2.3h2.2c0 1.9-.9 3.2-2.4 3.5" strokeLinecap="round" />
+      <path d="M8 8.8v2.4" strokeLinecap="round" />
+      <path d="M5.6 14.2c0-1.4 1-1.9 2.4-1.9s2.4.5 2.4 1.9z" fill="currentColor" stroke="none" />
+    </svg>
+  )
+}

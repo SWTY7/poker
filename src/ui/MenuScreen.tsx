@@ -3,16 +3,26 @@ import type { GameConfigOptions } from './useHoldemGame'
 import { readJSON, writeJSON } from '../utils/storage'
 import { SUIT_PATH } from './suit-icons'
 import { CoinIcon, DealIcon, PeopleIcon, PercentIcon, PersonIcon } from './icons'
+import { ChipIcon } from './ChipIcon'
 import { InfoTip } from './InfoTip'
 
 interface MenuScreenProps {
   onStart: (options: GameConfigOptions) => void
+  /**
+   * The bankroll this session's buy-in comes out of. Stack options costing
+   * more than it are shown, not hidden — a returning player whose stored
+   * choice is no longer affordable should see why their usual game is
+   * greyed out, not wonder where it went — but disabled, and the start
+   * button refuses a stack the bankroll can't cover.
+   */
+  bankroll?: number
+  onBack?: () => void
 }
 
 const MIN_PLAYERS = 2
 const MAX_PLAYERS = 10
 
-const STACK_OPTIONS = [500, 1000, 2500, 5000]
+const STACK_OPTIONS = [100, 500, 1000, 2500, 5000]
 
 const BLIND_OPTIONS: { label: string; smallBlind: number; bigBlind: number }[] = [
   { label: '$1/$2', smallBlind: 1, bigBlind: 2 },
@@ -40,13 +50,22 @@ const STORAGE_KEY = 'poker.lastConfig'
  * setup picked, so returning here to change the blinds doesn't mean
  * re-entering everything from scratch.
  */
-export function MenuScreen({ onStart }: MenuScreenProps) {
+export function MenuScreen({ onStart, bankroll, onBack }: MenuScreenProps) {
   const [config, setConfig] = useState<GameConfigOptions>(() => {
     // Merge over the defaults rather than trusting the stored shape outright —
     // a config saved before `humanCount` existed would otherwise come back
     // with that field `undefined` and break every clamp below it.
     const stored = readJSON<Partial<GameConfigOptions>>(STORAGE_KEY, {})
-    return { ...DEFAULT_CONFIG, ...stored }
+    const merged = { ...DEFAULT_CONFIG, ...stored }
+    // A stack the bankroll can no longer cover — spent it since, or this is
+    // the first time bankroll-backed buy-ins exist at all — falls back to
+    // the largest one it can, rather than opening on a start button that
+    // immediately refuses to work.
+    if (bankroll !== undefined && merged.startingStack > bankroll) {
+      const affordable = [...STACK_OPTIONS].reverse().find((stack) => stack <= bankroll)
+      if (affordable) merged.startingStack = affordable
+    }
+    return merged
   })
 
   const setPlayerCount = (next: number) => {
@@ -60,7 +79,11 @@ export function MenuScreen({ onStart }: MenuScreenProps) {
     setConfig((c) => ({ ...c, humanCount: Math.min(Math.max(next, 1), c.playerCount) }))
   }
 
+  const canAffordBuyIn = bankroll === undefined || config.startingStack <= bankroll
+  const anyStackAffordable = bankroll === undefined || STACK_OPTIONS.some((stack) => stack <= bankroll)
+
   const handleStart = () => {
+    if (!canAffordBuyIn) return
     writeJSON(STORAGE_KEY, config)
     onStart(config)
   }
@@ -88,15 +111,25 @@ export function MenuScreen({ onStart }: MenuScreenProps) {
             </svg>
           </div>
           <div className="menu-subtitle">Set up the table, then deal yourself in.</div>
+          {bankroll !== undefined && (
+            <div className="menu-bankroll-row">
+              <span className="menu-bankroll">Bankroll ${bankroll.toLocaleString()}</span>
+              {onBack && (
+                <button type="button" className="menu-back-link" onClick={onBack}>
+                  ← Lobby
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
-        <div className="menu-card">
+        <div className="menu-card menu-card-columns">
           <section className="menu-group">
             <h2 className="menu-section">Table</h2>
 
           <div className="menu-field-row">
             <div className="menu-field-heading" style={{ marginBottom: 0 }}>
-              <span className="menu-field-icon menu-field-icon-violet">
+              <span className="menu-field-icon menu-field-icon-accent">
                 <PeopleIcon />
               </span>
               <span className="menu-field-label">Players</span>
@@ -132,7 +165,7 @@ export function MenuScreen({ onStart }: MenuScreenProps) {
           <div>
             <div className="menu-field-row">
               <div className="menu-field-heading" style={{ marginBottom: 0 }}>
-                <span className="menu-field-icon menu-field-icon-violet">
+                <span className="menu-field-icon menu-field-icon-accent">
                   <PersonIcon />
                 </span>
                 <span className="menu-field-label">Human players</span>
@@ -176,26 +209,32 @@ export function MenuScreen({ onStart }: MenuScreenProps) {
           <div>
             <div className="menu-field-heading">
               <span className="menu-field-icon menu-field-icon-gold">
-                <CoinIcon />
+                <ChipIcon amount={config.startingStack} />
               </span>
               <span className="menu-field-label">Starting stack</span>
               <InfoTip label="Starting stack">
-                What everyone buys in for. Bigger stacks mean more room to play after the flop, and longer before
-                anyone busts.
+                What everyone buys in for — yours comes out of your bankroll. Bigger stacks mean more room to play
+                after the flop, and longer before anyone busts.
               </InfoTip>
             </div>
-            <div className="menu-options">
+            <div className="buyin-options">
               {STACK_OPTIONS.map((stack) => (
                 <button
                   key={stack}
                   type="button"
-                  className={`menu-option ${config.startingStack === stack ? 'menu-option-on' : ''}`}
+                  className={`buyin-option ${config.startingStack === stack ? 'menu-option-on' : ''}`}
+                  disabled={bankroll !== undefined && stack > bankroll}
                   onClick={() => setConfig((c) => ({ ...c, startingStack: stack }))}
                 >
-                  ${stack.toLocaleString()}
+                  <ChipIcon amount={stack} className="buyin-option-chip" />${stack.toLocaleString()}
                 </button>
               ))}
             </div>
+            {!anyStackAffordable && (
+              <p className="menu-hint">
+                Not enough in the bankroll for any of these — head back to the lobby for a top-up.
+              </p>
+            )}
           </div>
 
           <div>
@@ -256,7 +295,7 @@ export function MenuScreen({ onStart }: MenuScreenProps) {
 
           <div className="menu-field-row">
             <div className="menu-field-heading" style={{ marginBottom: 0 }}>
-              <span className="menu-field-icon menu-field-icon-violet">
+              <span className="menu-field-icon menu-field-icon-accent">
                 <PercentIcon />
               </span>
               <span className="menu-field-label">Hand potential</span>
@@ -278,7 +317,7 @@ export function MenuScreen({ onStart }: MenuScreenProps) {
 
           </section>
 
-          <button type="button" className="btn menu-start" onClick={handleStart}>
+          <button type="button" className="btn menu-start" onClick={handleStart} disabled={!canAffordBuyIn}>
             <DealIcon className="menu-start-icon" />
             {config.humanCount > 1 ? 'Start pass-and-play' : 'Deal me in'}
           </button>

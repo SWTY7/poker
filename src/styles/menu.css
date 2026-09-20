@@ -44,7 +44,7 @@
   height: 22rem;
   left: -6rem;
   top: -4rem;
-  color: var(--violet);
+  color: var(--accent);
   transform: rotate(-12deg);
 }
 
@@ -53,7 +53,7 @@
   height: 20rem;
   right: -5.5rem;
   bottom: -5rem;
-  color: #d0425e;
+  color: #7a4a2e;
   transform: rotate(18deg);
 }
 
@@ -93,12 +93,12 @@
   font-size: clamp(2rem, 7vw, 3.1rem);
   line-height: 1;
   letter-spacing: 0.05em;
-  color: #f6f2fe;
+  color: #f5f0e4;
   text-align: center;
 }
 
 .menu-wordmark-accent {
-  color: var(--violet);
+  color: var(--accent);
 }
 
 .menu-subtitle {
@@ -154,9 +154,9 @@
   height: 1rem;
 }
 
-.menu-field-icon-violet {
-  background: var(--violet-tint);
-  color: var(--violet);
+.menu-field-icon-accent {
+  background: var(--accent-tint);
+  color: var(--accent);
 }
 
 .menu-field-icon-gold {
@@ -200,15 +200,15 @@
 }
 
 .menu-option:hover {
-  border-color: var(--violet);
+  border-color: var(--accent);
   color: var(--text);
 }
 
 .menu-option-on {
-  background: var(--violet-tint);
-  border-color: var(--violet);
-  color: #c3adfa;
-  box-shadow: 0 0 0 1px rgba(169, 139, 245, 0.15) inset;
+  background: var(--accent-tint);
+  border-color: var(--accent);
+  color: #ecdcb0;
+  box-shadow: 0 0 0 1px rgba(205, 174, 112, 0.15) inset;
 }
 
 .menu-toggle {
@@ -238,7 +238,7 @@
 }
 
 .stepper-btn:hover:not(:disabled) {
-  border-color: var(--violet);
+  border-color: var(--accent);
   color: var(--text);
 }
 
@@ -261,11 +261,11 @@
   align-items: center;
   justify-content: center;
   gap: 0.6rem;
-  background: linear-gradient(180deg, #b79cf7 0%, #8b6ef0 45%, #6a4bc4 100%);
+  background: linear-gradient(180deg, #e6cf9a 0%, var(--accent) 45%, var(--accent-deep) 100%);
   box-shadow:
     0 1px 0 rgba(255, 255, 255, 0.35) inset,
-    0 14px 32px rgba(107, 79, 196, 0.4);
-  color: #150f26;
+    0 14px 32px rgba(138, 106, 60, 0.4);
+  color: #241a0c;
   padding: 0.85rem 1rem;
   font-size: 0.95rem;
   border-radius: 0.8rem;
@@ -287,7 +287,7 @@
   font-weight: 700;
   letter-spacing: var(--track);
   text-transform: uppercase;
-  color: var(--violet);
+  color: var(--accent);
 }
 
 /* An explanation under a setting, rather than an unexplained row of buttons.
@@ -422,8 +422,8 @@
 
 .infotip-btn:hover,
 .infotip-open .infotip-btn {
-  color: var(--violet);
-  border-color: var(--violet);
+  color: var(--accent);
+  border-color: var(--accent);
 }
 
 .infotip-bubble {
@@ -611,7 +611,13 @@
 }
 
 @media (min-width: 900px) {
-  .menu-card {
+  /* Scoped to the cash-game setup card specifically — not every `.menu-card`
+     wants this. Applying it to a bare `.menu-card` used to reach the lobby
+     and the results screens too: neither has `.menu-group` children, so
+     nothing supplied the `grid-column` overrides below, and their content
+     fell into the grid's default auto-placement instead, splitting across
+     two columns with the right one empty. */
+  .menu-card.menu-card-columns {
     width: min(50rem, 100%);
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -622,23 +628,27 @@
   }
 
   /* Stakes is the tall column, so it takes the right-hand side on its own and
-     the two short groups stack down the left. */
-  .menu-group:nth-of-type(2) {
+     the two short groups stack down the left. Scoped the same way, and for
+     the same reason: TournamentSetup also has `.menu-group`/`.menu-start`
+     children, on a card that is `display: flex` outside this class, and a
+     `grid-column` on a flex item is simply ignored — but naming what these
+     rules are actually for beats relying on that being harmless. */
+  .menu-card-columns .menu-group:nth-of-type(2) {
     grid-column: 2;
     grid-row: 1 / span 2;
   }
 
-  .menu-group-study {
+  .menu-card-columns .menu-group-study {
     grid-column: 1;
   }
 
-  .menu-start {
+  .menu-card-columns .menu-start {
     grid-column: 1 / -1;
   }
 
   /* The columns do the separating; horizontal rules between groups would just
      be more lines. */
-  .menu-group .menu-divider {
+  .menu-card-columns .menu-group .menu-divider {
     display: none;
   }
 

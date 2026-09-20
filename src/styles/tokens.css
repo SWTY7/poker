@@ -10,50 +10,52 @@
   color-scheme: dark;
 
   /* --- colour -------------------------------------------------------------
-     Dark plum ground, violet as the single interactive accent, gold reserved
-     for chips and money, green/red only for won/lost. Nothing else gets to
-     use a hue — that is what keeps "this is interactive" and "this is money"
-     from competing. */
-  --bg: #0d0b13;
-  --felt: #17132a;
-  --felt-rim: #2e2748;
+     A card room rather than a nightclub: near-black ground with a green
+     cast, deep felt green, walnut trim, brass as the single interactive
+     accent, green/red only for won/lost. Nothing else gets to use a hue —
+     that is what keeps "this is interactive" and "this is money" from
+     competing. Chip denominations (in table.css) carry the money colour now,
+     not a tint, which is the more formal convention. */
+  --bg: #100e0c;
+  --felt: #163a28;
+  --felt-rim: #3a2a1c;
 
   --surface: rgba(255, 255, 255, 0.035);
   --surface-strong: rgba(255, 255, 255, 0.07);
-  --panel: #171426;
-  --hud-bg: #14111f;
-  --scrim: rgba(6, 4, 12, 0.72);
+  --panel: #17140f;
+  --hud-bg: #141210;
+  --scrim: rgba(8, 6, 4, 0.72);
 
-  --line: #322c46;
-  --line-soft: #2c2740;
+  --line: #38321f;
+  --line-soft: #2f2a1c;
 
-  --text: #f3f0fa;
-  --text-dim: #a8a0be;
-  --text-faint: #857e9a;
+  --text: #f2efe6;
+  --text-dim: #a8a293;
+  --text-faint: #857e6d;
 
-  --violet: #a98bf5;
-  --violet-mid: #8b6ef0;
-  --violet-deep: #6a4bc4;
-  --violet-tint: rgba(169, 139, 245, 0.14);
+  --accent: #cdae70;
+  --accent-mid: #b6935a;
+  --accent-deep: #8a6a3c;
+  --accent-tint: rgba(205, 174, 112, 0.14);
 
   --gold: #d5ae57;
-  --green: #7ecf95;
-  --red: #ee7d99;
-  --red-deep: #6d3a4a;
-  --warn: #e6b970;
+  --green: #6fae7f;
+  --red: #c9707f;
+  --red-deep: #5c3038;
+  --warn: #d9a75c;
 
   /* Focus ring. One value, used by every interactive element — a keyboard
      user should never have to work out which widget invented its own. */
-  --focus: #cbb4ff;
+  --focus: #e3cd9a;
 
   /* --- type ---------------------------------------------------------------
-     Space Grotesk carries headings and card ranks; Space Mono carries every
-     number on the table (stacks, pot, bets) — tabular, so chip counts line up
-     instead of jittering as they change. Bebas Neue is the menu wordmark
-     only. */
-  --font-display: 'Space Grotesk', system-ui, sans-serif;
+     A serif carries headings, the wordmark and card ranks — the one visible
+     signal that this is meant to read as formal rather than casual — and
+     Space Mono carries every number on the table (stacks, pot, bets):
+     tabular, so chip counts line up instead of jittering as they change. */
+  --font-display: 'Source Serif 4', Georgia, serif;
   --font-mono: 'Space Mono', ui-monospace, monospace;
-  --font-wordmark: 'Bebas Neue', 'Space Grotesk', system-ui, sans-serif;
+  --font-wordmark: 'Source Serif 4', Georgia, serif;
 
   /* A 1.2-ish scale. Labels live at the bottom, the pot at the top. */
   --fs-2xs: 0.58rem;
@@ -101,8 +103,8 @@
   --dock-h: auto;
 
   --table-bg:
-    radial-gradient(120% 50% at 50% 0%, oklch(0.27 0.025 300 / 0.3) 0%, transparent 50%),
-    radial-gradient(90% 70% at 50% 85%, oklch(0.21 0.028 295) 0%, oklch(0.14 0.016 285) 60%, oklch(0.1 0.012 285) 100%);
+    radial-gradient(120% 50% at 50% 0%, oklch(0.27 0.025 145 / 0.3) 0%, transparent 50%),
+    radial-gradient(90% 70% at 50% 85%, oklch(0.21 0.028 145) 0%, oklch(0.14 0.016 130) 60%, oklch(0.1 0.012 90) 100%);
 }
 
 /* Every size below is expressed in rem off this root, so one clamp scales the
