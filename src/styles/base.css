@@ -51,11 +51,11 @@
 @media (hover: hover) {
   .btn:hover:not(:disabled) {
     --btn-bg: var(--surface-strong);
-    --btn-border: var(--violet-deep);
+    --btn-border: var(--accent-deep);
   }
 
   .btn-primary:hover:not(:disabled) {
-    --btn-bg: var(--violet);
+    --btn-bg: var(--accent);
   }
 
   .btn-danger:hover:not(:disabled) {
@@ -76,9 +76,9 @@
 }
 
 .btn-primary {
-  --btn-bg: var(--violet-mid);
-  --btn-border: var(--violet);
-  --btn-fg: #17122a;
+  --btn-bg: var(--accent-mid);
+  --btn-border: var(--accent);
+  --btn-fg: #241a0c;
 }
 
 
@@ -170,18 +170,18 @@
 }
 
 .card-red {
-  color: #d2365c;
+  color: #a5333f;
 }
 
 .card-black {
-  color: #171226;
+  color: #241a0c;
 }
 
 .card-back {
   background:
-    repeating-linear-gradient(45deg, rgba(169, 139, 245, 0.16) 0 3px, transparent 3px 6px),
-    linear-gradient(165deg, #3a2f5c, #241c3c);
-  border: 1px solid #4a3d72;
+    repeating-linear-gradient(45deg, rgba(205, 174, 112, 0.16) 0 3px, transparent 3px 6px),
+    linear-gradient(165deg, #2e2418, #1c160e);
+  border: 1px solid #4a3c26;
   box-shadow: var(--sh-1);
 }
 

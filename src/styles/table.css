@@ -126,9 +126,9 @@
 
 .hud-btn-on,
 .btn-on {
-  --btn-bg: var(--violet-tint);
-  --btn-border: var(--violet-deep);
-  --btn-fg: var(--violet);
+  --btn-bg: var(--accent-tint);
+  --btn-border: var(--accent-deep);
+  --btn-fg: var(--accent);
 }
 
 .hud-btn-icon {
@@ -163,8 +163,8 @@
 }
 
 .segment-on {
-  background: var(--violet-tint);
-  color: var(--violet);
+  background: var(--accent-tint);
+  color: var(--accent);
   font-weight: 700;
 }
 
@@ -206,7 +206,7 @@
 }
 
 .street-step-current {
-  color: var(--violet);
+  color: var(--accent);
   opacity: 1;
   font-weight: 700;
 }
@@ -261,8 +261,8 @@
   /* The surface itself. A bounded, slightly lifted plane, rimmed rather than
      shadowed — enough that the seats read as sitting AT something. */
   background:
-    radial-gradient(85% 65% at 50% 42%, rgba(140, 110, 220, 0.09) 0%, transparent 70%),
-    linear-gradient(180deg, #191430 0%, #12101f 100%);
+    radial-gradient(85% 65% at 50% 42%, rgba(90, 140, 100, 0.12) 0%, transparent 70%),
+    linear-gradient(180deg, #1b3527 0%, #122015 100%);
   border: 1px solid var(--felt-rim);
   border-radius: var(--r-xl);
   box-shadow:
@@ -278,7 +278,7 @@
   content: '';
   position: absolute;
   inset: 22% 5% 8%;
-  border: 1px solid rgba(169, 139, 245, 0.09);
+  border: 1px solid rgba(205, 174, 112, 0.09);
   border-radius: 50% / 42%;
   pointer-events: none;
 }
@@ -337,9 +337,9 @@
 }
 
 .seat-active {
-  border-color: var(--violet);
-  background: var(--violet-tint);
-  box-shadow: 0 0 18px rgba(169, 139, 245, 0.28);
+  border-color: var(--accent);
+  background: var(--accent-tint);
+  box-shadow: 0 0 18px rgba(205, 174, 112, 0.28);
 }
 
 .seat-winner {
@@ -364,7 +364,7 @@
   justify-content: center;
   font-size: var(--fs-xs);
   font-weight: 700;
-  color: #f6f2fe;
+  color: #f5f0e4;
   flex-shrink: 0;
 }
 
@@ -377,7 +377,7 @@
   width: 0.5rem;
   height: 0.5rem;
   border-radius: 50%;
-  background: var(--violet);
+  background: var(--accent);
   box-shadow: 0 0 0 2px var(--felt);
   animation: pip-breathe 1.8s var(--ease) infinite;
 }
@@ -551,7 +551,7 @@
   gap: var(--sp-2);
   font-size: var(--fs-2xl);
   letter-spacing: -0.02em;
-  color: #f7f3ff;
+  color: #f5f0e4;
   line-height: 1.1;
 }
 
@@ -587,8 +587,8 @@
    one of the three alone is missable on a phone held at arm's length, and the
    border alone would be colour carrying meaning on its own. */
 .hero-turn {
-  border-color: var(--violet);
-  background: linear-gradient(180deg, var(--violet-tint), rgba(255, 255, 255, 0.03));
+  border-color: var(--accent);
+  background: linear-gradient(180deg, var(--accent-tint), rgba(255, 255, 255, 0.03));
 }
 
 .hero-turn-chip {
@@ -597,8 +597,8 @@
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #17122a;
-  background: var(--violet);
+  color: #241a0c;
+  background: var(--accent);
   border-radius: var(--r-sm);
   padding: 0.1rem 0.3rem;
   white-space: nowrap;
@@ -645,7 +645,7 @@
 
 .hero-made {
   font-size: var(--fs-xs);
-  color: var(--violet);
+  color: var(--accent);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -725,13 +725,13 @@
 }
 
 .btn-accent {
-  --btn-bg: rgba(169, 139, 245, 0.14);
-  --btn-border: var(--violet);
-  --btn-fg: var(--violet);
+  --btn-bg: rgba(205, 174, 112, 0.14);
+  --btn-border: var(--accent);
+  --btn-fg: var(--accent);
 }
 
 .btn-accent:hover:not(:disabled) {
-  --btn-bg: rgba(169, 139, 245, 0.24);
+  --btn-bg: rgba(205, 174, 112, 0.24);
 }
 
 .dock-row > .dock-back {
@@ -792,7 +792,7 @@
   display: flex;
   align-items: baseline;
   gap: 0.1rem;
-  color: var(--violet);
+  color: var(--accent);
   flex: 1 1 auto;
 }
 
@@ -825,7 +825,7 @@
 
 .sizer-input:hover,
 .sizer-input:focus {
-  border-bottom-color: var(--violet-deep);
+  border-bottom-color: var(--accent-deep);
   outline: none;
 }
 
@@ -851,13 +851,13 @@
 .sizer-slider::-webkit-slider-runnable-track {
   height: 0.35rem;
   border-radius: var(--r-pill);
-  background: linear-gradient(90deg, var(--violet-deep), var(--violet));
+  background: linear-gradient(90deg, var(--accent-deep), var(--accent));
 }
 
 .sizer-slider::-moz-range-track {
   height: 0.35rem;
   border-radius: var(--r-pill);
-  background: linear-gradient(90deg, var(--violet-deep), var(--violet));
+  background: linear-gradient(90deg, var(--accent-deep), var(--accent));
 }
 
 .sizer-slider::-webkit-slider-thumb {
@@ -868,7 +868,7 @@
   margin-top: -0.58rem;
   border-radius: 50%;
   background: #fff;
-  border: 2px solid var(--violet);
+  border: 2px solid var(--accent);
   box-shadow: var(--sh-1);
 }
 
@@ -877,7 +877,7 @@
   height: 1.5rem;
   border-radius: 50%;
   background: #fff;
-  border: 2px solid var(--violet);
+  border: 2px solid var(--accent);
 }
 
 .sizer-bounds {
@@ -903,9 +903,9 @@
 }
 
 .btn-preset-on {
-  --btn-bg: var(--violet-tint);
-  --btn-border: var(--violet);
-  --btn-fg: var(--violet);
+  --btn-bg: var(--accent-tint);
+  --btn-border: var(--accent);
+  --btn-fg: var(--accent);
 }
 
 /* ---------- result ---------- */
@@ -974,7 +974,7 @@
   font-weight: 700;
   letter-spacing: 0.3em;
   text-transform: uppercase;
-  color: var(--violet);
+  color: var(--accent);
   text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
   pointer-events: none;
   z-index: 7;
@@ -1001,8 +1001,8 @@
   top: var(--sp-3);
   transform: translateX(-50%);
   background: rgba(0, 0, 0, 0.75);
-  border: 1px solid var(--violet);
-  color: var(--violet);
+  border: 1px solid var(--accent);
+  color: var(--accent);
   border-radius: var(--r-pill);
   padding: var(--sp-1) var(--sp-3);
   font-size: var(--fs-xs);

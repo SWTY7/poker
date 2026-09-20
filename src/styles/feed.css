@@ -37,7 +37,7 @@
   font-size: 0.6rem;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--violet);
+  color: var(--accent);
 }
 
 .feed-street-rule {
@@ -79,12 +79,12 @@
 
 .feed-deal {
   padding: 0.14rem 0;
-  color: #9fd3ff;
+  color: #8fadc4;
   letter-spacing: 0.08em;
 }
 
 .feed-reveal .feed-what {
-  color: #9fd3ff;
+  color: #8fadc4;
   letter-spacing: 0.08em;
 }
 

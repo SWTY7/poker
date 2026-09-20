@@ -96,7 +96,7 @@ export function MenuScreen({ onStart }: MenuScreenProps) {
 
           <div className="menu-field-row">
             <div className="menu-field-heading" style={{ marginBottom: 0 }}>
-              <span className="menu-field-icon menu-field-icon-violet">
+              <span className="menu-field-icon menu-field-icon-accent">
                 <PeopleIcon />
               </span>
               <span className="menu-field-label">Players</span>
@@ -132,7 +132,7 @@ export function MenuScreen({ onStart }: MenuScreenProps) {
           <div>
             <div className="menu-field-row">
               <div className="menu-field-heading" style={{ marginBottom: 0 }}>
-                <span className="menu-field-icon menu-field-icon-violet">
+                <span className="menu-field-icon menu-field-icon-accent">
                   <PersonIcon />
                 </span>
                 <span className="menu-field-label">Human players</span>
@@ -256,7 +256,7 @@ export function MenuScreen({ onStart }: MenuScreenProps) {
 
           <div className="menu-field-row">
             <div className="menu-field-heading" style={{ marginBottom: 0 }}>
-              <span className="menu-field-icon menu-field-icon-violet">
+              <span className="menu-field-icon menu-field-icon-accent">
                 <PercentIcon />
               </span>
               <span className="menu-field-label">Hand potential</span>
