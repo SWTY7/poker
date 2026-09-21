@@ -1,4 +1,4 @@
-import type { PokerAction } from '../../poker/game-state'
+import type { PokerAction, Street } from '../../poker/game-state'
 import { toCardInts } from '../../poker/fast/cards'
 import type { CardInt } from '../../poker/fast/cards'
 import { multiwayEquity } from '../../math/equity'
@@ -62,6 +62,51 @@ const CONTINUING_WIDTH = 0.45
  */
 const VALUE_SHARE = VALUE_WIDTH / CONTINUING_WIDTH
 
+/**
+ * However confidently a level believes a bet is pure value — a level-0 or
+ * level-1 bot's belief about a raise collapses toward "never a bluff" as
+ * confidence rises toward 1 (see level-k.ts's pure best-response chain) —
+ * nobody at a real table reasons with literal certainty. A belief of exactly
+ * 0% makes that bot unbluffable at any price, which is a stronger claim than
+ * "this player doesn't expect it" and not one the model intends to make.
+ * This floors the belief actually used for equity; it does not touch the
+ * level-k formulas themselves, which stay exact for their own tests.
+ */
+const MIN_BLUFF_BELIEF = 0.08
+
+/**
+ * A raise here is priced as though the opponent only ever folds or calls it
+ * — never raises back — and that omission gets more wrong the more streets
+ * remain to do it on. Real players shove a set on the flop far more readily
+ * than the same equity from an overpair with two cards still to come, and
+ * the difference is entirely "what can still go wrong before showdown", not
+ * the hand itself. Rather than searching those streets, this shrinks the
+ * computed equity-if-called toward a coin flip in proportion to what is left
+ * to happen — a plain discount on how much today's snapshot should be
+ * trusted, not a claim about what will happen. At the river there is nothing
+ * left to discount, so this is a no-op there by construction.
+ */
+const LOOKAHEAD_DECAY = 0.12
+
+function streetsRemaining(street: Street): number {
+  switch (street) {
+    case 'preflop':
+      return 3
+    case 'flop':
+      return 2
+    case 'turn':
+      return 1
+    case 'river':
+    case 'showdown':
+      return 0
+  }
+}
+
+function shrinkTowardCoinFlip(equity: number, streetsLeft: number): number {
+  const shrink = Math.max(0, 1 - LOOKAHEAD_DECAY * streetsLeft)
+  return 0.5 + (equity - 0.5) * shrink
+}
+
 export class PsychBot implements Agent {
   readonly profile: PsychProfile
   private rng: Rng
@@ -109,7 +154,7 @@ export class PsychBot implements Agent {
       Math.max(pot - toCall, 1),
       this.profile.confidence,
     )
-    const bluffBelief = clamp01(believed.bluffFrequency + effects.bluffBeliefBoost)
+    const bluffBelief = clamp01(Math.max(believed.bluffFrequency, MIN_BLUFF_BELIEF) + effects.bluffBeliefBoost)
 
     // The hand has to beat everyone still in, and they are not all telling
     // the same story — so each opponent is dealt from the range their own
@@ -215,10 +260,11 @@ export class PsychBot implements Agent {
         // maniac: every bet looks like it either wins the pot outright or
         // goes to showdown against the same range it faced before.
         const called = topSlice(CONTINUING_WIDTH * defence)
-        const equityIfCalled = multiwayEquity(hole, new Array<Range>(opponents).fill(called), board, {
+        const rawEquityIfCalled = multiwayEquity(hole, new Array<Range>(opponents).fill(called), board, {
           ...sample,
           participation: participation.map(() => 1),
         })
+        const equityIfCalled = shrinkTowardCoinFlip(rawEquityIfCalled, streetsRemaining(obs.street))
 
         candidates.push({
           action: { playerId: obs.playerId, type: aggressive, amount: target },
