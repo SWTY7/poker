@@ -88,6 +88,20 @@ const MIN_BLUFF_BELIEF = 0.08
  */
 const LOOKAHEAD_DECAY = 0.12
 
+/**
+ * Loss aversion is calibrated on stakes that were a real fraction of
+ * someone's bankroll — lambda near 2.25 means losing 100 hurts about as
+ * much as winning 225 pleases, for a 100 that actually counts. That
+ * calibration does not survive being applied unscaled to a bet that costs
+ * 2% of a stack the way it does to the same chip amount against a stack ten
+ * times shorter: full loss aversion on a bet this small is exactly why a
+ * bot folds a 300-chip raise it is getting excellent odds on, deep-stacked,
+ * as readily as it would short-stacked. A facing bet at or above this
+ * fraction of the stack gets the profile's calibrated lambda in full;
+ * smaller ones scale it down toward 1 (indifferent), linearly.
+ */
+const STAKE_REFERENCE_FRACTION = 0.03
+
 function streetsRemaining(street: Street): number {
   switch (street) {
     case 'preflop':
@@ -131,18 +145,23 @@ export class PsychBot implements Agent {
     const me = obs.players.find((p) => p.id === obs.playerId)
     this.session.stack = me?.stack ?? this.session.stack
 
-    const effects = tiltEffects(this.tilt)
-    const prospect: ProspectParams = {
-      ...this.profile.prospect,
-      lambda: 1 + (this.profile.prospect.lambda - 1) * effects.lambdaScale,
-    }
-    const reference = referencePoint(this.session, this.profile.accounting)
-
     const hole = toCardInts(obs.ownCards) as [CardInt, CardInt]
     const board = toCardInts(obs.communityCards)
     const stack = this.session.stack
     const pot = obs.potSize
     const toCall = obs.toCall
+
+    const effects = tiltEffects(this.tilt)
+    // Only a facing bet has a stake fraction to speak of — a contemplated
+    // bet of one's own (toCall === 0) isn't scaled by this, since it isn't
+    // the loss-aversion-on-a-cheap-call pattern this exists to fix.
+    const stakeFraction = toCall > 0 ? toCall / Math.max(stack, 1) : STAKE_REFERENCE_FRACTION
+    const stakeLambdaScale = clamp01(stakeFraction / STAKE_REFERENCE_FRACTION)
+    const prospect: ProspectParams = {
+      ...this.profile.prospect,
+      lambda: 1 + (this.profile.prospect.lambda - 1) * effects.lambdaScale * stakeLambdaScale,
+    }
+    const reference = referencePoint(this.session, this.profile.accounting)
 
     const read = readOpponents(obs)
     const opponents = Math.max(read.aggressors + read.callers + read.unknown, 1)
