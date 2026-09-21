@@ -3,6 +3,7 @@ import { HoldemEngine } from '../../../src/poker/game-engine'
 import { buildObservation } from '../../../src/ai/observation'
 import type { AIObservation } from '../../../src/ai/observation'
 import { PsychBot } from '../../../src/ai/psychology/psych-bot'
+import { OpponentModel } from '../../../src/ai/psychology/opponent-model'
 import { AVERAGE_HUMAN, CAST, LOSS_AVERSE, RATIONAL } from '../../../src/ai/psychology/profile'
 import { HUMAN_TILT } from '../../../src/ai/psychology/tilt'
 import { committedPot, streetBetTotal, totalPot } from '../../../src/poker/pot'
@@ -154,6 +155,41 @@ describe('the biases show up at the table, not just in the formulas', () => {
     const control = new PsychBot(RATIONAL, 1000, createRng(3))
     const stuckControl = new PsychBot(RATIONAL, 1000, createRng(3))
     expect(continueRate(stuckControl, riverSpot(400))).toBeCloseTo(continueRate(control, riverSpot(1000)), 10)
+  })
+})
+
+describe('a learned read on a specific opponent', () => {
+  it('calls a known-aggressive villain wider than an unknown one, same hand and price', () => {
+    const spot = riverSpot(1000)
+    const noRead = new PsychBot(AVERAGE_HUMAN, 1000, createRng(13))
+
+    const knowsVillain = new OpponentModel()
+    for (let i = 0; i < 40; i++) knowsVillain.observe({ playerId: 'villain', type: 'raise' })
+    const readsVillain = new PsychBot(AVERAGE_HUMAN, 1000, createRng(13), knowsVillain)
+
+    expect(continueRate(readsVillain, spot)).toBeGreaterThan(continueRate(noRead, spot))
+  })
+
+  it('does nothing until the opponent model has enough of a sample to say anything', () => {
+    const spot = riverSpot(1000)
+    const noRead = new PsychBot(AVERAGE_HUMAN, 1000, createRng(13))
+
+    const barelySeen = new OpponentModel()
+    barelySeen.observe({ playerId: 'villain', type: 'raise' })
+    const readsVillain = new PsychBot(AVERAGE_HUMAN, 1000, createRng(13), barelySeen)
+
+    expect(continueRate(readsVillain, spot)).toBe(continueRate(noRead, spot))
+  })
+
+  it('gives a known-passive villain no extra credit for bluffing', () => {
+    const spot = riverSpot(1000)
+    const noRead = new PsychBot(AVERAGE_HUMAN, 1000, createRng(13))
+
+    const passiveVillain = new OpponentModel()
+    for (let i = 0; i < 40; i++) passiveVillain.observe({ playerId: 'villain', type: 'call' })
+    const readsVillain = new PsychBot(AVERAGE_HUMAN, 1000, createRng(13), passiveVillain)
+
+    expect(continueRate(readsVillain, spot)).toBeLessThanOrEqual(continueRate(noRead, spot))
   })
 })
 

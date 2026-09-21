@@ -15,6 +15,7 @@ import { decayTilt, tiltEffects, updateTilt } from './tilt'
 import { believedOpponentStrategy } from './level-k'
 import type { PsychProfile } from './profile'
 import { AVERAGE_HUMAN } from './profile'
+import type { OpponentModel } from './opponent-model'
 
 /**
  * One bot, three biases, one decision rule.
@@ -102,6 +103,17 @@ const LOOKAHEAD_DECAY = 0.12
  */
 const STAKE_REFERENCE_FRACTION = 0.03
 
+/**
+ * How much of the learned aggression-bias (opponent-model.ts) actually
+ * moves this bot's belief that a specific opponent's bet is a bluff. A
+ * player seen betting 20 points above the balanced baseline gets read as
+ * `LEARNED_BLUFF_GAIN * 0.20` more likely to be bluffing than the level-k
+ * prior alone would say — a real but not overwhelming nudge, since the
+ * prior still carries most of the belief and this is one extra signal on
+ * top of it, not a replacement for it.
+ */
+const LEARNED_BLUFF_GAIN = 0.6
+
 function streetsRemaining(street: Street): number {
   switch (street) {
     case 'preflop':
@@ -129,11 +141,14 @@ export class PsychBot implements Agent {
   /** The equity behind this bot's last committing action, for judging the beat afterwards. */
   private lastEquity = 0
   private committedThisHand = false
+  /** Shared across every bot at the table — see opponent-model.ts. Undefined plays exactly as before it existed. */
+  private opponents?: OpponentModel
 
-  constructor(profile: PsychProfile = AVERAGE_HUMAN, buyIn = 1000, rng: Rng = createRng()) {
+  constructor(profile: PsychProfile = AVERAGE_HUMAN, buyIn = 1000, rng: Rng = createRng(), opponents?: OpponentModel) {
     this.profile = profile
     this.rng = rng
     this.session = { buyIn, stack: buyIn }
+    this.opponents = opponents
   }
 
   /** Current emotional state, for tests and for a future tell in the UI. */
@@ -164,7 +179,7 @@ export class PsychBot implements Agent {
     const reference = referencePoint(this.session, this.profile.accounting)
 
     const read = readOpponents(obs)
-    const opponents = Math.max(read.aggressors + read.callers + read.unknown, 1)
+    const opponents = Math.max(read.aggressors.length + read.callers.length + read.unknown.length, 1)
 
     // What the opponent is betting, and therefore what to measure against.
     const believed = believedOpponentStrategy(
@@ -173,7 +188,14 @@ export class PsychBot implements Agent {
       Math.max(pot - toCall, 1),
       this.profile.confidence,
     )
-    const bluffBelief = clamp01(Math.max(believed.bluffFrequency, MIN_BLUFF_BELIEF) + effects.bluffBeliefBoost)
+    const baseBluffBelief = clamp01(Math.max(believed.bluffFrequency, MIN_BLUFF_BELIEF) + effects.bluffBeliefBoost)
+    // The level-k prior is the same for anyone the bot hasn't specifically
+    // clocked, but a specific opponent who has been betting and raising well
+    // above a balanced rate has to be doing it with a range that has more air
+    // in it than that — arithmetic, not a read on their cards. Only kicks in
+    // once opponent-model.ts has enough of a sample to say anything.
+    const bluffBeliefFor = (playerId: string) =>
+      clamp01(baseBluffBelief + (this.opponents?.aggressionBias(playerId) ?? 0) * LEARNED_BLUFF_GAIN)
 
     // The hand has to beat everyone still in, and they are not all telling
     // the same story — so each opponent is dealt from the range their own
@@ -181,15 +203,15 @@ export class PsychBot implements Agent {
     const sample = { samples: this.profile.equitySamples, rng: this.rng }
     const ranges: Range[] = []
     const participation: number[] = []
-    for (let i = 0; i < read.aggressors; i++) {
-      ranges.push(bettingRange(bluffBelief))
+    for (const id of read.aggressors) {
+      ranges.push(bettingRange(bluffBeliefFor(id)))
       participation.push(1)
     }
-    for (let i = 0; i < read.callers; i++) {
+    for (let i = 0; i < read.callers.length; i++) {
       ranges.push(continuingRange())
       participation.push(1)
     }
-    for (let i = 0; i < read.unknown; i++) {
+    for (let i = 0; i < read.unknown.length; i++) {
       // Someone yet to act is in the hand exactly when they hold a hand worth
       // continuing with, so one number does both jobs: how often they are
       // there, and what they have when they are.
@@ -343,11 +365,11 @@ export class PsychBot implements Agent {
 
 interface TableRead {
   /** Opponents still in who have bet or raised this hand. */
-  aggressors: number
+  aggressors: string[]
   /** Opponents still in who have only called or checked. */
-  callers: number
+  callers: string[]
   /** Opponents still in who have not voluntarily done anything yet. */
-  unknown: number
+  unknown: string[]
 }
 
 /**
@@ -358,11 +380,15 @@ interface TableRead {
  * strength is the kind of mistake that turns a bot into a nit — folding the
  * whole table because six people are apparently betting at it. Only the
  * action history counts as information, because only it was voluntary.
+ *
+ * Ids, not just counts — a specific aggressor needs an identity so their
+ * own learned tendencies (opponent-model.ts) can be looked up rather than
+ * every aggressor this hand getting the same generic read.
  */
 function readOpponents(obs: AIObservation): TableRead {
-  let aggressors = 0
-  let callers = 0
-  let unknown = 0
+  const aggressors: string[] = []
+  const callers: string[] = []
+  const unknown: string[] = []
   for (const player of obs.players) {
     if (player.id === obs.playerId || player.folded) continue
     let acted = false
@@ -372,9 +398,9 @@ function readOpponents(obs: AIObservation): TableRead {
       acted = true
       if (action.type === 'bet' || action.type === 'raise' || action.type === 'all-in') aggressive = true
     }
-    if (aggressive) aggressors++
-    else if (acted) callers++
-    else unknown++
+    if (aggressive) aggressors.push(player.id)
+    else if (acted) callers.push(player.id)
+    else unknown.push(player.id)
   }
   return { aggressors, callers, unknown }
 }

@@ -4,6 +4,8 @@ import type { AccountingParams } from './accounting'
 import { HUMAN_ACCOUNTING, RATIONAL_ACCOUNTING } from './accounting'
 import type { TiltParams } from './tilt'
 import { HUMAN_TILT, STOIC_TILT } from './tilt'
+import { samplePoissonLevel } from './level-k'
+import type { Rng } from '../../utils/random'
 
 /**
  * A character is a parameter set, not a special case.
@@ -119,3 +121,25 @@ export const ROCK: PsychProfile = {
 
 /** The cast, in the order a table fills up. */
 export const CAST: PsychProfile[] = [AVERAGE_HUMAN, GRINDER, HOTHEAD, LOSS_AVERSE, ROCK, OVERTHINKER]
+
+function clamp01(x: number): number {
+  return Math.min(Math.max(x, 0), 1)
+}
+
+/**
+ * One archetype, instantiated fresh rather than photocopied.
+ *
+ * `CAST`'s numbers are a center of gravity, not a value every bot wearing
+ * that name is bound to exactly: level is redrawn from the Poisson the
+ * character's own level anchors (see level-k.ts's `samplePoissonLevel`),
+ * and confidence gets a small independent jitter. Without this, a table is
+ * the same six fixed reasoning depths in the same six seats every single
+ * game — learn how Rex plays once and you have learned how Rex plays
+ * forever. A table you've played before should not be a table you've
+ * already solved.
+ */
+export function randomizeProfile(profile: PsychProfile, rng: Rng): PsychProfile {
+  const level = samplePoissonLevel(rng, Math.max(profile.level, 0.05))
+  const confidence = clamp01(profile.confidence + (rng() - 0.5) * 0.2)
+  return { ...profile, level, confidence }
+}
