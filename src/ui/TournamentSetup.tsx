@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import { STRUCTURES, type TournamentStructure } from '../game/tournament'
 import { canAffordBuyIn } from '../game/profile'
-import { PeopleIcon, TrophyIcon } from './icons'
+import { CheckIcon, PeopleIcon, TrophyIcon } from './icons'
 import { ChipIcon } from './ChipIcon'
 import { SUIT_PATH } from './suit-icons'
 
-const BUY_IN_TIERS = [20, 50, 100, 500]
+const BUY_IN_TIERS = [100, 250, 500, 1000, 2500]
 const MIN_FIELD = 2
 const MAX_FIELD = 10
 const DEFAULT_FIELD = 6
@@ -94,6 +94,7 @@ export function TournamentSetup({ bankroll, onBack, onRegister }: TournamentSetu
                   className={`tournament-structure-card ${structureId === s.id ? 'menu-option-on' : ''}`}
                   onClick={() => setStructureId(s.id)}
                 >
+                  {structureId === s.id && <CheckIcon className="tournament-structure-check" />}
                   <span className="tournament-structure-name">{s.name}</span>
                   <span className="tournament-structure-copy">{s.description}</span>
                   <span className="tournament-structure-meta">
