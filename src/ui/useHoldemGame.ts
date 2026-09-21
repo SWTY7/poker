@@ -7,9 +7,10 @@ import { buildObservation } from '../ai/observation'
 import type { Agent } from '../ai/agent'
 import { blueprintBotsEnabled, psychBotsEnabled } from '../ai/psychology/flag'
 import { PsychBot } from '../ai/psychology/psych-bot'
-import { CAST } from '../ai/psychology/profile'
+import { OpponentModel } from '../ai/psychology/opponent-model'
+import { CAST, randomizeProfile } from '../ai/psychology/profile'
 import { blindLevel, levelForHandsCompleted, type TournamentStructure } from '../game/tournament'
-import { createRng } from '../utils/random'
+import { createRng, shuffle } from '../utils/random'
 import { readEnum, writeString } from '../utils/storage'
 
 const BOT_NAMES = ['Chip', 'Chris', 'Darla', 'Holly', 'Scarlet', 'Sparky', 'Connie', 'Lars', 'Nova']
@@ -81,6 +82,7 @@ function buildTable(options: GameConfigOptions): {
   engine: HoldemEngine
   agents: Record<string, Agent>
   humanIds: string[]
+  opponentModel: OpponentModel
 } {
   const humanCount = Math.min(Math.max(options.humanCount, 1), options.playerCount)
 
@@ -102,13 +104,21 @@ function buildTable(options: GameConfigOptions): {
   const humanIds = players.slice(0, humanCount).map((p) => p.id)
   const agents: Record<string, Agent> = {}
   const psych = psychBotsEnabled()
+  const opponentModel = new OpponentModel()
+  // A fresh shuffle and a fresh randomizeProfile() draw every table, so
+  // which archetype sits where — and exactly how that archetype plays —
+  // isn't the same game after game. A table you've played before should
+  // not be a table you've already solved.
+  const tableRng = createRng()
+  const cast = [...CAST]
+  shuffle(cast, tableRng)
   players.slice(humanCount).forEach((p, i) => {
     agents[p.id] = psych
-      ? new PsychBot(CAST[i % CAST.length], options.startingStack, createRng())
+      ? new PsychBot(randomizeProfile(cast[i % cast.length], tableRng), options.startingStack, createRng(), opponentModel)
       : new HeuristicBot(createRng())
   })
 
-  return { engine, agents, humanIds }
+  return { engine, agents, humanIds, opponentModel }
 }
 
 export function useHoldemGame(options: GameConfigOptions) {
@@ -122,7 +132,7 @@ export function useHoldemGame(options: GameConfigOptions) {
    */
   const turboRef = useRef<false | 'hand' | 'turn'>(false)
 
-  const [{ engine, agents, humanIds }] = useState(() => buildTable(options))
+  const [{ engine, agents, humanIds, opponentModel }] = useState(() => buildTable(options))
   /** Solo play never gates — there's only ever one person holding the device. */
   const soloHumanId = humanIds.length === 1 ? humanIds[0] : null
 
@@ -246,6 +256,10 @@ export function useHoldemGame(options: GameConfigOptions) {
   const applyAndPace = useCallback(
     (action: PokerAction) => {
       const streetBefore = engine.state.street
+      // Every action at the table, human or bot, goes through here — the one
+      // place to feed the shared opponent model so every psych bot's read
+      // stays current without each of them separately reconstructing it.
+      opponentModel.observe(action)
       engine.act(action)
       const streetAfter = engine.state.street
       commit()
@@ -253,7 +267,7 @@ export function useHoldemGame(options: GameConfigOptions) {
         setDealingStreet(streetAfter)
       }
     },
-    [engine, commit],
+    [engine, commit, opponentModel],
   )
 
   const startHand = useCallback(() => {
