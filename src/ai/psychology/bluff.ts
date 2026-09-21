@@ -38,6 +38,8 @@ export interface BluffContext {
  * lower number. A hidden multiplier would make the trait lie about its own
  * units.
  */
-export function maybeBluff(_rng: Rng, _profile: PersonalityProfile, _context: BluffContext): boolean {
-  throw new Error('maybeBluff is not implemented yet — see the spec comment above')
+export function maybeBluff(rng: Rng, profile: PersonalityProfile, context: BluffContext): boolean {
+  if (context.strength >= 0.35) return false
+  if (context.toCall !== 0) return false
+  return rng() < profile.bluffFrequency
 }
