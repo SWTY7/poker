@@ -4,7 +4,8 @@ import type { CardInt } from '../../poker/fast/cards'
 import { multiwayEquity } from '../../math/equity'
 import { emptyRange, type Range } from '../../math/range'
 import { topPercentRange, OPEN_PERCENT } from '../../math/realization'
-import { COMBO_COUNT } from '../../math/combos'
+import { COMBO_A, COMBO_B, COMBO_COUNT } from '../../math/combos'
+import { bucketOf, DEFAULT_BUCKETS } from '../../gto/holdem/buckets'
 import type { Rng } from '../../utils/random'
 import { createRng } from '../../utils/random'
 import type { Agent, HandOutcome } from '../agent'
@@ -209,7 +210,7 @@ export class PsychBot implements Agent {
       participation.push(1)
     }
     for (let i = 0; i < read.callers.length; i++) {
-      ranges.push(continuingRange())
+      ranges.push(continuingRange(board))
       participation.push(1)
     }
     for (const id of read.unknown) {
@@ -225,7 +226,7 @@ export class PsychBot implements Agent {
       // be a chart used outside what it means.
       const position = obs.street === 'preflop' ? opponentPosition(id) : null
       const width = position ? OPEN_PERCENT[position] : CONTINUING_WIDTH
-      ranges.push(position ? topSlice(width) : continuingRange())
+      ranges.push(position ? topSlice(width) : continuingRange(board))
       participation.push(width)
     }
     const equity = multiwayEquity(hole, ranges, board, { ...sample, participation })
@@ -310,7 +311,7 @@ export class PsychBot implements Agent {
         // `defence` share of it. Leaving this out is what makes a bot a
         // maniac: every bet looks like it either wins the pot outright or
         // goes to showdown against the same range it faced before.
-        const called = topSlice(CONTINUING_WIDTH * defence)
+        const called = boardRange(CONTINUING_WIDTH * defence, board)
         const rawEquityIfCalled = multiwayEquity(hole, new Array<Range>(opponents).fill(called), board, {
           ...sample,
           participation: participation.map(() => 1),
@@ -440,8 +441,45 @@ function topSlice(width: number): Range {
   return range
 }
 
-function continuingRange(): Range {
-  return topSlice(CONTINUING_WIDTH)
+function continuingRange(board: CardInt[]): Range {
+  return boardRange(CONTINUING_WIDTH, board)
+}
+
+/**
+ * The top `width` share of hands — but on this specific board, not hands in
+ * the abstract. `topSlice` has no way to tell a monster monotone river from
+ * a dry ace-high one apart; "the top 45% of starting hands" is exactly the
+ * same 45% on both. buckets.ts already solves exactly this problem for the
+ * CFR blueprint — real, card-removal-correct, run-out-sampled percentile
+ * strength per hand, per board — so this reuses it rather than inventing a
+ * second board-texture model. The result is coarser than a true percentile
+ * (DEFAULT_BUCKETS discrete levels, not 1326), which is the honest cost of
+ * getting it from an equal-frequency bucketing instead of a full ranking.
+ *
+ * Preflop there is no board to condition on, so this is exactly `topSlice`.
+ */
+const boardRangeCache = new Map<string, Range>()
+function boardRange(width: number, board: CardInt[]): Range {
+  if (board.length === 0) return topSlice(width)
+
+  const buckets = DEFAULT_BUCKETS
+  const key = `${Math.round(width * 100)}:${[...board].sort((a, b) => a - b).join(',')}`
+  const cached = boardRangeCache.get(key)
+  if (cached) return cached
+
+  // Equal-frequency buckets: the top `width` share of hands is whichever top
+  // buckets add up to at least that much of the field.
+  const thresholdBucket = buckets - Math.max(1, Math.round(width * buckets))
+  const dead = new Set(board)
+  const range = emptyRange()
+  for (let id = 0; id < COMBO_COUNT; id++) {
+    const a = COMBO_A[id]
+    const b = COMBO_B[id]
+    if (dead.has(a) || dead.has(b)) continue
+    if (bucketOf([a, b], board, buckets) >= thresholdBucket) range[id] = 1
+  }
+  boardRangeCache.set(key, range)
+  return range
 }
 
 /**
@@ -459,7 +497,13 @@ function bettingRange(bluffFrequency: number): Range {
   if (!airRange) {
     const value = valueRange
     const air = emptyRange()
-    const wide = continuingRange()
+    // Deliberately board-blind (empty board): this range only classifies
+    // which combos count as "air" in the abstract, once, ever — the same
+    // question on the river as on the flop. It is the value/air *mixture*
+    // this produces that later gets measured against the real board, in
+    // multiwayEquity — conditioning the mixture itself on the board too
+    // would be doubling up on the same adjustment.
+    const wide = continuingRange([])
     for (let id = 0; id < COMBO_COUNT; id++) air[id] = value[id] > 0 ? 0 : wide[id] > 0 ? 0 : 1
     airRange = air
   }

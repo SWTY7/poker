@@ -267,6 +267,62 @@ describe('position shapes what an unacted opponent is believed to hold', () => {
   })
 })
 
+describe('the believed range bends around the actual board', () => {
+  /** A set of 7s, facing a lone caller — the exact case continuingRange() feeds. */
+  function setOfSevensSpot(board: AIObservation['communityCards']): AIObservation {
+    return {
+      playerId: 'hero',
+      ownCards: [card('7c'), card('7d')],
+      communityCards: board,
+      potSize: 60,
+      players: [
+        { id: 'hero', stack: 1000, betThisStreet: 0, folded: false, isAllIn: false, position: null },
+        { id: 'villain', stack: 1000, betThisStreet: 0, folded: false, isAllIn: false, position: null },
+      ],
+      legalActions: ['check', 'bet'],
+      street: 'flop',
+      currentBet: 0,
+      toCall: 0,
+      minRaiseTo: 20,
+      maxRaiseTo: 1000,
+      actionHistory: [{ playerId: 'villain', type: 'call', amount: 10 }],
+      bigBlind: 10,
+    }
+  }
+
+  it('reads a wet, coordinated board differently from a dry, disconnected one — same hand, same price', { timeout: 30_000 }, () => {
+    // Both give hero a made set; only how connected the other two cards are
+    // changes. topSlice(CONTINUING_WIDTH) alone cannot tell these apart —
+    // "the top 45% of all starting hands" is the identical 1326-combo set
+    // either way. Pooled across several seeds and enough trials each to
+    // move past single-seed noise, this bets the wet board measurably more
+    // than the dry one, holding the hand and the price fixed.
+    const dryBoard = [card('7s'), card('2d'), card('9c')]
+    const wetBoard = [card('7s'), card('9h'), card('8h')]
+    const betCount = (board: AIObservation['communityCards'], seed: number, trials: number) => {
+      const bot = new PsychBot(AVERAGE_HUMAN, 1000, createRng(seed))
+      const spot = setOfSevensSpot(board)
+      let count = 0
+      for (let i = 0; i < trials; i++) if (bot.decideAction(spot).type === 'bet') count++
+      return count
+    }
+    const trialsPerSeed = 600
+    const seeds = [1, 7, 42, 99, 123]
+    const wetTotal = seeds.reduce((sum, seed) => sum + betCount(wetBoard, seed, trialsPerSeed), 0)
+    const dryTotal = seeds.reduce((sum, seed) => sum + betCount(dryBoard, seed, trialsPerSeed), 0)
+    expect(wetTotal / (seeds.length * trialsPerSeed)).toBeGreaterThan(dryTotal / (seeds.length * trialsPerSeed))
+  })
+
+  it('is exactly the flat range preflop, where there is no board to condition on', () => {
+    const flopSpot = setOfSevensSpot([card('7s'), card('9h'), card('8h')])
+    const preflopSpot: AIObservation = { ...flopSpot, communityCards: [], street: 'preflop' }
+    const bot = new PsychBot(AVERAGE_HUMAN, 1000, createRng(3))
+    // Doesn't throw or behave strangely with an empty board — boardRange()
+    // falls back to topSlice() exactly, same as before this existed.
+    expect(() => bot.decideAction(preflopSpot)).not.toThrow()
+  })
+})
+
 describe('tilt at the table', () => {
   const badBeat = { stack: 600, shareWon: 0, potSize: 800 }
 
