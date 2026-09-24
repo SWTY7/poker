@@ -1,3 +1,5 @@
+import type { Rng } from '../../utils/random'
+
 /**
  * Personality — a small set of *stable* traits that bend the existing
  * HeuristicBot's decision thresholds. This is deliberately separate from
@@ -26,6 +28,23 @@ export const NEUTRAL_PERSONALITY: PersonalityProfile = {
   aggression: 0.5,
   tightness: 0.5,
   bluffFrequency: 0,
+}
+
+/**
+ * A fresh personality, not the same three fixed numbers every time a
+ * PersonalityBot sits down. Bounded well short of the extremes — a 0 or a 1
+ * on any trait is the degenerate case the trait's own doc comment names
+ * (purely passive, plays any two cards, bluffs every eligible spot), and a
+ * table of those is the unreadable-maniac problem `buildTable`'s own
+ * comment already excludes RandomBot for. This stays inside the range a
+ * real, if unusual, player's stats could land in.
+ */
+export function randomizePersonalityProfile(rng: Rng): PersonalityProfile {
+  return {
+    aggression: 0.25 + rng() * 0.5,
+    tightness: 0.25 + rng() * 0.5,
+    bluffFrequency: rng() * 0.35,
+  }
 }
 
 /**

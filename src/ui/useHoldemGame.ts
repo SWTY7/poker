@@ -5,8 +5,9 @@ import type { ActionType, GameState, PokerAction, Street } from '../poker/game-s
 import { HeuristicBot } from '../ai/heuristic-bot'
 import { buildObservation } from '../ai/observation'
 import type { Agent } from '../ai/agent'
-import { blueprintBotsEnabled, psychBotsEnabled } from '../ai/psychology/flag'
 import { PsychBot } from '../ai/psychology/psych-bot'
+import { PersonalityBot } from '../ai/psychology/personality-bot'
+import { randomizePersonalityProfile } from '../ai/psychology/personality'
 import { OpponentModel } from '../ai/psychology/opponent-model'
 import { CAST, randomizeProfile } from '../ai/psychology/profile'
 import { blindLevel, levelForHandsCompleted, type TournamentStructure } from '../game/tournament'
@@ -70,19 +71,44 @@ export interface SessionStats {
 }
 
 /**
- * Builds the table once: the engine, the human seat ids, and one bot per
- * remaining seat.
+ * Which model plays a given bot seat. Four flavors, so a table isn't one
+ * kind of opponent wearing different names:
  *
- * Every opponent plays the heuristic bot. RandomBot still exists for tests and
- * simulation, but at the table it shoves at random often enough that hands stop
- * being readable — the player can't form a story about what just happened,
- * which reads as the game jerking them around.
+ *   equity      — HeuristicBot. Hand strength and pot odds, nothing else.
+ *   personality — PersonalityBot. Fixed aggression/tightness/bluff traits
+ *                 bending those same thresholds, no memory, no psychology.
+ *   psych       — PsychBot. The full prospect-theory/level-k/tilt/opponent-
+ *                 learning model — see psych-bot.ts.
+ *   solved      — a psych bot that gets upgraded, once the CFR blueprint
+ *                 finishes downloading, to actually play the solved strategy
+ *                 whenever a hand is genuinely heads-up at a trusted stack
+ *                 depth (see the effect below), and plays as a psych bot the
+ *                 rest of the time.
+ *
+ * RandomBot deliberately isn't in this mix: it shoves at random often enough
+ * that hands stop being readable — the player can't form a story about what
+ * just happened, which reads as the game jerking them around rather than
+ * another kind of opponent.
+ */
+const BOT_KINDS = ['equity', 'personality', 'psych', 'solved'] as const
+type BotKind = (typeof BOT_KINDS)[number]
+
+/**
+ * Builds the table once: the engine, the human seat ids, one bot per
+ * remaining seat, and which of those seats want the solved strategy once it
+ * loads.
+ *
+ * Every table draws its own mix — which kind sits in which seat, which psych
+ * archetype it plays, and how that archetype plays it — fresh, so a table
+ * you've played before is not a table you've already solved.
  */
 function buildTable(options: GameConfigOptions): {
   engine: HoldemEngine
   agents: Record<string, Agent>
   humanIds: string[]
   opponentModel: OpponentModel
+  /** Bot seat ids waiting on the CFR blueprint to finish downloading. */
+  solvedSeatIds: string[]
 } {
   const humanCount = Math.min(Math.max(options.humanCount, 1), options.playerCount)
 
@@ -103,22 +129,37 @@ function buildTable(options: GameConfigOptions): {
 
   const humanIds = players.slice(0, humanCount).map((p) => p.id)
   const agents: Record<string, Agent> = {}
-  const psych = psychBotsEnabled()
   const opponentModel = new OpponentModel()
-  // A fresh shuffle and a fresh randomizeProfile() draw every table, so
-  // which archetype sits where — and exactly how that archetype plays —
-  // isn't the same game after game. A table you've played before should
-  // not be a table you've already solved.
   const tableRng = createRng()
   const cast = [...CAST]
   shuffle(cast, tableRng)
+  const solvedSeatIds: string[] = []
+
   players.slice(humanCount).forEach((p, i) => {
-    agents[p.id] = psych
-      ? new PsychBot(randomizeProfile(cast[i % cast.length], tableRng), options.startingStack, createRng(), opponentModel)
-      : new HeuristicBot(createRng())
+    const kind: BotKind = BOT_KINDS[Math.floor(tableRng() * BOT_KINDS.length)]
+    const psychBot = () =>
+      new PsychBot(randomizeProfile(cast[i % cast.length], tableRng), options.startingStack, createRng(), opponentModel)
+
+    switch (kind) {
+      case 'equity':
+        agents[p.id] = new HeuristicBot(createRng())
+        break
+      case 'personality':
+        agents[p.id] = new PersonalityBot(randomizePersonalityProfile(tableRng), createRng())
+        break
+      case 'solved':
+        // A psych bot until the blueprint lands and this seat's hand is
+        // actually heads-up at a depth it trusts — see the swap effect.
+        agents[p.id] = psychBot()
+        solvedSeatIds.push(p.id)
+        break
+      case 'psych':
+        agents[p.id] = psychBot()
+        break
+    }
   })
 
-  return { engine, agents, humanIds, opponentModel }
+  return { engine, agents, humanIds, opponentModel, solvedSeatIds }
 }
 
 export function useHoldemGame(options: GameConfigOptions) {
@@ -132,7 +173,7 @@ export function useHoldemGame(options: GameConfigOptions) {
    */
   const turboRef = useRef<false | 'hand' | 'turn'>(false)
 
-  const [{ engine, agents, humanIds, opponentModel }] = useState(() => buildTable(options))
+  const [{ engine, agents, humanIds, opponentModel, solvedSeatIds }] = useState(() => buildTable(options))
   /** Solo play never gates — there's only ever one person holding the device. */
   const soloHumanId = humanIds.length === 1 ? humanIds[0] : null
 
@@ -216,20 +257,24 @@ export function useHoldemGame(options: GameConfigOptions) {
   }, [engine, humanIds, options.startingStack, reportResults])
 
   /**
-   * Swaps the solved bot in once its strategy has downloaded.
+   * Swaps the solved bot in, for whichever seats drew 'solved', once its
+   * strategy has downloaded.
    *
    * The blueprint is a few hundred kilobytes of probabilities, which is not
-   * something to put in front of everyone who opens the page for a game it is
-   * not even playing — so it is fetched only when asked for, and the bots it
-   * replaces keep playing until it lands. `agents` is deliberately mutated
-   * rather than replaced: the driver reads it by seat id at the moment it
-   * needs a decision, so a bot that arrives mid-hand simply takes over from
-   * the next one.
+   * something to put in front of a table that has no 'solved' seat this
+   * game — so it is fetched only when at least one seat wants it, and those
+   * seats keep playing as full psych bots until it lands. `BlueprintBot`
+   * itself only ever plays the solved strategy when the hand it's actually
+   * in has folded down to heads-up at a stack depth it trusts (see
+   * blueprint-bot.ts) — anywhere else it defers straight back to the psych
+   * bot passed as its fallback, which is the seat's whole personality the
+   * rest of the time. `agents` is deliberately mutated rather than
+   * replaced: the driver reads it by seat id at the moment it needs a
+   * decision, so a bot that arrives mid-hand simply takes over from the
+   * next one.
    */
   useEffect(() => {
-    if (!blueprintBotsEnabled()) return
-    const botIds = Object.keys(agents)
-    if (humanIds.length + botIds.length !== 2) return
+    if (solvedSeatIds.length === 0) return
 
     let cancelled = false
     void Promise.all([
@@ -237,7 +282,7 @@ export function useHoldemGame(options: GameConfigOptions) {
       import('../gto/holdem/blueprint.json'),
     ]).then(([module, file]) => {
       if (cancelled) return
-      for (const id of botIds) {
+      for (const id of solvedSeatIds) {
         agents[id] = new module.BlueprintBot(file.default as never, {
           fallback: agents[id],
           rng: createRng(),
@@ -247,7 +292,7 @@ export function useHoldemGame(options: GameConfigOptions) {
     return () => {
       cancelled = true
     }
-  }, [agents, humanIds.length])
+  }, [agents, solvedSeatIds])
 
   /**
    * Applies an action and, when it turned a new street, holds the table still

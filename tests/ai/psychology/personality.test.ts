@@ -2,7 +2,12 @@ import { describe, expect, it } from 'vitest'
 import { HoldemEngine } from '../../../src/poker/game-engine'
 import type { PlayerSetup } from '../../../src/poker/game-engine'
 import { PersonalityBot } from '../../../src/ai/psychology/personality-bot'
-import { NEUTRAL_PERSONALITY, applyPersonalityShift, traitOffset } from '../../../src/ai/psychology/personality'
+import {
+  NEUTRAL_PERSONALITY,
+  applyPersonalityShift,
+  randomizePersonalityProfile,
+  traitOffset,
+} from '../../../src/ai/psychology/personality'
 import { buildObservation } from '../../../src/ai/observation'
 import { createRng } from '../../../src/utils/random'
 import type { Agent } from '../../../src/ai/agent'
@@ -39,6 +44,30 @@ describe('applyPersonalityShift', () => {
     const aggressive = applyPersonalityShift(0.5, { aggression: 1, tightness: 0.5, bluffFrequency: 0 })
     expect(aggressive.effectiveForBet).toBeGreaterThan(passive.effectiveForBet)
     expect(aggressive.effectiveForRaiseFacingBet).toBeGreaterThan(passive.effectiveForRaiseFacingBet)
+  })
+})
+
+describe('randomizePersonalityProfile', () => {
+  it('is deterministic for a given rng seed', () => {
+    expect(randomizePersonalityProfile(createRng(1))).toEqual(randomizePersonalityProfile(createRng(1)))
+  })
+
+  it('stays well short of the degenerate extremes, across many draws', () => {
+    for (let seed = 0; seed < 100; seed++) {
+      const profile = randomizePersonalityProfile(createRng(seed))
+      expect(profile.aggression).toBeGreaterThan(0)
+      expect(profile.aggression).toBeLessThan(1)
+      expect(profile.tightness).toBeGreaterThan(0)
+      expect(profile.tightness).toBeLessThan(1)
+      expect(profile.bluffFrequency).toBeGreaterThanOrEqual(0)
+      expect(profile.bluffFrequency).toBeLessThan(0.35)
+    }
+  })
+
+  it('varies across draws rather than returning one fixed profile', () => {
+    const a = randomizePersonalityProfile(createRng(1))
+    const b = randomizePersonalityProfile(createRng(2))
+    expect(a).not.toEqual(b)
   })
 })
 
