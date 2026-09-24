@@ -157,6 +157,73 @@ Nothing above has been chosen. Option 3 is the one that doesn't require new engi
 be tried — whoever picks this up next should probably measure that one before deciding whether option 2's
 engineering investment is worth making.
 
+## Pilot round 3: option 3 measured, and the "bounded by construction" reasoning was wrong (2026-09-24, same day)
+
+Built `{ tiers, streets? }` on `cardAbstraction`: like `'bucket'`, hands are folded into a percentile bucket
+rather than a raw combo id, but the canonical board is kept in the key alongside the bucket — so, unlike
+`'bucket'`, two different boards no longer automatically share a strategy. `pilot-exact-abstraction.ts` now
+runs a five-way comparison; `river-tiers` (24 tiers, river only) and `all-tiers` (24 tiers, every postflop
+street) were added as the direct comparison points against `river-exact` and `exact`.
+
+**Measured, at 20bb, same seed all five modes:**
+
+| iterations | bucket | river-exact | exact | river-tiers (24) | all-tiers (24) |
+|---|---|---|---|---|---|
+| 2,000 | 19,791 | 41,327 | 130,289 | 41,327 | 135,437 |
+| 20,000 | 27,706 | 379,230 | 1,227,451 | 382,264 | 1,222,668 |
+| 200,000 | 28,924 | 5,729,925 | crashed — OOM | **5,840,533** | not run (see below) |
+
+**Reading it — the "bounded by construction" framing in the decision point above was wrong, and it's worth
+saying plainly why**, since it was my own reasoning and it didn't survive contact with a real measurement:
+
+The theory was that keeping the tier count fixed (24, instead of ~500-1,000 live combos) bounds the
+per-board contribution to the node count, the same way `'bucket'` mode's fixed 8 buckets keep it flat
+overall. That's true in principle — for a board sampled enough times to see collisions between different
+combos landing in the same tier. It assumed collisions would start happening at a reachable iteration count.
+They don't, and the reason is the same shape of problem as before: the *number of distinct canonical river
+boards* is itself enormous (comparable to or larger than the number of live combos per board), so at any
+affordable iteration budget almost every visited river info set is the *first* visit to that specific board,
+whether keyed by full combo or by a 24-way tier. Coarsening the resolution *within* a board does nothing
+when the run essentially never revisits the same board more than a handful of times. The node-count numbers
+say this directly: river-tiers tracked river-exact within 1% at 20k iterations and came out **larger** than
+it at 200k (5,840,533 vs 5,729,925) — not smaller, which is the opposite of what "bounded by construction"
+predicted. It ran to completion without crashing (355.9s, no OOM), but that's the only thing it bought —
+memory-wise it is indistinguishable from full combo resolution at this scale, so it isn't actually a cheaper
+alternative, just a coincidentally-safer one this one time.
+
+`all-tiers` at 200,000 iterations was not run: with river-tiers alone shown to give zero savings over
+river-exact, and full-`exact` already known to OOM at 200k, running all-tiers (which tracked full-exact
+almost exactly at both smaller sizes) would very likely just reproduce the same crash for the same reason,
+at real compute cost, with the outcome already predictable from the pattern above.
+
+**The corrected lesson**: it is *keying on the canonical board at all* — regardless of what resolution is
+used to describe the hand on it — that reproduces almost the entire information-set explosion. The combo-vs-
+tier resolution question, which both this round and round 2 spent real measurement on, turns out to be
+close to irrelevant next to that. Any future attempt at this has to either (a) not put the full canonical
+board in the key at all — e.g. a genuinely coarse *board-texture* classification (a few dozen categories:
+monotone, two-tone, paired, connected, and so on) instead of full board identity, cutting the board
+dimension itself by orders of magnitude rather than the per-board hand dimension — or (b) accept the
+explosion and solve the memory problem structurally, with incremental pruning during training. Both are real,
+unscoped engineering, neither of which this pilot built.
+
+**Revised decision point**, superseding the one above:
+1. ~~Just run it overnight~~ — still ruled out, for the reasons already given.
+2. ~~Coarser bucket-on-canonical-board middle ground~~ — **ruled out by this round's measurement**, not
+   just deprioritized. It does not bound memory at any iteration budget tested, and there's a clear
+   structural reason to expect that to keep holding at any budget this project could afford to run.
+3. **Build incremental pruning into the trainer.** Still the only path that keeps full board+combo
+   resolution (what the original blocker-reasoning motivation actually wanted) while bounding memory. Real
+   engineering, uncertain payoff on strategy quality even once built.
+4. **A genuinely coarser board classification** (board texture buckets, not canonical board identity) —
+   newly surfaced by this round's finding, not previously scoped. Would need real design work (what counts
+   as a texture category, how many, how it's computed) before it could even be piloted the way the last
+   three rounds piloted combo/tier resolution.
+5. **Stop here.** Three rounds of real measurement across three resolution choices (full exact, river-only
+   exact, and now board+tier) have not found a version of "solve exact" that both fits in memory and shows
+   any sign of being affordable to run to something resembling convergence. That is a complete, honest
+   answer to the phase 1 question as originally scoped, even though it isn't the answer anyone was hoping
+   for going in.
+
 ## Progress log
 
 - **2026-09-24**: Phase 1 infrastructure built and pilot run (see Pilot Results above). PR:
@@ -166,3 +233,14 @@ engineering investment is worth making.
   200k iterations, well short of convergence. Revised the decision point — this isn't a "how long to run
   it" question anymore, it's "does this need incremental pruning built first, or is a coarser bucketed
   middle ground (option 3) worth trying before investing in that." Still no decision made; still open.
+- **2026-09-24** (same day, round 3): Built and measured the coarser middle ground (option 3 above) — board
+  key plus a 24-tier bucket instead of full combo. It does not work: node counts tracked river-exact within
+  1% at 20k iterations and came out slightly *larger* at 200k (5,840,533 vs 5,729,925), so it buys no memory
+  savings at any budget tested despite the "bounded by construction" reasoning that motivated trying it.
+  Root cause, confirmed: the explosion comes from the sheer number of distinct canonical boards a run
+  encounters, not from the resolution used to describe a hand within a board — coarsening that resolution
+  doesn't help when almost no board gets revisited enough times to see the coarsening's benefit. Ruled option
+  3 out on real evidence and surfaced a new, previously-unscoped option 4 (board-texture buckets instead of
+  full canonical board identity) as the only untried way to shrink the space instead of accepting it and
+  pruning. Still no decision made on how to proceed; reported back to the user with the corrected picture
+  rather than picking a direction unilaterally.

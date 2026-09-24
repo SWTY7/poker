@@ -65,8 +65,24 @@ export interface HoldemOptions {
    * than the full multi-street explosion. `[3]` (river only) is the
    * smallest, most targeted version: the street where "I have a blocker,
    * he raised big, is this really a value bet" is actually decided.
+   *
+   * Both of the above turned out to grow the information-set space without
+   * bound as training runs longer (measured in pilot-exact-abstraction.ts) —
+   * 'exact' additionally crashes with an out-of-memory error before 200,000
+   * iterations. `{ tiers, streets? }` is a coarser third option: like
+   * 'bucket', the board is folded into a percentile bucket rather than kept
+   * as a raw combo id — but unlike 'bucket', that bucket number is paired
+   * with the canonical board in the key, so two different boards no longer
+   * share a strategy just because a hand lands in the same percentile tier
+   * on both. `tiers` is the bucket count for this (something finer than the
+   * default `buckets`, e.g. 24-32, not the 1,000+ combos 'exact' uses).
+   * `streets` restricts it to specific postflop streets, same as the plain
+   * array form above; omitted, it applies to all three. Because both the
+   * board count and the tier count are fixed regardless of how long training
+   * runs, this is bounded by construction the same way 'bucket' is — it
+   * cannot hit the growth or memory problems 'exact' and the array form did.
    */
-  cardAbstraction?: 'bucket' | 'exact' | number[]
+  cardAbstraction?: 'bucket' | 'exact' | number[] | { tiers: number; streets?: number[] }
 }
 
 export const DEFAULT_HOLDEM: HoldemOptions = { stack: 20, buckets: DEFAULT_BUCKETS, betCap: 3 }
@@ -327,6 +343,15 @@ export function abstractHoldem(options: HoldemOptions = DEFAULT_HOLDEM): Game<Ho
         const combo = comboId(relabel(hole[0], map), relabel(hole[1], map))
         return `${state.street}|${canonicalBoardKey(state.board)}|${combo}|${history}`
       }
+
+      if (typeof cardAbstraction === 'object' && !Array.isArray(cardAbstraction)) {
+        const streets = cardAbstraction.streets ?? [1, 2, 3]
+        if (streets.includes(state.street)) {
+          const tier = bucketOf(hole, state.board, cardAbstraction.tiers)
+          return `${state.street}|${canonicalBoardKey(state.board)}|${tier}|${history}`
+        }
+      }
+
       return `${state.street}|${bucketOf(hole, state.board, buckets)}|${history}`
     },
   }
