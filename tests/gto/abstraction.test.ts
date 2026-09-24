@@ -5,6 +5,7 @@ import { evaluateHand } from '../../src/poker/fast/eval7'
 import { COMBO_A, COMBO_B, COMBO_COUNT } from '../../src/math/combos'
 import { canonicalBoardKey, canonicalBoards, canonicalSuitMap, relabel } from '../../src/gto/holdem/isomorphism'
 import { DEFAULT_BUCKETS, NO_BUCKET, bucketOf, clearBucketCache, strengthOf } from '../../src/gto/holdem/buckets'
+import { TEXTURE_COUNT, textureOf } from '../../src/gto/holdem/texture'
 
 const card = (spec: string): number =>
   toCardInt({
@@ -145,5 +146,37 @@ describe('strength buckets', () => {
       expect(scored[i].score).toBeLessThan(scored[i - 1].score)
       expect(scored[i].bucket).toBeLessThanOrEqual(scored[i - 1].bucket)
     }
+  })
+})
+
+describe('board texture', () => {
+  it('never returns more categories than it claims', () => {
+    for (const spec of ['Kh 8d 3c', 'Ah Ad As', '2h 3h 4h', 'Kh 8d 3c 5s 9h']) {
+      const value = textureOf(board(spec))
+      expect(value).toBeGreaterThanOrEqual(0)
+      expect(value).toBeLessThan(TEXTURE_COUNT)
+    }
+  })
+
+  it('tells a monotone board from a rainbow one', () => {
+    expect(textureOf(board('Kh 8h 3h'))).not.toBe(textureOf(board('Kh 8d 3c')))
+  })
+
+  it('tells a paired board from an unpaired one', () => {
+    expect(textureOf(board('Kh Kd 3c'))).not.toBe(textureOf(board('Kh 8d 3c')))
+  })
+
+  it('tells a connected board from a dry one', () => {
+    expect(textureOf(board('9h 8d 7c'))).not.toBe(textureOf(board('Kh 8d 3c')))
+  })
+
+  it('does not care which specific suits or ranks, only the pattern', () => {
+    // Two boards that are the same shape — two-tone, unpaired, disconnected —
+    // in unrelated suits and ranks land in the same category.
+    expect(textureOf(board('Kh Kd 3c'))).toBe(textureOf(board('2s 2c 9d')))
+  })
+
+  it('agrees with itself on a board that is the same board in different suits', () => {
+    expect(textureOf(board('Kh 8h 3s'))).toBe(textureOf(board('Kc 8c 3d')))
   })
 })

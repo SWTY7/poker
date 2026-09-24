@@ -27,10 +27,10 @@ solves anything at runtime. These regenerate that data:
 
 ```sh
 npm run train:blueprint -- [iterations] [stack] [buckets] [outFile]   # train one stack depth's blueprint
-npm run pilot:exact -- [iterations] [stack]                            # measure exact vs. bucketed CFR keying
+npm run pilot:texture -- [iterations] [stack]                          # measure texture vs. bucketed CFR keying
 npm run chart:pushfold                                                 # print the solved heads-up push/fold chart
 npm run generate:preflop-equity                                        # regenerate preflop equity data
 ```
 
 See `docs/PROGRESS.md` for what each piece of the solver actually does, and `docs/cfr-distillation-plan.md`
-for the initiative `pilot:exact` exists to support.
+for the initiative `pilot:texture` exists to support.

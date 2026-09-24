@@ -1,10 +1,10 @@
-import { classOf, comboId } from '../../math/combos'
+import { classOf } from '../../math/combos'
 import { DECK_SIZE, type CardInt } from '../../poker/fast/cards'
 import { evaluateHand } from '../../poker/fast/eval7'
 import type { Rng } from '../../utils/random'
 import { CHANCE, type Action, type Actor, type ChanceOutcome, type Game } from '../game'
 import { DEFAULT_BUCKETS, bucketOf } from './buckets'
-import { canonicalBoardKey, canonicalSuitMap, relabel } from './isomorphism'
+import { textureOf } from './texture'
 
 /**
  * Heads-up no-limit Hold'em, small enough to solve.
@@ -40,7 +40,7 @@ import { canonicalBoardKey, canonicalSuitMap, relabel } from './isomorphism'
 export interface HoldemOptions {
   /** Effective stack both players sit behind, in big blinds. */
   stack: number
-  /** Strength buckets per postflop street. Ignored when cardAbstraction is 'exact'. */
+  /** Strength buckets per postflop street. */
   buckets: number
   /** Most bets and raises allowed in one street. */
   betCap: number
@@ -48,41 +48,30 @@ export interface HoldemOptions {
    * 'bucket' (the default): postflop hands are grouped by strength
    * percentile on the board (buckets.ts) — the solver cannot tell two hands
    * in the same bucket apart, board included, because the board itself is
-   * never part of the information-set key either. 'exact': postflop info
-   * sets are keyed by the canonical board (isomorphism.ts) and the hero's
-   * hand relabelled into that board's canonical suits — no percentile
-   * collapsing, so blocker- and board-specific play can in principle be
-   * learned. It costs a much bigger information-set space for it: the flop
-   * alone has 1,755 canonical boards times up to ~1,081 live combos, before
-   * betting history multiplies it further — measured in
-   * scripts/pilot-exact-abstraction.ts, and it does not level off by 20,000
-   * iterations even at one depth.
+   * never part of the information-set key either. That is also why it
+   * cannot do blocker reasoning: two hands that are equally strong on two
+   * different boards play identically, even when one of them blocks the
+   * flush the other doesn't.
    *
-   * An array of streets (1 = flop, 2 = turn, 3 = river) instead of a single
-   * mode keys only those streets exact and leaves the rest bucketed — a
-   * middle ground that bounds the exact-resolution cost to however many
-   * distinct situations training actually reaches on that street, rather
-   * than the full multi-street explosion. `[3]` (river only) is the
-   * smallest, most targeted version: the street where "I have a blocker,
-   * he raised big, is this really a value bet" is actually decided.
+   * Three attempts at fixing that by putting the board itself in the key —
+   * full canonical-board-plus-combo, the same restricted to one street, and
+   * a canonical board paired with a finer bucket — all failed the same way:
+   * there are so many distinct canonical boards that almost none of them get
+   * visited twice within an affordable training run, so the key space grows
+   * without bound (and, for the full version, crashes with an out-of-memory
+   * error) regardless of how coarsely a hand is described within a board.
+   * See docs/cfr-distillation-plan.md's phase 1 log for the numbers; the
+   * code for these was removed rather than kept dead, since none of them
+   * worked — git history has it if the specifics matter again.
    *
-   * Both of the above turned out to grow the information-set space without
-   * bound as training runs longer (measured in pilot-exact-abstraction.ts) —
-   * 'exact' additionally crashes with an out-of-memory error before 200,000
-   * iterations. `{ tiers, streets? }` is a coarser third option: like
-   * 'bucket', the board is folded into a percentile bucket rather than kept
-   * as a raw combo id — but unlike 'bucket', that bucket number is paired
-   * with the canonical board in the key, so two different boards no longer
-   * share a strategy just because a hand lands in the same percentile tier
-   * on both. `tiers` is the bucket count for this (something finer than the
-   * default `buckets`, e.g. 24-32, not the 1,000+ combos 'exact' uses).
-   * `streets` restricts it to specific postflop streets, same as the plain
-   * array form above; omitted, it applies to all three. Because both the
-   * board count and the tier count are fixed regardless of how long training
-   * runs, this is bounded by construction the same way 'bucket' is — it
-   * cannot hit the growth or memory problems 'exact' and the array form did.
+   * 'texture': postflop info sets are keyed by a coarse, fixed-size
+   * classification of the board (texture.ts — 27 categories: flushiness x
+   * pairedness x straightness) instead of the board's own identity. Many
+   * different boards share a category, so this is bounded the same way
+   * 'bucket' is, while still letting strategy vary by board type — dry,
+   * paired, monotone, and so on — rather than only by hand strength.
    */
-  cardAbstraction?: 'bucket' | 'exact' | number[] | { tiers: number; streets?: number[] }
+  cardAbstraction?: 'bucket' | 'texture'
 }
 
 export const DEFAULT_HOLDEM: HoldemOptions = { stack: 20, buckets: DEFAULT_BUCKETS, betCap: 3 }
@@ -319,7 +308,8 @@ export function abstractHoldem(options: HoldemOptions = DEFAULT_HOLDEM): Game<Ho
      *
      * Preflop the "bucket" is the hand's own class — 169 of them, which is
      * small enough that abstracting further would throw away information for
-     * nothing. After the flop it is the strength bucket for this board.
+     * nothing. After the flop it is the strength bucket for this board, plus
+     * the board's texture category when cardAbstraction is 'texture'.
      */
     infoSet(state: HoldemState): string {
       const player = (firstActor(state.street) + state.betting.length) % 2
@@ -330,26 +320,8 @@ export function abstractHoldem(options: HoldemOptions = DEFAULT_HOLDEM): Game<Ho
         return `${state.street}|${classOf(hole[0], hole[1])}|${history}`
       }
 
-      const exactHere =
-        cardAbstraction === 'exact' || (Array.isArray(cardAbstraction) && cardAbstraction.includes(state.street))
-      if (exactHere) {
-        // The board has to be part of the key here, not just an input to
-        // computing it: a canonical combo id only means the same thing on
-        // two different visits if it was relabelled into the same board's
-        // canonical suits both times. Percentile bucketing didn't have this
-        // problem because "top 12.5% of this board" is comparable across
-        // boards by construction; a raw relabelled combo id is not.
-        const map = canonicalSuitMap(state.board)
-        const combo = comboId(relabel(hole[0], map), relabel(hole[1], map))
-        return `${state.street}|${canonicalBoardKey(state.board)}|${combo}|${history}`
-      }
-
-      if (typeof cardAbstraction === 'object' && !Array.isArray(cardAbstraction)) {
-        const streets = cardAbstraction.streets ?? [1, 2, 3]
-        if (streets.includes(state.street)) {
-          const tier = bucketOf(hole, state.board, cardAbstraction.tiers)
-          return `${state.street}|${canonicalBoardKey(state.board)}|${tier}|${history}`
-        }
+      if (cardAbstraction === 'texture') {
+        return `${state.street}|t${textureOf(state.board)}|${bucketOf(hole, state.board, buckets)}|${history}`
       }
 
       return `${state.street}|${bucketOf(hole, state.board, buckets)}|${history}`
