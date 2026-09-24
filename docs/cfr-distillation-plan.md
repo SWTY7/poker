@@ -111,5 +111,5 @@ re-read this section, decide, and update the log below before proceeding.
 
 ## Progress log
 
-- **2026-09-24**: Phase 1 infrastructure built and pilot run (see Pilot Results above). PR opened:
-  <!-- fill in PR number/link once opened -->. No decision yet on how to proceed past the pilot.
+- **2026-09-24**: Phase 1 infrastructure built and pilot run (see Pilot Results above). PR:
+  https://github.com/SWTY7/poker/pull/17. No decision yet on how to proceed past the pilot.
