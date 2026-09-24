@@ -258,15 +258,17 @@ export function useHoldemGame(options: GameConfigOptions) {
 
   /**
    * Swaps the solved bot in, for whichever seats drew 'solved', once its
-   * strategy has downloaded.
+   * strategies have downloaded.
    *
-   * The blueprint is a few hundred kilobytes of probabilities, which is not
-   * something to put in front of a table that has no 'solved' seat this
-   * game — so it is fetched only when at least one seat wants it, and those
-   * seats keep playing as full psych bots until it lands. `BlueprintBot`
-   * itself only ever plays the solved strategy when the hand it's actually
-   * in has folded down to heads-up at a stack depth it trusts (see
-   * blueprint-bot.ts) — anywhere else it defers straight back to the psych
+   * Four trained depths (10/20/40/75bb) are a few megabytes together, which
+   * is not something to put in front of a table that has no 'solved' seat
+   * this game — so they're fetched only when at least one seat wants them,
+   * and those seats keep playing as full psych bots until it lands.
+   * `BlueprintSetBot` picks whichever trained depth is closest to the
+   * table's actual effective stack, and that pick's own `BlueprintBot` only
+   * ever plays the solved strategy when the hand it's actually in has
+   * folded down to heads-up at a depth it trusts (see blueprint-bot.ts and
+   * blueprint-set.ts) — anywhere else it defers straight back to the psych
    * bot passed as its fallback, which is the seat's whole personality the
    * rest of the time. `agents` is deliberately mutated rather than
    * replaced: the driver reads it by seat id at the moment it needs a
@@ -278,12 +280,16 @@ export function useHoldemGame(options: GameConfigOptions) {
 
     let cancelled = false
     void Promise.all([
-      import('../gto/holdem/blueprint-bot'),
-      import('../gto/holdem/blueprint.json'),
-    ]).then(([module, file]) => {
+      import('../gto/holdem/blueprint-set'),
+      import('../gto/holdem/blueprint-10.json'),
+      import('../gto/holdem/blueprint-20.json'),
+      import('../gto/holdem/blueprint-40.json'),
+      import('../gto/holdem/blueprint-75.json'),
+    ]).then(([module, ...files]) => {
       if (cancelled) return
+      const trainedDepths = files.map((f) => f.default as never)
       for (const id of solvedSeatIds) {
-        agents[id] = new module.BlueprintBot(file.default as never, {
+        agents[id] = new module.BlueprintSetBot(trainedDepths, {
           fallback: agents[id],
           rng: createRng(),
         })

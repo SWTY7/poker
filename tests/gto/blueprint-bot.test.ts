@@ -7,7 +7,7 @@ import { PsychBot } from '../../src/ai/psychology/psych-bot'
 import { AVERAGE_HUMAN } from '../../src/ai/psychology/profile'
 import { BlueprintBot } from '../../src/gto/holdem/blueprint-bot'
 import type { BlueprintFile } from '../../src/gto/holdem/blueprint'
-import blueprintFile from '../../src/gto/holdem/blueprint.json'
+import blueprintFile from '../../src/gto/holdem/blueprint-20.json'
 import { createRng } from '../../src/utils/random'
 import { classFromLabel } from '../../src/math/combos'
 
