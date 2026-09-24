@@ -36,7 +36,10 @@ This is why the teacher can't just be "more buckets" — it has to key on **boar
 isomorphism reduction already built in `isomorphism.ts` (lossless suit-symmetry reduction: 22,100 flops →
 1,755 canonical ones) instead of the lossy percentile step in `buckets.ts`.
 
-**Status: infrastructure built, pilot run, full solve not yet attempted.** See Pilot Results below.
+**Status: infrastructure built, two rounds of pilot measurement done, both exact variants (full and
+river-only) found to have a real blocker — not just cost, an actual crash — before reaching anything close
+to convergence. See Pilot Results below, especially the second round.** Neither is currently safe to run to
+completion; the training script needs real engineering (bounded, incremental pruning) before either is.
 
 ### Phase 2 — the student (not started)
 
@@ -94,22 +97,72 @@ version of `train-blueprint.ts`'s existing `MIN_WEIGHT` pruning).
   history multiply it further) points to tens of millions of iterations — **plausibly many hours to the
   better part of a day for one depth**, not the ~5-9 minutes bucket mode took per depth in PR #15.
 
-**Decision point, not yet made:** whether to commit to a real multi-hour-to-day-scale background solve at
-this resolution. Options, not decided between:
-1. Just run it — accept the cost, one depth (20bb, the most-played), as an overnight/background job with
-   checkpointing so a partial result isn't wasted if it needs to stop early.
-2. A coarser middle ground before going fully exact — e.g. key on canonical board but keep a *few* very
-   fine-grained buckets within it (not 8, more like 20-30) rather than full per-combo resolution, to see if
-   most of the blocker-relevant signal survives at a much smaller info-set count.
-3. Restrict the exact solve to a single street first (river only — smallest remaining tree, and it's
-   exactly the street in the user's own motivating example) rather than all four streets at once.
-4. Stop here — the pilot data alone may be enough to judge this isn't worth the compute/engineering budget
-   right now, and revisit later.
+## Pilot round 2: river-only exact, and a real ceiling (2026-09-24, same day)
 
-Nothing above has been chosen. Whoever picks this up next (me, in a future session, or the user) should
-re-read this section, decide, and update the log below before proceeding.
+Added `HoldemOptions.cardAbstraction: number[]` — an array of streets (1=flop, 2=turn, 3=river) to key
+exact, leaving the rest bucketed. `[3]` (river only) was the obvious next thing to measure: bound the
+exact-resolution cost to the one street the user's own motivating example is actually about, rather than
+all four. `pilot-exact-abstraction.ts` now runs a three-way comparison (bucket / river-exact / full-exact).
+
+**Measured, at 20bb, same seed all three modes:**
+
+| iterations | bucket: info sets | river-exact: info sets | full-exact: info sets |
+|---|---|---|---|
+| 2,000 | 19,791 | 41,327 | 130,289 |
+| 20,000 | 27,706 | 379,230 | 1,227,451 |
+| 200,000 | 28,924 | **5,729,925** | **crashed — OOM** |
+
+**Reading it — two findings, both against the earlier hope:**
+
+1. **River-only isn't a qualitatively smaller problem, just a smaller constant.** At 20k iterations its
+   info-set count was ~3.2x smaller than full-exact's (379,230 vs 1,227,451), which read as encouraging.
+   At 200k iterations it grew **15x** (379,230 → 5,729,925) — *faster* than the 10x growth in iterations,
+   i.e. accelerating, not converging. Whatever the total river-exact universe actually is, 200k iterations
+   hasn't found the top of it. Bucket mode, over the same range, went 27,706 → 28,924 — a 4% move. It's
+   fully converged; the other two give no sign of being anywhere close.
+2. **Full-exact doesn't just get slow, it crashes.** The 200k-iteration full-exact run died with a genuine
+   `FATAL ERROR: JavaScript heap out of memory` after ~950s of GC thrashing at a 7.5GB heap. This is a real
+   ceiling in the current implementation, not a "let it run longer" problem: `trainMccfr` keeps every node
+   it has ever visited in one in-memory `Map` for the whole run, with pruning (`MIN_WEIGHT` in
+   `train-blueprint.ts`) applied only *after* training finishes. At full-exact's node-count growth rate,
+   more compute time means more memory, not just more wall-clock — the crash would very plausibly recur
+   even with a much larger heap allocation, just later.
+
+**What this changes:** the earlier "decision point" listed four options assuming the only question was how
+much *time* to spend. That was wrong — two of the three resolution levels above (full-exact, and very
+plausibly river-exact once pushed further) have a *memory* ceiling that arrives before a *time* ceiling
+would. Getting either to something usable isn't "run it longer," it's real engineering: `trainMccfr` or a
+training-specific wrapper around it needs to prune low-weight nodes *during* the run, periodically, not
+just once at the end — bounding memory regardless of how large the total reachable space turns out to be.
+That's unbuilt and unscoped.
+
+**Decision point, revised:**
+1. ~~Just run it overnight~~ — ruled out as stated. It doesn't fail slow, it fails with an OOM crash, at a
+   scale (200k iterations) far short of anything that would look converged.
+2. **Build incremental pruning first**, then reattempt river-exact (not full-exact — river-exact's smaller
+   constant factor still means less memory pressure at the same iteration count, even though its growth
+   rate looks similar). Real engineering work with an uncertain payoff: pruning keeps memory bounded, but
+   doesn't by itself tell you whether the *pruned* strategy is any good — that still needs measuring.
+3. **A coarser middle ground that was on the table before either exact variant looked broken**: key on
+   canonical board but keep a *few* fine-grained buckets within it (not 8, more like 20-30) instead of full
+   per-combo resolution. This bounds memory by construction the same way today's bucket mode does — a fixed
+   number of tiers, not an open-ended combo count — so it doesn't have the same crash risk, at the cost of
+   being back to *some* lossy collapsing (less than 8 buckets' worth, but not zero).
+4. **Stop here.** The two pilot rounds are real, informative, negative results: this specific approach
+   (canonical-combo-exact CFR keying, in-memory, no incremental pruning) doesn't work at a useful scale with
+   the current implementation. That's worth knowing and worth stopping on rather than continuing to spend
+   compute discovering the same ceiling from a different angle.
+
+Nothing above has been chosen. Option 3 is the one that doesn't require new engineering before it can even
+be tried — whoever picks this up next should probably measure that one before deciding whether option 2's
+engineering investment is worth making.
 
 ## Progress log
 
 - **2026-09-24**: Phase 1 infrastructure built and pilot run (see Pilot Results above). PR:
   https://github.com/SWTY7/poker/pull/17. No decision yet on how to proceed past the pilot.
+- **2026-09-24** (same day, round 2): Added per-street `cardAbstraction`, measured river-only exact at
+  2k/20k/200k iterations. Found it explosive (not converging) and found full-exact crashes with an OOM at
+  200k iterations, well short of convergence. Revised the decision point — this isn't a "how long to run
+  it" question anymore, it's "does this need incremental pruning built first, or is a coarser bucketed
+  middle ground (option 3) worth trying before investing in that." Still no decision made; still open.
