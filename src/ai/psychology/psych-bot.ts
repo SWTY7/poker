@@ -3,7 +3,7 @@ import { toCardInts } from '../../poker/fast/cards'
 import type { CardInt } from '../../poker/fast/cards'
 import { multiwayEquity } from '../../math/equity'
 import { emptyRange, type Range } from '../../math/range'
-import { topPercentRange } from '../../math/realization'
+import { topPercentRange, OPEN_PERCENT } from '../../math/realization'
 import { COMBO_COUNT } from '../../math/combos'
 import type { Rng } from '../../utils/random'
 import { createRng } from '../../utils/random'
@@ -180,6 +180,7 @@ export class PsychBot implements Agent {
 
     const read = readOpponents(obs)
     const opponents = Math.max(read.aggressors.length + read.callers.length + read.unknown.length, 1)
+    const opponentPosition = (playerId: string) => obs.players.find((p) => p.id === playerId)?.position ?? null
 
     // What the opponent is betting, and therefore what to measure against.
     const believed = believedOpponentStrategy(
@@ -211,12 +212,21 @@ export class PsychBot implements Agent {
       ranges.push(continuingRange())
       participation.push(1)
     }
-    for (let i = 0; i < read.unknown.length; i++) {
+    for (const id of read.unknown) {
       // Someone yet to act is in the hand exactly when they hold a hand worth
       // continuing with, so one number does both jobs: how often they are
-      // there, and what they have when they are.
-      ranges.push(continuingRange())
-      participation.push(CONTINUING_WIDTH)
+      // there, and what they have when they are. Preflop, that number has a
+      // real answer per seat rather than one flat guess for everyone still to
+      // act — OPEN_PERCENT (math/realization.ts) is how wide each position
+      // actually opens, derived from the same equity-realization argument
+      // that gives position its value in the first place. Postflop keeps the
+      // flat width: OPEN_PERCENT is specifically an opening-range concept,
+      // and misapplying it to "hasn't bet this street yet" on the turn would
+      // be a chart used outside what it means.
+      const position = obs.street === 'preflop' ? opponentPosition(id) : null
+      const width = position ? OPEN_PERCENT[position] : CONTINUING_WIDTH
+      ranges.push(position ? topSlice(width) : continuingRange())
+      participation.push(width)
     }
     const equity = multiwayEquity(hole, ranges, board, { ...sample, participation })
     this.lastEquity = equity

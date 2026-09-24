@@ -2,6 +2,7 @@ import type { Card } from '../poker/card'
 import type { ActionType, PokerAction, Street } from '../poker/game-state'
 import type { HoldemEngine } from '../poker/game-engine'
 import { minRaiseTargetAmount, maxRaiseTargetAmount } from '../poker/betting'
+import { positionLabels, type PositionLabel } from '../poker/position'
 
 export interface ObservedPlayer {
   id: string
@@ -9,6 +10,15 @@ export interface ObservedPlayer {
   betThisStreet: number
   folded: boolean
   isAllIn: boolean
+  /**
+   * This seat's position, by the same labels the table's own seat tags use
+   * (see poker/position.ts) — null only in a state positionLabels() itself
+   * declines to label (fewer than two live players, no dealer assigned yet).
+   * Position doesn't change what a hand is worth on the cards; it changes how
+   * much of that a seat gets to keep, which is what math/realization.ts is
+   * for — this is what lets an agent reach it, for itself or an opponent.
+   */
+  position: PositionLabel | null
 }
 
 /**
@@ -43,6 +53,7 @@ export function buildObservation(engine: HoldemEngine, playerId: string): AIObse
   if (!player) throw new Error(`Unknown player: ${playerId}`)
 
   const potSize = state.players.reduce((sum, p) => sum + p.totalContributed, 0)
+  const positions = positionLabels(state)
 
   return {
     playerId,
@@ -55,6 +66,7 @@ export function buildObservation(engine: HoldemEngine, playerId: string): AIObse
       betThisStreet: p.betThisStreet,
       folded: p.folded,
       isAllIn: p.isAllIn,
+      position: positions.get(p.id) ?? null,
     })),
     legalActions: engine.getLegalActions(playerId),
     street: state.street,

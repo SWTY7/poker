@@ -193,6 +193,80 @@ describe('a learned read on a specific opponent', () => {
   })
 })
 
+describe('position shapes what an unacted opponent is believed to hold', () => {
+  /**
+   * Hero opens facing only the big blind — nobody has voluntarily acted, so
+   * the blind itself is `read.unknown`, the exact case OPEN_PERCENT exists
+   * for (see readOpponents's own comment: a blind isn't information, only
+   * voluntary action is). Nothing about the hand or the price changes
+   * between calls; only the still-to-act blind's seat does.
+   */
+  function unactedSpot(position: AIObservation['players'][number]['position']): AIObservation {
+    return {
+      playerId: 'hero',
+      ownCards: [card('Kd'), card('Th')],
+      communityCards: [],
+      potSize: 15,
+      players: [
+        { id: 'hero', stack: 1000, betThisStreet: 0, folded: false, isAllIn: false, position: 'MP' },
+        { id: 'villain', stack: 1000, betThisStreet: 10, folded: false, isAllIn: false, position },
+      ],
+      legalActions: ['fold', 'call', 'raise'],
+      street: 'preflop',
+      currentBet: 10,
+      toCall: 10,
+      minRaiseTo: 20,
+      maxRaiseTo: 1000,
+      actionHistory: [],
+      bigBlind: 10,
+    }
+  }
+
+  it('reads a still-to-act UTG seat as a tighter range than a still-to-act button', () => {
+    const vsUtg = new PsychBot(AVERAGE_HUMAN, 1000, createRng(21))
+    const vsButton = new PsychBot(AVERAGE_HUMAN, 1000, createRng(21))
+    const raises = (bot: PsychBot, spot: AIObservation, trials = 300) => {
+      let count = 0
+      for (let i = 0; i < trials; i++) if (bot.decideAction(spot).type === 'raise') count++
+      return count / trials
+    }
+    expect(raises(vsButton, unactedSpot('BTN'))).toBeGreaterThan(raises(vsUtg, unactedSpot('UTG')))
+  })
+
+  it('does not apply the preflop opening chart postflop', () => {
+    // Same mechanism (an unacted opponent), wrong street: OPEN_PERCENT
+    // describes opening a pot preflop, not "hasn't bet this street yet" on a
+    // later one — a tight UTG range on the flop would just be wrong, so this
+    // stays a no-op there regardless of which position is on the seat.
+    const flopSpot = (position: AIObservation['players'][number]['position']): AIObservation => ({
+      playerId: 'hero',
+      ownCards: [card('Kd'), card('Th')],
+      communityCards: [card('9c'), card('4h'), card('2s')],
+      potSize: 30,
+      players: [
+        { id: 'hero', stack: 1000, betThisStreet: 0, folded: false, isAllIn: false, position: 'BB' },
+        { id: 'villain', stack: 1000, betThisStreet: 0, folded: false, isAllIn: false, position },
+      ],
+      legalActions: ['check', 'bet'],
+      street: 'flop',
+      currentBet: 0,
+      toCall: 0,
+      minRaiseTo: 20,
+      maxRaiseTo: 1000,
+      actionHistory: [],
+      bigBlind: 10,
+    })
+    const vsUtg = new PsychBot(AVERAGE_HUMAN, 1000, createRng(5))
+    const vsButton = new PsychBot(AVERAGE_HUMAN, 1000, createRng(5))
+    const betRate = (bot: PsychBot, spot: AIObservation, trials = 60) => {
+      let count = 0
+      for (let i = 0; i < trials; i++) if (bot.decideAction(spot).type === 'bet') count++
+      return count / trials
+    }
+    expect(betRate(vsUtg, flopSpot('UTG'))).toBe(betRate(vsButton, flopSpot('BTN')))
+  })
+})
+
 describe('tilt at the table', () => {
   const badBeat = { stack: 600, shareWon: 0, potSize: 800 }
 
