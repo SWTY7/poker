@@ -67,6 +67,16 @@ export function Controls({
   const clampedAmount = clamp(amount)
   const isShove = clampedAmount >= maxRaiseTo && maxRaiseTo >= stack
 
+  // The slider's own range, not the legal one. A linear <input type="range">
+  // spans its whole min-max across a fixed number of on-screen pixels, so
+  // once maxRaiseTo is a deep stack — thousands of dollars, growing with the
+  // bankroll — a few pixels of drag cover a few hundred dollars of it. Most
+  // real bets cluster within a handful of pot sizes, so the slider only
+  // needs to cover that; the numeric input and the All-in preset still reach
+  // anything above it. $2,000 floors it early in a session, before the pot
+  // itself is big enough for 5x of it to mean anything.
+  const sliderMax = Math.max(minRaiseTo, Math.min(maxRaiseTo, Math.max((potSize + toCall) * 5, 2000)))
+
   // Keyboard is the difference between choosing an action and hunting for a
   // button before the table moves on.
   useEffect(() => {
@@ -218,7 +228,7 @@ export function Controls({
         className="sizer-slider"
         type="range"
         min={minRaiseTo}
-        max={maxRaiseTo}
+        max={sliderMax}
         value={clampedAmount}
         aria-label={`${raiseVerb} amount`}
         aria-valuetext={`$${clampedAmount.toLocaleString()}`}
