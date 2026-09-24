@@ -7,6 +7,7 @@ import { toCardInts, type CardInt } from '../../poker/fast/cards'
 import { createRng, type Rng } from '../../utils/random'
 import type { Strategy } from '../game'
 import { bucketOf } from './buckets'
+import { textureOf } from './texture'
 import { decodeBlueprint, type BlueprintFile } from './blueprint'
 import type { HoldemOptions } from './abstract-holdem'
 
@@ -97,8 +98,17 @@ export class BlueprintBot implements Agent {
     const hole = toCardInts(obs.ownCards) as [CardInt, CardInt]
     const board = toCardInts(obs.communityCards)
     const street = STREET_INDEX[obs.street]
-    const bucket = street === 0 ? classOf(hole[0], hole[1]) : bucketOf(hole, board, this.options.buckets)
-    const key = `${street}|${bucket}|${[...replayed.past, replayed.betting].join('/')}`
+    const history = [...replayed.past, replayed.betting].join('/')
+    // Has to match abstractHoldem()'s own infoSet() exactly — this is the
+    // same key computed from the other side, at a real table instead of
+    // inside the solve, and a mismatch here looks like a normal miss (the
+    // fallback plays) rather than an error.
+    const key =
+      street === 0
+        ? `${street}|${classOf(hole[0], hole[1])}|${history}`
+        : this.options.cardAbstraction === 'texture'
+          ? `${street}|t${textureOf(board)}|${bucketOf(hole, board, this.options.buckets)}|${history}`
+          : `${street}|${bucketOf(hole, board, this.options.buckets)}|${history}`
 
     const probabilities = this.strategy.get(key)
     if (!probabilities) return null

@@ -37,7 +37,9 @@ isomorphism reduction already built in `isomorphism.ts` (lossless suit-symmetry 
 1,755 canonical ones) instead of the lossy percentile step in `buckets.ts`.
 
 **Status: first approach (board identity in the key) tried three ways, all failed — see "Attempt 1" below.
-Now trying a second approach (board texture instead of board identity) — see "Attempt 2."**
+Second approach (board texture instead of board identity) converges, unlike attempt 1, but a real trained
+blueprint from it shows no measurable win-rate edge over the existing bucket blueprint at 2,000 duplicate
+pairs — see "Attempt 2." Phase 1 is not producing a clearly-worth-shipping teacher yet.**
 
 ### Phase 2 — the student (not started)
 
@@ -124,10 +126,56 @@ was supposed to produce**, and the contrast with attempt 1 is the whole point:
   convergence, which none of attempt 1's variants ever did.
 
 **This directly answers the question that motivated trying it**: yes, texture buckets show real converging
-behavior, unlike any board-identity variant. The natural next step, not yet done, is either pushing the
-iteration budget further to see where it actually flattens, or building a proper pruned blueprint (like
-`train-blueprint.ts` does for `'bucket'` mode) from this abstraction and evaluating it against the existing
-bots the way PR #15's depths were evaluated.
+behavior, unlike any board-identity variant.
+
+## Attempt 2, continued: a real trained blueprint, and an inconclusive head-to-head (2026-09-24, same day)
+
+Pushed further and built the real artifact: `BlueprintBot` was made cardAbstraction-aware (it previously
+hardcoded bucket-mode key lookup, which would have silently mis-keyed a texture blueprint — see
+`src/gto/holdem/blueprint-bot.ts`'s `lookUp()`), `train-blueprint.ts` got a `cardAbstraction` CLI arg, and a
+texture blueprint was trained at 20bb, 1,000,000 iterations (5x past the last pilot point):
+
+- **368,671 information sets reached, 335,238 kept** (91% survive `MIN_WEIGHT` pruning — most nodes have
+  real repeat visits, not one-off noise). Growth from the 200k pilot point: 300,504 → 368,671, **1.23x over
+  a 5x increase in iterations** — continuing to decelerate (was 1.8x over the *previous* 10x), confirming
+  this is genuinely converging, not just slower to explode than attempt 1's variants.
+- 949s to train, no memory pressure. 12.1MB on disk — a real jump from the shipped bucket blueprints
+  (`blueprint-20.json` is 900KB, 28,594 kept keys), proportional to the larger information-set space.
+
+**Compared against the shipped bucket blueprint and the two baseline bots**
+(`scripts/compare-blueprints.ts`, same duplicate-scoring harness as `tests/gto/blueprint-bot.test.ts`,
+2,000 pairs, 20bb):
+
+| matchup | result |
+|---|---|
+| texture vs. bucket blueprint (head to head) | +1.7 +/- 11.0 bb/100 — **no clear edge** |
+| texture vs. heuristic bot | +36.3 +/- 11.2 bb/100 — ahead |
+| texture vs. psych bot (average human) | +33.4 +/- 12.2 bb/100 — ahead |
+| key lookups answered | 5,209/5,209 (100%) |
+
+**Reading it, plainly**: texture mode is a real infrastructure win — it converges, unlike every attempt-1
+variant, and it plays the baseline bots about as well as the existing bucket blueprint does (+36.3/+33.4
+here versus the bucket blueprint's own documented +39.2/+31.4 in `blueprint-bot.test.ts` — statistically
+indistinguishable given the error bars on both). What it does **not** show is a measurable edge over the
+bucket blueprint it was meant to improve on: +1.7 +/- 11.0 bb/100 head-to-head is nowhere near two standard
+errors from zero. Three honest readings, not resolved by this measurement: the extra board-texture
+resolution genuinely isn't worth much at this stack depth against these opponents; it is worth something but
+too small to see through an 11 bb/100 error bar at 2,000 pairs (closing that gap to resolve a modest true
+edge would need on the order of 10-20x more pairs, real additional compute); or 1M iterations, while clearly
+still converging, isn't quite there yet and the comparison is measuring a not-fully-settled strategy.
+
+**Recommendation, acted on**: don't ship this specific trained artifact. The 12.1MB file was not committed
+— it's reproducible with the exact commands below, and committing an unproven 12MB blueprint that's 13x the
+size of the one it was meant to replace isn't justified by an inconclusive head-to-head. The code that makes
+it reproducible *is* kept (`texture.ts`, `cardAbstraction: 'texture'` support in `abstract-holdem.ts` and
+`BlueprintBot`, the `train-blueprint.ts` CLI arg, `compare-blueprints.ts`), since all of it is correct,
+tested infrastructure independent of whether this particular result justifies shipping.
+
+**To reproduce:**
+```sh
+npm run train:blueprint -- 1000000 20 8 src/gto/holdem/blueprint-texture-20.json texture
+npm run compare:blueprints -- src/gto/holdem/blueprint-20.json src/gto/holdem/blueprint-texture-20.json 2000
+```
 
 ## Progress log
 
@@ -148,3 +196,10 @@ bots the way PR #15's depths were evaluated.
   flat ~1.04x and attempt 1's accelerating growth) and it ran to completion with no memory pressure. First
   real positive signal in this initiative — worth pushing further (more iterations, or a real pruned
   blueprint + evaluation) rather than a fourth resolution-scheme pivot.
+- **2026-09-24** (same day, attempt 2 continued): Made `BlueprintBot` cardAbstraction-aware, trained a real
+  texture blueprint at 1,000,000 iterations (368,671 info sets, 335,238 kept, still decelerating), and
+  compared it against the shipped bucket blueprint and the two baseline bots via `compare-blueprints.ts`.
+  It plays the baselines about as well as the bucket blueprint already does, but shows no statistically
+  significant head-to-head edge over the bucket blueprint itself (+1.7 +/- 11.0 bb/100). Recommended not
+  shipping this artifact; kept the code that reproduces it, did not commit the 12.1MB trained file. Phase 1
+  is stalled at "converges but unproven benefit," not at a clean success or a clean stop.

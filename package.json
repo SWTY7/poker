@@ -13,7 +13,8 @@
     "generate:preflop-equity": "node scripts/run.mjs scripts/preflop-equity.ts",
     "chart:pushfold": "node scripts/run.mjs scripts/push-fold-chart.ts",
     "train:blueprint": "node scripts/run.mjs scripts/train-blueprint.ts",
-    "pilot:texture": "node scripts/run.mjs scripts/pilot-texture-abstraction.ts"
+    "pilot:texture": "node scripts/run.mjs scripts/pilot-texture-abstraction.ts",
+    "compare:blueprints": "node scripts/run.mjs scripts/compare-blueprints.ts"
   },
   "dependencies": {
     "react": "^19.2.8",
