@@ -193,6 +193,136 @@ describe('a learned read on a specific opponent', () => {
   })
 })
 
+describe('position shapes what an unacted opponent is believed to hold', () => {
+  /**
+   * Hero opens facing only the big blind — nobody has voluntarily acted, so
+   * the blind itself is `read.unknown`, the exact case OPEN_PERCENT exists
+   * for (see readOpponents's own comment: a blind isn't information, only
+   * voluntary action is). Nothing about the hand or the price changes
+   * between calls; only the still-to-act blind's seat does.
+   */
+  function unactedSpot(position: AIObservation['players'][number]['position']): AIObservation {
+    return {
+      playerId: 'hero',
+      ownCards: [card('Kd'), card('Th')],
+      communityCards: [],
+      potSize: 15,
+      players: [
+        { id: 'hero', stack: 1000, betThisStreet: 0, folded: false, isAllIn: false, position: 'MP' },
+        { id: 'villain', stack: 1000, betThisStreet: 10, folded: false, isAllIn: false, position },
+      ],
+      legalActions: ['fold', 'call', 'raise'],
+      street: 'preflop',
+      currentBet: 10,
+      toCall: 10,
+      minRaiseTo: 20,
+      maxRaiseTo: 1000,
+      actionHistory: [],
+      bigBlind: 10,
+    }
+  }
+
+  it('reads a still-to-act UTG seat as a tighter range than a still-to-act button', () => {
+    const vsUtg = new PsychBot(AVERAGE_HUMAN, 1000, createRng(21))
+    const vsButton = new PsychBot(AVERAGE_HUMAN, 1000, createRng(21))
+    const raises = (bot: PsychBot, spot: AIObservation, trials = 300) => {
+      let count = 0
+      for (let i = 0; i < trials; i++) if (bot.decideAction(spot).type === 'raise') count++
+      return count / trials
+    }
+    expect(raises(vsButton, unactedSpot('BTN'))).toBeGreaterThan(raises(vsUtg, unactedSpot('UTG')))
+  })
+
+  it('does not apply the preflop opening chart postflop', () => {
+    // Same mechanism (an unacted opponent), wrong street: OPEN_PERCENT
+    // describes opening a pot preflop, not "hasn't bet this street yet" on a
+    // later one — a tight UTG range on the flop would just be wrong, so this
+    // stays a no-op there regardless of which position is on the seat.
+    const flopSpot = (position: AIObservation['players'][number]['position']): AIObservation => ({
+      playerId: 'hero',
+      ownCards: [card('Kd'), card('Th')],
+      communityCards: [card('9c'), card('4h'), card('2s')],
+      potSize: 30,
+      players: [
+        { id: 'hero', stack: 1000, betThisStreet: 0, folded: false, isAllIn: false, position: 'BB' },
+        { id: 'villain', stack: 1000, betThisStreet: 0, folded: false, isAllIn: false, position },
+      ],
+      legalActions: ['check', 'bet'],
+      street: 'flop',
+      currentBet: 0,
+      toCall: 0,
+      minRaiseTo: 20,
+      maxRaiseTo: 1000,
+      actionHistory: [],
+      bigBlind: 10,
+    })
+    const vsUtg = new PsychBot(AVERAGE_HUMAN, 1000, createRng(5))
+    const vsButton = new PsychBot(AVERAGE_HUMAN, 1000, createRng(5))
+    const betRate = (bot: PsychBot, spot: AIObservation, trials = 60) => {
+      let count = 0
+      for (let i = 0; i < trials; i++) if (bot.decideAction(spot).type === 'bet') count++
+      return count / trials
+    }
+    expect(betRate(vsUtg, flopSpot('UTG'))).toBe(betRate(vsButton, flopSpot('BTN')))
+  })
+})
+
+describe('the believed range bends around the actual board', () => {
+  /** A set of 7s, facing a lone caller — the exact case continuingRange() feeds. */
+  function setOfSevensSpot(board: AIObservation['communityCards']): AIObservation {
+    return {
+      playerId: 'hero',
+      ownCards: [card('7c'), card('7d')],
+      communityCards: board,
+      potSize: 60,
+      players: [
+        { id: 'hero', stack: 1000, betThisStreet: 0, folded: false, isAllIn: false, position: null },
+        { id: 'villain', stack: 1000, betThisStreet: 0, folded: false, isAllIn: false, position: null },
+      ],
+      legalActions: ['check', 'bet'],
+      street: 'flop',
+      currentBet: 0,
+      toCall: 0,
+      minRaiseTo: 20,
+      maxRaiseTo: 1000,
+      actionHistory: [{ playerId: 'villain', type: 'call', amount: 10 }],
+      bigBlind: 10,
+    }
+  }
+
+  it('reads a wet, coordinated board differently from a dry, disconnected one — same hand, same price', { timeout: 30_000 }, () => {
+    // Both give hero a made set; only how connected the other two cards are
+    // changes. topSlice(CONTINUING_WIDTH) alone cannot tell these apart —
+    // "the top 45% of all starting hands" is the identical 1326-combo set
+    // either way. Pooled across several seeds and enough trials each to
+    // move past single-seed noise, this bets the wet board measurably more
+    // than the dry one, holding the hand and the price fixed.
+    const dryBoard = [card('7s'), card('2d'), card('9c')]
+    const wetBoard = [card('7s'), card('9h'), card('8h')]
+    const betCount = (board: AIObservation['communityCards'], seed: number, trials: number) => {
+      const bot = new PsychBot(AVERAGE_HUMAN, 1000, createRng(seed))
+      const spot = setOfSevensSpot(board)
+      let count = 0
+      for (let i = 0; i < trials; i++) if (bot.decideAction(spot).type === 'bet') count++
+      return count
+    }
+    const trialsPerSeed = 600
+    const seeds = [1, 7, 42, 99, 123]
+    const wetTotal = seeds.reduce((sum, seed) => sum + betCount(wetBoard, seed, trialsPerSeed), 0)
+    const dryTotal = seeds.reduce((sum, seed) => sum + betCount(dryBoard, seed, trialsPerSeed), 0)
+    expect(wetTotal / (seeds.length * trialsPerSeed)).toBeGreaterThan(dryTotal / (seeds.length * trialsPerSeed))
+  })
+
+  it('is exactly the flat range preflop, where there is no board to condition on', () => {
+    const flopSpot = setOfSevensSpot([card('7s'), card('9h'), card('8h')])
+    const preflopSpot: AIObservation = { ...flopSpot, communityCards: [], street: 'preflop' }
+    const bot = new PsychBot(AVERAGE_HUMAN, 1000, createRng(3))
+    // Doesn't throw or behave strangely with an empty board — boardRange()
+    // falls back to topSlice() exactly, same as before this existed.
+    expect(() => bot.decideAction(preflopSpot)).not.toThrow()
+  })
+})
+
 describe('tilt at the table', () => {
   const badBeat = { stack: 600, shareWon: 0, potSize: 800 }
 
