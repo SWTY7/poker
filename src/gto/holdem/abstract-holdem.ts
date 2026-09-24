@@ -1,9 +1,10 @@
-import { classOf } from '../../math/combos'
+import { classOf, comboId } from '../../math/combos'
 import { DECK_SIZE, type CardInt } from '../../poker/fast/cards'
 import { evaluateHand } from '../../poker/fast/eval7'
 import type { Rng } from '../../utils/random'
 import { CHANCE, type Action, type Actor, type ChanceOutcome, type Game } from '../game'
 import { DEFAULT_BUCKETS, bucketOf } from './buckets'
+import { canonicalBoardKey, canonicalSuitMap, relabel } from './isomorphism'
 
 /**
  * Heads-up no-limit Hold'em, small enough to solve.
@@ -39,10 +40,24 @@ import { DEFAULT_BUCKETS, bucketOf } from './buckets'
 export interface HoldemOptions {
   /** Effective stack both players sit behind, in big blinds. */
   stack: number
-  /** Strength buckets per postflop street. */
+  /** Strength buckets per postflop street. Ignored when cardAbstraction is 'exact'. */
   buckets: number
   /** Most bets and raises allowed in one street. */
   betCap: number
+  /**
+   * 'bucket' (the default): postflop hands are grouped by strength
+   * percentile on the board (buckets.ts) — the solver cannot tell two hands
+   * in the same bucket apart, board included, because the board itself is
+   * never part of the information-set key either. 'exact': postflop info
+   * sets are keyed by the canonical board (isomorphism.ts) and the hero's
+   * hand relabelled into that board's canonical suits — no percentile
+   * collapsing, so blocker- and board-specific play can in principle be
+   * learned. It costs a much bigger information-set space for it: the flop
+   * alone has 1,755 canonical boards times up to ~1,081 live combos, before
+   * betting history multiplies it further — measure before assuming it is
+   * affordable at scale (see scripts/pilot-exact-abstraction.ts).
+   */
+  cardAbstraction?: 'bucket' | 'exact'
 }
 
 export const DEFAULT_HOLDEM: HoldemOptions = { stack: 20, buckets: DEFAULT_BUCKETS, betCap: 3 }
@@ -73,7 +88,7 @@ const ALL_IN: Action = 'a'
 const BOARD_SIZE = [0, 3, 4, 5]
 
 export function abstractHoldem(options: HoldemOptions = DEFAULT_HOLDEM): Game<HoldemState> {
-  const { stack, buckets, betCap } = options
+  const { stack, buckets, betCap, cardAbstraction = 'bucket' } = options
   if (!(stack > 1)) throw new Error(`Need more than a big blind behind, got ${stack}`)
 
   /** Who acts first this street: the small blind before the flop, the big blind after. */
@@ -284,10 +299,23 @@ export function abstractHoldem(options: HoldemOptions = DEFAULT_HOLDEM): Game<Ho
     infoSet(state: HoldemState): string {
       const player = (firstActor(state.street) + state.betting.length) % 2
       const hole = state.hole[player] as [CardInt, CardInt]
-      const bucket =
-        state.street === 0 ? classOf(hole[0], hole[1]) : bucketOf(hole, state.board, buckets)
       const history = [...state.past.map((betting, street) => summarise(betting, street)), state.betting].join('/')
-      return `${state.street}|${bucket}|${history}`
+
+      if (state.street === 0) {
+        return `${state.street}|${classOf(hole[0], hole[1])}|${history}`
+      }
+      if (cardAbstraction === 'exact') {
+        // The board has to be part of the key here, not just an input to
+        // computing it: a canonical combo id only means the same thing on
+        // two different visits if it was relabelled into the same board's
+        // canonical suits both times. Percentile bucketing didn't have this
+        // problem because "top 12.5% of this board" is comparable across
+        // boards by construction; a raw relabelled combo id is not.
+        const map = canonicalSuitMap(state.board)
+        const combo = comboId(relabel(hole[0], map), relabel(hole[1], map))
+        return `${state.street}|${canonicalBoardKey(state.board)}|${combo}|${history}`
+      }
+      return `${state.street}|${bucketOf(hole, state.board, buckets)}|${history}`
     },
   }
 
