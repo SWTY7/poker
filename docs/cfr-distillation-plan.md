@@ -96,9 +96,38 @@ today, so this should be bounded the way `'bucket'` mode is bounded, not the way
 wasn't — that's the thing to confirm with `scripts/pilot-texture-abstraction.ts`
 (`npm run pilot:texture -- [iterations] [stack]`) before trusting it.
 
-Status: built, not yet measured. Next step is the same pilot pattern used for attempt 1 — 2k/20k/200k
-iterations, bucket vs. texture, same seed — before deciding whether this is a viable teacher resolution or
-needs its own follow-up.
+**Measured, at 20bb, same seed both modes:**
+
+| iterations | bucket: info sets | texture: info sets | texture vs. bucket growth (10x iterations) |
+|---|---|---|---|
+| 2,000 | 19,791 | 58,083 | — |
+| 20,000 | 27,706 | 164,848 | 2.8x |
+| 200,000 | 28,924 | 300,504 | 1.8x |
+
+**Reading it — this is the first attempt that actually looks like the "bounded by construction" reasoning
+was supposed to produce**, and the contrast with attempt 1 is the whole point:
+
+- Texture mode's growth *decelerates* as iterations increase (2.8x per 10x iterations, then 1.8x) — the
+  same direction bucket mode's flattening goes, just not as far along yet. Every board-identity variant in
+  attempt 1 did the opposite: flat or *accelerating* growth (river-exact went from 9.4x to 15x per 10x
+  iterations as it ran longer), which is the signature of a space with no real ceiling at any affordable
+  budget. Texture mode's ceiling is close enough to be visible from here.
+- It ran to completion at 200k iterations in 296.0s — barely slower than bucket mode's own 254.8s for the
+  same budget, and with no memory pressure worth mentioning (RSS nowhere near the ~7.5GB that preceded
+  attempt 1's OOM crash). Nothing here is fighting the trainer the way board-identity keying did.
+- At 300,504 info sets, it's an order of magnitude short of what attempt 1's variants reached at the same
+  iteration count (river-exact: 5.7M; the failed tiers variant: 5.8M) — consistent with the fixed 27-category
+  ceiling actually doing its job, unlike the canonical-board keying it replaced.
+- Not fully converged yet — 1.8x growth per 10x iterations is real growth, not flat the way bucket mode's
+  1.04x is — but decelerating growth toward a visible ceiling is a completely different situation from the
+  accelerating growth attempt 1 measured. This looks affordable to push further and actually reach
+  convergence, which none of attempt 1's variants ever did.
+
+**This directly answers the question that motivated trying it**: yes, texture buckets show real converging
+behavior, unlike any board-identity variant. The natural next step, not yet done, is either pushing the
+iteration budget further to see where it actually flattens, or building a proper pruned blueprint (like
+`train-blueprint.ts` does for `'bucket'` mode) from this abstraction and evaluating it against the existing
+bots the way PR #15's depths were evaluated.
 
 ## Progress log
 
@@ -114,3 +143,8 @@ needs its own follow-up.
 - **2026-09-24** (same day, attempt 2 starts): Removed all three board-identity-keyed variants from the
   code (kept as the "Attempt 1" summary above, not as dead code) and built `texture.ts` — a 27-category
   board classification that never keys on board identity at all. Not yet measured.
+- **2026-09-24** (same day, attempt 2 measured): Piloted texture mode at 2k/20k/200k iterations. Unlike
+  every attempt-1 variant, its growth decelerates (2.8x then 1.8x per 10x iterations, versus bucket mode's
+  flat ~1.04x and attempt 1's accelerating growth) and it ran to completion with no memory pressure. First
+  real positive signal in this initiative — worth pushing further (more iterations, or a real pruned
+  blueprint + evaluation) rather than a fourth resolution-scheme pivot.
