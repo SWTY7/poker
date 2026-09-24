@@ -1,5 +1,16 @@
 # Poker Psychology — Coding & Architecture Plan (v2)
 
+> **Historical.** This is the original v1 design plan, written before any of it was built. The project
+> has grown well past v1 — the "deferred to later" AI-psychology layer in §0 and Milestone 10 is now
+> the largest part of the codebase, alongside a from-scratch GTO/CFR solver this plan never anticipated.
+> **For what's actually built today, read [`docs/PROGRESS.md`](./PROGRESS.md) first.**
+>
+> What's still accurate: the layering principle in §1, the engine/AI/UI separation, and the
+> `AIObservation` information boundary in §5 (the *shape* has grown — see `src/ai/observation.ts` for
+> the current fields — but the boundary itself, no hidden information reaching an AI agent, held
+> exactly as designed). What's not current: the milestone list in §6 (annotated below rather than
+> rewritten, so the original plan stays legible) and the "deferred to later" scope in §0.
+
 ## 0. Project Definition
 
 Build a **single-player, browser-based Texas Hold'em poker game** that runs on both laptop and iPhone.
@@ -201,69 +212,82 @@ ObservationBuilder
 AIObservation
 ```
 
-```typescript
-interface AIObservation {
-    ownCards: Card[];
-    communityCards: Card[];
-    potSize: number;
-    stackSizes: number[];
-    position: number;
-    actionHistory: VisibleAction[];
-    legalActions: Action[];
-}
-```
+This was the original draft shape; the real one grew (per-street betting context, each seat's derived
+table position, big blind size for scaling, and more) without ever breaking the boundary itself. The
+current, accurate definition is `AIObservation` in `src/ai/observation.ts` — read that instead of this
+snippet, which would only go stale again if kept in sync by hand here.
 
 The AI cannot access opponent hole cards, the undealt deck, or future cards. This boundary is what
-lets the future subjective/psychological AI layer be built without ever "cheating."
+lets the future subjective/psychological AI layer be built without ever "cheating." It held exactly as
+designed — `src/ai/psychology/psych-bot.ts`'s whole opponent-modeling layer, including its per-session
+learned reads on specific opponents, is built entirely on top of `AIObservation` and never reaches past
+it.
 
 ---
 
 ## 6. Milestones
 
-### Milestone 1 — Project Setup
+*Status annotations added after the fact — see `docs/PROGRESS.md` for what each area actually looks like
+today. The descriptions below are the original v1 targets, kept as written.*
+
+### Milestone 1 — Project Setup ✅ done
 Vite + React + TypeScript scaffold. `npm run dev` and `npm run build` both work. No backend, no
 external AI APIs.
 
-### Milestone 2 — Card System
+### Milestone 2 — Card System ✅ done
 `Suit`, `Rank`, `Card`, `Deck`. Deck: exactly 52 cards, shuffle, draw, no duplicates within a hand,
 seedable RNG for deterministic tests.
 
-### Milestone 3 — Hand Evaluator
+### Milestone 3 — Hand Evaluator ✅ done
 Implement and thoroughly test hand evaluation per §3. Return a comparable structure
 (`{ category, rank, tiebreakers }`). Do not proceed until this is trustworthy — test wheel straights,
 broadway straights, flush vs straight, full house/quad comparisons, kickers, ties.
 
-### Milestone 4 — Game State & Hold'em Rules
+### Milestone 4 — Game State & Hold'em Rules ✅ done
 `GameState`, `PlayerState`, dealer button rotation, blinds, optional ante, streets
 (preflop/flop/turn/river), legal-action computation, 2–10 players.
 
-### Milestone 5 — Betting Engine & Pots
+### Milestone 5 — Betting Engine & Pots ✅ done
 `PokerAction` (`fold/check/call/bet/raise/all-in`), legality validation, main pot + side pots for
 unequal all-ins, folded-player contributions, correct showdown eligibility. Extensive tests for
 all-in edge cases.
 
-### Milestone 6 — Static UI
+### Milestone 6 — Static UI ✅ done
 Build the table layout from §4 with static/mock data first: oval table, `Seat` component reused per
 player, dealer/blind markers, pot display, hero's large cards, responsive laptop/iPhone layout, fold
 dimming.
 
-### Milestone 7 — Wire UI to Engine
+### Milestone 7 — Wire UI to Engine ✅ done
 Connect the real `GameState` to the UI. Human player can act through the UI (fold/check/call/bet/raise)
 via the engine's validated-action path. Full hand plays out correctly end to end.
 
-### Milestone 8 — Basic AI
+### Milestone 8 — Basic AI ✅ done, and grown well past its original scope
 `RandomBot` (chooses a legal action at random) to exercise the full game loop, then a `HeuristicBot`
 using hand strength / pot odds / basic equity (no personality, no memory, no bias) so a complete solo
-game against several bots is playable.
+game against several bots is playable. Both still exist as-described (`src/ai/random-bot.ts`,
+`src/ai/heuristic-bot.ts`) and `HeuristicBot` is still one of the bot kinds a live table can draw — see
+Milestone 10 below for what was layered on top.
 
-### Milestone 9 — Polish
+### Milestone 9 — Polish ✅ done
 Deal/chip animations, fold-dim transition, settings screen (players, stacks, blinds, ante) persisted to
-`localStorage`, save/resume of in-progress game state, basic hand history.
+`localStorage`, save/resume of in-progress game state, basic hand history. Grew further than listed here
+too: a persistent bankroll/profile with lifetime stats and a daily stake (`src/game/profile.ts`) and full
+tournament support with blind structures and payouts (`src/game/tournament.ts`) were never part of v1's
+scope at all.
 
-### Milestone 10 — (Future, not part of this build)
+### Milestone 10 — (Future, not part of this build) ✅ done — this is now most of the codebase
 Personality, emotion, memory, cognitive biases, theory of mind, AI-vs-AI simulation/experiments, Omaha
 and other variants. To be designed and implemented later, plugged in behind the existing
 `AIObservation` → action interface from §5 without modifying the poker engine.
+
+What actually got built here goes well beyond what this line anticipated: a full psychological model
+(`src/ai/psychology/` — prospect theory, mental accounting, tilt, level-k opponent reasoning, per-session
+learned reads on specific opponents, position- and board-texture-aware ranges), a simpler trait-based
+bot alongside it (`personality-bot.ts`), and — never planned for at all in this document — a from-scratch
+GTO solver (`src/gto/`, verified against Kuhn/Leduc/push-fold oracles) whose CFR-solved strategy plays
+heads-up spots at several trained stack depths. Omaha and other variants are still not built. See
+`docs/PROGRESS.md` for the current state of all of it, and `docs/cfr-distillation-plan.md` for the one
+initiative currently in progress.
 
 ---
 
