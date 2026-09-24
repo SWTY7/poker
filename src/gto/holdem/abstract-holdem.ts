@@ -54,10 +54,19 @@ export interface HoldemOptions {
    * collapsing, so blocker- and board-specific play can in principle be
    * learned. It costs a much bigger information-set space for it: the flop
    * alone has 1,755 canonical boards times up to ~1,081 live combos, before
-   * betting history multiplies it further — measure before assuming it is
-   * affordable at scale (see scripts/pilot-exact-abstraction.ts).
+   * betting history multiplies it further — measured in
+   * scripts/pilot-exact-abstraction.ts, and it does not level off by 20,000
+   * iterations even at one depth.
+   *
+   * An array of streets (1 = flop, 2 = turn, 3 = river) instead of a single
+   * mode keys only those streets exact and leaves the rest bucketed — a
+   * middle ground that bounds the exact-resolution cost to however many
+   * distinct situations training actually reaches on that street, rather
+   * than the full multi-street explosion. `[3]` (river only) is the
+   * smallest, most targeted version: the street where "I have a blocker,
+   * he raised big, is this really a value bet" is actually decided.
    */
-  cardAbstraction?: 'bucket' | 'exact'
+  cardAbstraction?: 'bucket' | 'exact' | number[]
 }
 
 export const DEFAULT_HOLDEM: HoldemOptions = { stack: 20, buckets: DEFAULT_BUCKETS, betCap: 3 }
@@ -304,7 +313,10 @@ export function abstractHoldem(options: HoldemOptions = DEFAULT_HOLDEM): Game<Ho
       if (state.street === 0) {
         return `${state.street}|${classOf(hole[0], hole[1])}|${history}`
       }
-      if (cardAbstraction === 'exact') {
+
+      const exactHere =
+        cardAbstraction === 'exact' || (Array.isArray(cardAbstraction) && cardAbstraction.includes(state.street))
+      if (exactHere) {
         // The board has to be part of the key here, not just an input to
         // computing it: a canonical combo id only means the same thing on
         // two different visits if it was relabelled into the same board's
