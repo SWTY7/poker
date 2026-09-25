@@ -127,7 +127,7 @@ export function applyAction(state: GameState, action: PokerAction): void {
   }
 
   if (player.stack === 0 && !player.folded) player.isAllIn = true
-  state.actionHistory.push(action)
+  state.actionHistory.push({ ...action, street: state.street })
 
   const committed = player.totalContributed - committedBefore
   logEvent(state, {

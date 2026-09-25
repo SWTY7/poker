@@ -16,7 +16,9 @@ import { decayTilt, tiltEffects, tiltIntensity, updateTilt } from './tilt'
 import { believedOpponentStrategy } from './level-k'
 import type { PsychProfile } from './profile'
 import { AVERAGE_HUMAN } from './profile'
-import type { OpponentModel } from './opponent-model'
+import { BASELINES, settingOf, type OpponentModel } from './opponent-model'
+import { readRanges, splitAgainstBet } from './range-reading'
+import { exploitReads } from './exploits'
 
 /**
  * One bot, three biases, one decision rule.
@@ -227,8 +229,8 @@ export class PsychBot implements Agent {
     const reference = referencePoint(this.session, this.profile.accounting)
 
     const read = readOpponents(obs)
-    const opponents = Math.max(read.aggressors.length + read.callers.length + read.unknown.length, 1)
     const opponentPosition = (playerId: string) => obs.players.find((p) => p.id === playerId)?.position ?? null
+    const setting = settingOf(obs.players.filter((p) => !p.folded).length)
 
     // What the opponent is betting, and therefore what to measure against.
     const believed = believedOpponentStrategy(
@@ -239,16 +241,31 @@ export class PsychBot implements Agent {
     )
     const baseBluffBelief = clamp01(Math.max(believed.bluffFrequency, MIN_BLUFF_BELIEF) + effects.bluffBeliefBoost)
     // The level-k prior is the same for anyone the bot hasn't specifically
-    // clocked, but a specific opponent who has been betting and raising well
-    // above a balanced rate has to be doing it with a range that has more air
-    // in it than that — arithmetic, not a read on their cards. Only kicks in
-    // once opponent-model.ts has enough of a sample to say anything.
+    // clocked, but a specific opponent who has been betting and raising more
+    // than is normal *in this setting* has to be doing it with a range that
+    // has more air in it — arithmetic, not a read on their cards. The read
+    // grows with how much of them has been seen (opponent-model.ts).
     const bluffBeliefFor = (playerId: string) =>
-      clamp01(baseBluffBelief + (this.opponents?.aggressionBias(playerId) ?? 0) * LEARNED_BLUFF_GAIN)
+      clamp01(baseBluffBelief + (this.opponents?.aggressionBias(playerId, setting) ?? 0) * LEARNED_BLUFF_GAIN)
 
     // The hand has to beat everyone still in, and they are not all telling
-    // the same story — so each opponent is dealt from the range their own
-    // actions imply, all in the same sample.
+    // the same story. Anyone who has acted this hand is read from what they
+    // did, street by street (range-reading.ts): a check-call then a check is
+    // a different range from a bet-call, however the same player got there.
+    //
+    // With one exception, measured rather than assumed: whether a *bet* is
+    // a bluff. Reading that needs a bluff share, and from actions alone the
+    // only estimate is the level-k belief — about one bet in eight for a
+    // typical level-1 player. Against someone who really bets two hands in
+    // three, that reads their bets as far stronger than they are, and the
+    // bot folded its way to losing 83 bb/100 heads-up (docs/combined-bot.md).
+    // So a bettor's range, for deciding whether to call them, stays the
+    // value-plus-air mixture below; their read range is still used for how
+    // they'd respond to a raise (fold equity, below). What would fix it is
+    // what people use: showdowns — seeing what a bettor actually had.
+    const ratesFor = (playerId: string) =>
+      this.opponents?.postflopRates(playerId, setting) ?? { ...BASELINES[setting].postflop }
+    const tracked = readRanges(obs, [...read.aggressors, ...read.callers], bluffBeliefFor, ratesFor)
     const sample = { samples: this.profile.equitySamples, rng: this.rng }
     const ranges: Range[] = []
     const participation: number[] = []
@@ -256,8 +273,8 @@ export class PsychBot implements Agent {
       ranges.push(bettingRange(bluffBeliefFor(id)))
       participation.push(1)
     }
-    for (let i = 0; i < read.callers.length; i++) {
-      ranges.push(continuingRange(board))
+    for (const id of read.callers) {
+      ranges.push(tracked.get(id)!)
       participation.push(1)
     }
     for (const id of read.unknown) {
@@ -289,11 +306,34 @@ export class PsychBot implements Agent {
     // half-pot bet wins outright three quarters of the time, which is how a
     // bot talks itself into betting every hand it is dealt.
     //
-    // Then the exponent: everybody has to fold, not just the one being bet
-    // at, which is why a bluff into four players is not the same proposition
-    // as the same bluff heads-up.
+    // Then it is worked out per opponent, from what they are actually
+    // holding (range-reading.ts's splitAgainstBet): they continue with
+    // anything genuinely strong on this board, plus at least the top
+    // `defence` share of their own range — a capped range still defends
+    // itself — chosen without knowing the hero's cards. Then the hero's own
+    // cards come out of it, which is where blockers come from: holding the
+    // ace of the flush suit removes their nut flushes from the part that
+    // calls, so the same bluff folds them more often. For someone who hasn't
+    // acted, whose range is still the generic continuing one, this is exactly
+    // `defence`, as it always was — plus the blockers.
+    //
+    // Then everybody has to fold, not just the one being bet at, which is
+    // why a bluff into four players is not the same proposition as the same
+    // bluff heads-up. A specific opponent seen folding to bets more (or less)
+    // than is normal here moves their own share by that much.
     const defence = clamp01(VALUE_SHARE + (1 - VALUE_SHARE) * believed.defenceFrequency)
-    const foldEquity = Math.pow(clamp01(1 - defence + effects.aggressionBoost), opponents)
+    const continuing = boardRange(CONTINUING_WIDTH * defence, board)
+    const opponentIds = [...read.aggressors, ...read.callers, ...read.unknown]
+    let foldEquity = 1
+    const calledRanges: Range[] = []
+    opponentIds.forEach((id) => {
+      const range = tracked.get(id) ?? continuingRange(board)
+      const split = splitAgainstBet(range, continuing, defence, board, hole)
+      const folds = split ? split.folds : 1 - defence
+      const foldRead = this.opponents?.foldBias(id, setting) ?? 0
+      foldEquity *= clamp01(folds + foldRead + effects.aggressionBoost)
+      calledRanges.push(split?.called ?? continuing)
+    })
 
     const candidates: Candidate[] = []
     const relative = (finalStack: number) => finalStack - reference
@@ -344,12 +384,11 @@ export class PsychBot implements Agent {
       // The hand that calls is not the hand that was there before the bet.
       // Betting folds out the part of their range the hero was beating and
       // keeps the part beating the hero, so equity in the called branch has
-      // to be measured against the range that actually continues — the top
-      // `defence` share of it. Leaving this out is what makes a bot a
-      // maniac: every bet looks like it either wins the pot outright or
-      // goes to showdown against the same range it faced before.
-      const called = boardRange(CONTINUING_WIDTH * defence, board)
-      const rawEquityIfCalled = multiwayEquity(hole, new Array<Range>(opponents).fill(called), board, {
+      // to be measured against the part of each opponent's range that
+      // actually continues (`calledRanges`, above). Leaving this out is what
+      // makes a bot a maniac: every bet looks like it either wins the pot
+      // outright or goes to showdown against the same range it faced before.
+      const rawEquityIfCalled = multiwayEquity(hole, calledRanges, board, {
         ...sample,
         participation: participation.map(() => 1),
       })
@@ -383,17 +422,30 @@ export class PsychBot implements Agent {
       return { playerId: obs.playerId, type: obs.legalActions[0] ?? 'fold' }
     }
 
-    const solved = this.profile.discipline > 0 ? (this.fundamentals?.strategyFor(obs) ?? null) : null
+    const book = this.profile.discipline > 0 ? (this.fundamentals?.strategyFor(obs) ?? null) : null
+    // A read on the one opponent a solve applies to adjusts the book itself —
+    // a narrow, specific correction (exploits.ts) — rather than handing more
+    // of the decision to instinct.
+    const villain = opponentIds.length === 1 ? opponentIds[0] : null
+    const solved =
+      book && villain && this.opponents
+        ? exploitReads(
+            book,
+            toCall > 0,
+            {
+              aggression: this.opponents.aggressionBias(villain, 'headsUp'),
+              folding: this.opponents.foldBias(villain, 'headsUp'),
+            },
+            equity,
+          )
+        : book
     let chosen: PokerAction
     if (solved) {
-      // A read on the opponent is deliberately not a second lever here. It
-      // already moves this bot's own valuation (bluffBeliefFor, above), which
-      // is how it reaches the decision. Letting it also dissolve discipline
-      // was tried and measured: OpponentModel's balanced-aggression baseline
-      // is a full-table number, so heads-up — the only place a solve applies
-      // — nearly every opponent reads as a maniac, discipline collapsed on
-      // every hand, and the blend lost to the pure solve it was built on.
-      // See docs/combined-bot.md.
+      // Reads don't loosen discipline here — they already act twice, more
+      // precisely: on the book, as targeted exploits (above), and on this
+      // bot's own valuation (bluffBeliefFor, fold equity). See
+      // docs/combined-bot.md for why a "read loosens discipline" lever was
+      // tried and dropped.
       const discipline = this.profile.discipline * (1 - TILT_EROSION * tiltIntensity(this.tilt))
       const valueCandidate = (action: PokerAction): Candidate | null => {
         const own = candidates.find((c) => sameAction(c.action, action))
@@ -547,9 +599,6 @@ function readOpponents(obs: AIObservation): TableRead {
 
 // --- ranges ------------------------------------------------------------------
 
-let valueRange: Range | null = null
-let airRange: Range | null = null
-
 /**
  * The strongest `width` of all hands, remembered.
  *
@@ -569,6 +618,9 @@ function topSlice(width: number): Range {
   }
   return range
 }
+
+let valueRange: Range | null = null
+let airRange: Range | null = null
 
 function continuingRange(board: CardInt[]): Range {
   return boardRange(CONTINUING_WIDTH, board)

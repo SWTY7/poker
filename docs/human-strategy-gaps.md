@@ -54,63 +54,54 @@ scare card comes", or keeps firing because the line so far tells a strong story.
 **Effort:** small (ply), medium (plans). **Check:** the existing "neither a maniac nor a calling station"
 aggression-ratio test, plus `benchmark:pro`.
 
-### 3. Card removal / blockers — *advanced, missing where it counts*
+### 3. Card removal / blockers — *built (2026-09-25)*
 
-**What's there already:** `multiwayEquity` deals opponent hands that can't use the hero's own cards, so
-*showdown equity* already accounts for card removal.
+**Built:** fold equity is now worked out per opponent from their range, in `range-reading.ts`'s
+`splitAgainstBet`. The opponent continues with anything genuinely strong, plus at least the top `defence`
+share of their *own* range, chosen without knowing the hero's cards. A capped range still defends itself
+rather than folding everything. Then every combo using one of the hero's cards is removed, and what's left
+decides the fold share. Blocker bluffs fall out of that: holding the ace of the flush suit removes their nut
+flushes from the part that calls. Showdown equity already accounted for card removal.
 
-**What's missing:** *fold equity* is one number from level-k, not a function of which hands the opponent
-actually holds. So the bot can't know that holding the A♥ on a three-heart board makes the opponent's
-nut-flush calls less likely, which is what makes it a good bluff.
+**Honest limit:** a blocker only matters when the hands it blocks are actually in the opponent's range. After
+a line that caps their range (call, call, check) there's little left to block. Probing a three-heart river
+found spots where the ace of hearts didn't change the decision at all, which is also true of real play. It
+decides close spots, not clear ones. Tested at the level of the math (`range-reading.test.ts`).
 
-**Suggestion:** compute fold equity from ranges instead of a constant. Take the opponent's believed range
-(already a 1,326-combo `Range`), remove every combo that uses one of the hero's cards, and read fold
-equity as *1 − (weight of the part that would continue) / (weight of the whole)*. Blocker bluffs then fall
-out on their own, the same way the rest of PsychBot's behavior does. This is the practical version of what
-the CFR route couldn't afford — `cfr-distillation-plan.md` measured why the solver can't do it.
+### 4. Range reading across a whole hand — *built (2026-09-25), with one measured exception*
 
-**Effort:** small to medium. **Check:** a hand-built spot (like the river spots in `psych-bot.test.ts`) —
-the same bluff with and without the blocking card should bet more often with it.
+**Built:** `range-reading.ts`'s `readRanges`. Every opponent who has acted this hand is read by Bayes' rule
+over all 1,326 combos, one action at a time, on the board as it was on that street. The engine now stamps
+each recorded action with its street. After the flop, each action is cut *relative to what the player can
+still hold* and *at the rate that player takes it*: someone who bets 60% of the time when checked to is
+betting their top 60%. Those rates come from the opponent model, blended toward measured normals. Preflop
+uses population widths by position. Nothing is ever ruled out completely.
 
-### 4. Range reading across a whole hand — *advanced, missing*
+**The exception:** a *bettor's* range is not used for deciding whether to call them. It still feeds how
+they'd respond to a raise. Reading a bet needs a bluff share, and actions alone only give the level-k
+belief (about one bet in eight). Measured against an opponent who really bets two hands in three, reading
+bets as mostly value made the bot lose 83 bb/100 heads-up (`docs/combined-bot.md`). The fix is **showdown
+information**: learning each player's real bluff share from the hands they turn over. That's the natural
+next step for this item.
 
-**What's wrong:** the opponent's range is rebuilt from scratch every decision from generic shapes (value
-slice + air, or a continuing slice). Nothing remembers that they limped preflop, called the flop and
-check-raised the turn.
+### 5. Exploitative deviation from equilibrium — *built (2026-09-25)*
 
-**Suggestion:** a `HandRangeTracker` per opponent per hand. Start from their preflop range (position-based,
-`OPEN_PERCENT`), and after every action they take, reweight each combo by how likely that action was with
-that combo — Bayes' rule on 1,326 weights. For the likelihood of an action given a combo, use the blueprint
-heads-up (its strategy row is literally P(action | bucket)), and a strength-based rule multiway (bets come
-from the top of the range plus a bluff share; calls from the middle). Feed it from the same place that
-feeds `OpponentModel` (`useHoldemGame.ts`'s `applyAndPace`), and let PsychBot use the tracked range
-wherever it now calls `bettingRange`/`continuingRange`.
+**Built, in two parts:**
+- **Calibrated reads** (`opponent-model.ts`). Every action is recorded with its setting (heads-up or
+  multiway, facing a bet or not) and compared with a *measured* normal for that setting
+  (`npm run calibrate:reads`: the solve playing itself heads-up, the bot cast playing itself six-handed).
+  There are two reads, aggression and fold-to-bet. Confidence grows with evidence instead of switching on at
+  a cutoff.
+- **Targeted exploits** (`exploits.ts`). Heads-up, a read adjusts the solved mix directly before the blend.
+  Against an over-aggressive player it moves weight from fold to call; against a passive one, the reverse.
+  Against an over-folder it bets more. Against a calling station it bluffs less and value-bets more. Weight
+  only ever moves between actions the solve already plays. Multiway, the fold read moves that opponent's
+  own fold share in the fold-equity math above.
 
-**Effort:** medium to large. The biggest single step toward "reads like a person". **Check:** construct a
-hand where the line rules out a strong holding and confirm the tracked range reflects it; then
-`benchmark:pro`.
-
-### 5. Exploitative deviation from equilibrium — *advanced, partly built*
-
-**What's there now:** the combined bot. Studied players stay near the solved strategy, and their own
-valuation (which includes their reads) pulls them off it in proportion to 1 − discipline.
-
-**What was learned building it:** a read is only worth acting on if it is *calibrated*. `OpponentModel`'s
-"balanced" aggression baseline (35%) is a full-table number. Heads-up nearly everyone is above it, and
-letting that "read" loosen discipline made the bot lose to plain GTO (`docs/combined-bot.md` has the
-numbers).
-
-**Suggestion:**
-- Calibrate `OpponentModel` baselines by players in the hand. The heads-up baseline could be read straight
-  off the blueprint's own aggression frequency.
-- Track more than aggression: fold-to-a-bet, preflop participation (VPIP), aggression per street. All of
-  it is visible in the action stream.
-- Apply exploits to the solved mix directly ("node-locking lite"). If the opponent folds to bets well above
-  the solve's expectation, scale up the solve's bet frequencies. If they bluff too much, move weight from
-  fold to call. This is more targeted than letting the whole instinct valuation back in.
-
-**Effort:** medium. **Check:** `benchmark:pro`, plus new matchups against specific archetypes (a calling
-station, an over-folder) where the right exploit is known.
+**What was learned:** the old 35% baseline really was miscalibrated, but at *full tables*, where people bet
+about 12% of the time. It read nearly everyone as passive, making the bots under-believe bluffs. An earlier
+version of this doc blamed heads-up instead; measured, heads-up play sits right around 35%. See
+`docs/combined-bot.md`.
 
 ### 6. Bet sizing as a signal — *advanced, missing*
 
@@ -177,10 +168,8 @@ priority.
 
 ## Suggested order
 
-1. **Blockers in fold equity (3)** and **bet-size reading (6)**: small, self-contained, and the most
-   noticeable at the table.
+1. ~~Blockers (3)~~, ~~range reading (4)~~ and ~~calibrated reads and exploits (5)~~: built. Next,
+   **bet-size reading (6)**: small, self-contained, and noticeable at the table.
 2. **Implied odds (1)** and **one extra ply (2)**: fix the lookahead flaws PsychBot's own header names.
-3. **Calibrated reads and direct exploits (5)**: builds on the combined bot and today's finding.
-4. **Range tracking (4)**: the largest, and what makes the bots read hands like people.
-5. **ICM (8) → multiway push/fold (9)**: together, only when tournaments are the focus.
-6. **Image (7)** and **timing (10)**: flavor, cheap.
+3. **ICM (8) → multiway push/fold (9)**: together, only when tournaments are the focus.
+4. **Image (7)** and **timing (10)**: flavor, cheap.
