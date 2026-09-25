@@ -1,7 +1,8 @@
-import type { Agent } from '../../ai/agent'
+import type { Agent, WeightedAction } from '../../ai/agent'
+import { HeuristicBot } from '../../ai/heuristic-bot'
 import type { AIObservation } from '../../ai/observation'
 import type { PokerAction } from '../../poker/game-state'
-import type { Rng } from '../../utils/random'
+import { createRng, type Rng } from '../../utils/random'
 import { BlueprintBot } from './blueprint-bot'
 import type { BlueprintFile } from './blueprint'
 
@@ -19,8 +20,12 @@ import type { BlueprintFile } from './blueprint'
  * is a real `BlueprintBot` and not a reimplementation of one.
  */
 export interface BlueprintSetOptions {
-  /** Plays every spot no trained depth can answer. */
-  fallback: Agent
+  /**
+   * Plays every spot no trained depth can answer. Only matters when this is
+   * seated as an agent itself; used purely as a source of `strategyFor`
+   * (the way PsychBot uses it) nothing ever falls back to it.
+   */
+  fallback?: Agent
   rng?: Rng
 }
 
@@ -28,18 +33,23 @@ export class BlueprintSetBot implements Agent {
   private entries: { stack: number; bot: BlueprintBot }[]
   private fallback: Agent
 
-  constructor(files: BlueprintFile[], options: BlueprintSetOptions) {
+  constructor(files: BlueprintFile[], options: BlueprintSetOptions = {}) {
     if (files.length === 0) throw new Error('BlueprintSetBot needs at least one trained depth')
-    this.fallback = options.fallback
+    this.fallback = options.fallback ?? new HeuristicBot(options.rng ?? createRng())
     this.entries = files.map((file) => ({
       stack: file.options.stack,
-      bot: new BlueprintBot(file, { fallback: options.fallback, rng: options.rng }),
+      bot: new BlueprintBot(file, { fallback: this.fallback, rng: options.rng }),
     }))
   }
 
   decideAction(obs: AIObservation): PokerAction {
     const nearest = this.nearestEntry(obs)
     return (nearest ?? this.fallback).decideAction(obs)
+  }
+
+  /** The nearest trained depth's whole mixed strategy — see `BlueprintBot.strategyFor`. */
+  strategyFor(obs: AIObservation): WeightedAction[] | null {
+    return this.nearestEntry(obs)?.strategyFor(obs) ?? null
   }
 
   /** Summed across every trained depth, for the same "did it actually answer" check `BlueprintBot` itself supports. */

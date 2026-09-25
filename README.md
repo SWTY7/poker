@@ -1,32 +1,37 @@
-# React + TypeScript + Vite
+# Poker
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+A client-side, No-Limit Texas Hold'em web app — React, TypeScript, Vite. No backend, no LLM. The
+distinguishing part isn't the poker engine, it's the AI opponent layer: every bot is a psychological model
+(prospect theory, tilt, level-k opponent reasoning, per-session learned reads on specific opponents)
+anchored — as much as its character has studied — to a from-scratch CFR-solved "GTO" strategy for
+heads-up spots. Each seat draws a different character each game, from recreational players who mostly play
+how a hand feels to a professional who plays the solve and leaves it only when a read pays for it.
 
-Currently, two official plugins are available:
+**Read [`docs/PROGRESS.md`](./docs/PROGRESS.md) for the current state of the project and a map of the other
+docs** — it's the accurate, up-to-date entry point; this file is just how to run it.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Running it
 
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```sh
+npm install
+npm run dev       # local dev server with HMR
+npm run build     # typecheck + production build
+npm run preview   # serve the production build locally
+npm test          # vitest, full suite
+npm run lint      # oxlint
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+## Offline solver scripts
+
+The CFR/GTO layer (`src/gto/`) is trained offline and shipped as static JSON — nothing in the browser
+solves anything at runtime. These regenerate that data:
+
+```sh
+npm run train:blueprint -- [iterations] [stack] [buckets] [outFile]   # train one stack depth's blueprint
+npm run pilot:texture -- [iterations] [stack]                          # measure texture vs. bucketed CFR keying
+npm run chart:pushfold                                                 # print the solved heads-up push/fold chart
+npm run generate:preflop-equity                                        # regenerate preflop equity data
+```
+
+See `docs/PROGRESS.md` for what each piece of the solver actually does, and `docs/cfr-distillation-plan.md`
+for the initiative `pilot:texture` exists to support.

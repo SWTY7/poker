@@ -4,6 +4,7 @@ import { evaluateHand } from '../../poker/fast/eval7'
 import type { Rng } from '../../utils/random'
 import { CHANCE, type Action, type Actor, type ChanceOutcome, type Game } from '../game'
 import { DEFAULT_BUCKETS, bucketOf } from './buckets'
+import { textureOf } from './texture'
 
 /**
  * Heads-up no-limit Hold'em, small enough to solve.
@@ -43,6 +44,34 @@ export interface HoldemOptions {
   buckets: number
   /** Most bets and raises allowed in one street. */
   betCap: number
+  /**
+   * 'bucket' (the default): postflop hands are grouped by strength
+   * percentile on the board (buckets.ts) — the solver cannot tell two hands
+   * in the same bucket apart, board included, because the board itself is
+   * never part of the information-set key either. That is also why it
+   * cannot do blocker reasoning: two hands that are equally strong on two
+   * different boards play identically, even when one of them blocks the
+   * flush the other doesn't.
+   *
+   * Three attempts at fixing that by putting the board itself in the key —
+   * full canonical-board-plus-combo, the same restricted to one street, and
+   * a canonical board paired with a finer bucket — all failed the same way:
+   * there are so many distinct canonical boards that almost none of them get
+   * visited twice within an affordable training run, so the key space grows
+   * without bound (and, for the full version, crashes with an out-of-memory
+   * error) regardless of how coarsely a hand is described within a board.
+   * See docs/cfr-distillation-plan.md's phase 1 log for the numbers; the
+   * code for these was removed rather than kept dead, since none of them
+   * worked — git history has it if the specifics matter again.
+   *
+   * 'texture': postflop info sets are keyed by a coarse, fixed-size
+   * classification of the board (texture.ts — 27 categories: flushiness x
+   * pairedness x straightness) instead of the board's own identity. Many
+   * different boards share a category, so this is bounded the same way
+   * 'bucket' is, while still letting strategy vary by board type — dry,
+   * paired, monotone, and so on — rather than only by hand strength.
+   */
+  cardAbstraction?: 'bucket' | 'texture'
 }
 
 export const DEFAULT_HOLDEM: HoldemOptions = { stack: 20, buckets: DEFAULT_BUCKETS, betCap: 3 }
@@ -73,7 +102,7 @@ const ALL_IN: Action = 'a'
 const BOARD_SIZE = [0, 3, 4, 5]
 
 export function abstractHoldem(options: HoldemOptions = DEFAULT_HOLDEM): Game<HoldemState> {
-  const { stack, buckets, betCap } = options
+  const { stack, buckets, betCap, cardAbstraction = 'bucket' } = options
   if (!(stack > 1)) throw new Error(`Need more than a big blind behind, got ${stack}`)
 
   /** Who acts first this street: the small blind before the flop, the big blind after. */
@@ -279,15 +308,23 @@ export function abstractHoldem(options: HoldemOptions = DEFAULT_HOLDEM): Game<Ho
      *
      * Preflop the "bucket" is the hand's own class — 169 of them, which is
      * small enough that abstracting further would throw away information for
-     * nothing. After the flop it is the strength bucket for this board.
+     * nothing. After the flop it is the strength bucket for this board, plus
+     * the board's texture category when cardAbstraction is 'texture'.
      */
     infoSet(state: HoldemState): string {
       const player = (firstActor(state.street) + state.betting.length) % 2
       const hole = state.hole[player] as [CardInt, CardInt]
-      const bucket =
-        state.street === 0 ? classOf(hole[0], hole[1]) : bucketOf(hole, state.board, buckets)
       const history = [...state.past.map((betting, street) => summarise(betting, street)), state.betting].join('/')
-      return `${state.street}|${bucket}|${history}`
+
+      if (state.street === 0) {
+        return `${state.street}|${classOf(hole[0], hole[1])}|${history}`
+      }
+
+      if (cardAbstraction === 'texture') {
+        return `${state.street}|t${textureOf(state.board)}|${bucketOf(hole, state.board, buckets)}|${history}`
+      }
+
+      return `${state.street}|${bucketOf(hole, state.board, buckets)}|${history}`
     },
   }
 

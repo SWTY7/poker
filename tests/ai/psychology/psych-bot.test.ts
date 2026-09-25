@@ -2,9 +2,9 @@ import { describe, expect, it } from 'vitest'
 import { HoldemEngine } from '../../../src/poker/game-engine'
 import { buildObservation } from '../../../src/ai/observation'
 import type { AIObservation } from '../../../src/ai/observation'
-import { PsychBot } from '../../../src/ai/psychology/psych-bot'
+import { PsychBot, type Fundamentals } from '../../../src/ai/psychology/psych-bot'
 import { OpponentModel } from '../../../src/ai/psychology/opponent-model'
-import { AVERAGE_HUMAN, CAST, LOSS_AVERSE, RATIONAL } from '../../../src/ai/psychology/profile'
+import { AVERAGE_HUMAN, CAST, LOSS_AVERSE, RATIONAL, type PsychProfile } from '../../../src/ai/psychology/profile'
 import { HUMAN_TILT } from '../../../src/ai/psychology/tilt'
 import { committedPot, streetBetTotal, totalPot } from '../../../src/poker/pot'
 import { createRng } from '../../../src/utils/random'
@@ -371,5 +371,78 @@ describe('tilt at the table', () => {
       bot.observeResult({ stack: 200, shareWon: 0, potSize: 1500 })
     }
     expect(bot.tiltLevel).toBe(0)
+  })
+})
+
+describe('a studied player leans on the solved strategy', () => {
+  /** A stand-in solve that always says the same thing, so what's measured is the blending, not a blueprint. */
+  const alwaysSays = (type: 'fold' | 'call'): Fundamentals => ({
+    strategyFor: (obs) => [{ action: { playerId: obs.playerId, type }, probability: 1 }],
+  })
+  const neverAnswers: Fundamentals = { strategyFor: () => null }
+  const studied = (profile: PsychProfile, discipline: number) => ({ ...profile, discipline })
+
+  it('plays exactly as before with no discipline, whatever the solve says', () => {
+    const spot = riverSpot(1000)
+    const plain = new PsychBot(studied(LOSS_AVERSE, 0), 1000, createRng(21))
+    const handed = new PsychBot(studied(LOSS_AVERSE, 0), 1000, createRng(21))
+    handed.useFundamentals(alwaysSays('call'))
+    expect(continueRate(handed, spot)).toBe(continueRate(plain, spot))
+  })
+
+  it('plays exactly as before wherever the solve has no answer', () => {
+    // Multiway pots, untrained depths: the book is silent and instinct is all there is.
+    const spot = riverSpot(1000)
+    const plain = new PsychBot(studied(LOSS_AVERSE, 0.9), 1000, createRng(22))
+    const handed = new PsychBot(studied(LOSS_AVERSE, 0.9), 1000, createRng(22))
+    handed.useFundamentals(neverAnswers)
+    expect(continueRate(handed, spot)).toBe(continueRate(plain, spot))
+  })
+
+  it('follows the book over its own instinct when disciplined, and less so when not', () => {
+    // The loss-averse bot's instinct is to fold this river every time (see
+    // the tilt tests). The solve says call. How often it calls is how much
+    // it trusts what it studied over how the spot feels.
+    const spot = riverSpot(1000)
+    const instinct = continueRate(new PsychBot(studied(LOSS_AVERSE, 0), 1000, createRng(23)), spot)
+    const rates = [0.3, 0.6, 0.95].map((discipline) => {
+      const bot = new PsychBot(studied(LOSS_AVERSE, discipline), 1000, createRng(23))
+      bot.useFundamentals(alwaysSays('call'))
+      return continueRate(bot, spot, 200)
+    })
+    expect(instinct).toBe(0)
+    expect(rates[0]).toBeGreaterThan(instinct)
+    expect(rates[1]).toBeGreaterThan(rates[0])
+    expect(rates[2]).toBeGreaterThan(rates[1])
+    expect(rates[2]).toBeGreaterThan(0.85)
+  })
+
+  it('abandons the book on tilt, which is where fundamentals go first', () => {
+    // The solve says fold. Calm, this player folds. Steaming, their instinct
+    // says call and their discipline has worn thin enough to let it.
+    const spot = riverSpot(1000)
+    const calm = new PsychBot(studied(AVERAGE_HUMAN, 0.8), 1000, createRng(24))
+    const steaming = new PsychBot(studied(AVERAGE_HUMAN, 0.8), 1000, createRng(24))
+    for (const bot of [calm, steaming]) bot.useFundamentals(alwaysSays('fold'))
+    for (let i = 0; i < 6; i++) {
+      steaming.decideAction(riverSpot(400))
+      steaming.observeResult({ stack: 400, shareWon: 0, potSize: 900 })
+    }
+    expect(continueRate(calm, spot, 200)).toBe(0)
+    expect(continueRate(steaming, spot, 200)).toBeGreaterThan(0)
+  })
+
+  it('still hears a read on the opponent, through the instinct the book is blended with', () => {
+    // The solve says fold. Without a read, this player's instinct agrees and
+    // they fold every time. A read on a known-aggressive villain changes the
+    // instinct to call — and the share of the decision that is still
+    // instinct (1 - discipline) lets some of that through.
+    const spot = riverSpot(1000)
+    const knowsVillain = new OpponentModel()
+    for (let i = 0; i < 40; i++) knowsVillain.observe({ playerId: 'villain', type: 'raise' })
+    const noRead = new PsychBot(studied(AVERAGE_HUMAN, 0.8), 1000, createRng(25))
+    const read = new PsychBot(studied(AVERAGE_HUMAN, 0.8), 1000, createRng(25), knowsVillain)
+    for (const bot of [noRead, read]) bot.useFundamentals(alwaysSays('fold'))
+    expect(continueRate(read, spot, 200)).toBeGreaterThan(continueRate(noRead, spot, 200))
   })
 })

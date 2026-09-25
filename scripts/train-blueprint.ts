@@ -8,7 +8,7 @@ import { createRng } from '../src/utils/random'
 /**
  * Trains the blueprint and writes it out.
  *
- *   npm run train:blueprint -- [iterations] [stack] [buckets] [outFile]
+ *   npm run train:blueprint -- [iterations] [stack] [buckets] [outFile] [cardAbstraction]
  *
  * Minutes, not seconds, and deliberately offline: the browser gets the answer
  * as data. Sampled rather than a full tree walk, because the tree here is the
@@ -19,6 +19,10 @@ import { createRng } from '../src/utils/random'
  * blueprint-set.ts) trains several stacks into their own named files —
  * blueprint-10.json, blueprint-20.json, and so on — rather than each run
  * overwriting the last.
+ *
+ * cardAbstraction defaults to 'bucket' (today's shipped bots); 'texture'
+ * trains against the board-texture classification in texture.ts instead —
+ * see docs/cfr-distillation-plan.md's "Attempt 2" for why.
  */
 
 /**
@@ -33,15 +37,20 @@ const MIN_WEIGHT = 1
 
 export default function main(args: string[]): void {
   const iterations = Number(args[0] ?? 200_000)
+  const cardAbstraction = args[4] === 'texture' ? 'texture' : 'bucket'
   const options: HoldemOptions = {
     ...DEFAULT_HOLDEM,
     stack: Number(args[1] ?? DEFAULT_HOLDEM.stack),
     buckets: Number(args[2] ?? DEFAULT_HOLDEM.buckets),
+    cardAbstraction,
   }
 
   const outFile = args[3] ?? 'src/gto/holdem/blueprint.json'
 
-  console.log(`training ${iterations} iterations at ${options.stack}bb, ${options.buckets} buckets -> ${outFile}`)
+  console.log(
+    `training ${iterations} iterations at ${options.stack}bb, ${options.buckets} buckets, ` +
+      `${cardAbstraction} abstraction -> ${outFile}`,
+  )
   const started = Date.now()
   const game = abstractHoldem(options)
   const result = trainMccfr(game, iterations, { rng: createRng(20260919), plus: true })

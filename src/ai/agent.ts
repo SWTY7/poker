@@ -17,6 +17,12 @@ export interface Agent {
   observeResult?(outcome: HandOutcome): void
 }
 
+/** One action of a mixed strategy, and how often to play it. */
+export interface WeightedAction {
+  action: PokerAction
+  probability: number
+}
+
 /** What an agent is told about a finished hand, from its own seat's view. */
 export interface HandOutcome {
   /** Chips in front of this player once the pot was pushed. */
