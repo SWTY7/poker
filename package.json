@@ -14,7 +14,8 @@
     "chart:pushfold": "node scripts/run.mjs scripts/push-fold-chart.ts",
     "train:blueprint": "node scripts/run.mjs scripts/train-blueprint.ts",
     "pilot:texture": "node scripts/run.mjs scripts/pilot-texture-abstraction.ts",
-    "compare:blueprints": "node scripts/run.mjs scripts/compare-blueprints.ts"
+    "compare:blueprints": "node scripts/run.mjs scripts/compare-blueprints.ts",
+    "benchmark:pro": "node scripts/run.mjs scripts/benchmark-pro.ts"
   },
   "dependencies": {
     "react": "^19.2.8",

@@ -129,6 +129,32 @@ describe('the blueprint at a table', () => {
     expect(Math.abs(rate)).toBeLessThan(3 * error)
   })
 
+  it('hands over its whole mixed strategy as legal table actions', () => {
+    // The same opening spot the preflop test above reads from the file, but
+    // through a real table, so what comes back has been through the
+    // translation into chips rather than read straight off the abstraction.
+    const players = [
+      { id: 'p0', name: 'P0', stack: STACK },
+      { id: 'p1', name: 'P1', stack: STACK },
+    ]
+    const engine = new HoldemEngine(players, { smallBlind: BIG_BLIND / 2, bigBlind: BIG_BLIND, ante: 0 }, createRng(4))
+    engine.startHand()
+    const actor = engine.state.players[engine.state.currentPlayerIndex]
+    const observation = buildObservation(engine, actor.id)
+
+    const strategy = bot().strategyFor(observation)
+    expect(strategy).not.toBeNull()
+    const total = strategy!.reduce((sum, w) => sum + w.probability, 0)
+    expect(total).toBeCloseTo(1, 9)
+    for (const { action, probability } of strategy!) {
+      expect(probability).toBeGreaterThan(0)
+      expect(observation.legalActions).toContain(action.type)
+    }
+    // Two abstract sizes that land on the same real bet are one action.
+    const keys = strategy!.map(({ action }) => `${action.type}:${action.amount ?? ''}`)
+    expect(new Set(keys).size).toBe(keys.length)
+  })
+
   it('stands aside when the table is not the game it solved', () => {
     // Three-handed, so no theorem applies and it says so by not answering.
     const blueprint = bot()
@@ -156,5 +182,7 @@ describe('the blueprint at a table', () => {
     } as const
     blueprint.decideAction(observation as never)
     expect(blueprint.answered).toBe(0)
+    // And it has no mixed strategy to offer anyone else either.
+    expect(blueprint.strategyFor(observation as never)).toBeNull()
   })
 })

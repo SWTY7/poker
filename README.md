@@ -1,10 +1,11 @@
 # Poker
 
 A client-side, No-Limit Texas Hold'em web app — React, TypeScript, Vite. No backend, no LLM. The
-distinguishing part isn't the poker engine, it's the AI opponent layer: every bot seat draws one of four
-genuinely different kinds of opponent, mixed and randomized fresh each game, from a plain hand-strength
-calculator up to a full psychological model (prospect theory, tilt, level-k opponent reasoning, per-session
-learned reads on specific opponents) and a from-scratch CFR-solved "GTO" bot for heads-up spots.
+distinguishing part isn't the poker engine, it's the AI opponent layer: every bot is a psychological model
+(prospect theory, tilt, level-k opponent reasoning, per-session learned reads on specific opponents)
+anchored — as much as its character has studied — to a from-scratch CFR-solved "GTO" strategy for
+heads-up spots. Each seat draws a different character each game, from recreational players who mostly play
+how a hand feels to a professional who plays the solve and leaves it only when a read pays for it.
 
 **Read [`docs/PROGRESS.md`](./docs/PROGRESS.md) for the current state of the project and a map of the other
 docs** — it's the accurate, up-to-date entry point; this file is just how to run it.

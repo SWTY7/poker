@@ -38,8 +38,14 @@ export function clamp(amount: number, min: number, max: number): number {
 
 /**
  * A simple hand-strength / pot-odds bot. No personality, memory, or bias —
- * just enough poker sense to make the game playable. This is the seam the
- * future psychological AI layer replaces or wraps.
+ * just enough poker sense to make a hand go somewhere.
+ *
+ * Never seated at a real table any more (every bot there is a PsychBot). It
+ * stays for two jobs nothing else does as well: it is fast and cheap enough
+ * to drive the engine through thousands of hands in the engine and
+ * tournament tests, and it is the honest baseline the stronger bots are
+ * benchmarked against — a win rate means little without a floor to measure
+ * it from.
  */
 export class HeuristicBot implements Agent {
   private rng: Rng

@@ -8,11 +8,11 @@ import { COMBO_A, COMBO_B, COMBO_COUNT } from '../../math/combos'
 import { bucketOf, DEFAULT_BUCKETS } from '../../gto/holdem/buckets'
 import type { Rng } from '../../utils/random'
 import { createRng } from '../../utils/random'
-import type { Agent, HandOutcome } from '../agent'
+import type { Agent, HandOutcome, WeightedAction } from '../agent'
 import type { AIObservation } from '../observation'
-import { subjectiveValue, type Outcome, type ProspectParams } from './prospect'
+import { subjectiveValue, valueOf, type Outcome, type ProspectParams } from './prospect'
 import { referencePoint, type SessionState } from './accounting'
-import { decayTilt, tiltEffects, updateTilt } from './tilt'
+import { decayTilt, tiltEffects, tiltIntensity, updateTilt } from './tilt'
 import { believedOpponentStrategy } from './level-k'
 import type { PsychProfile } from './profile'
 import { AVERAGE_HUMAN } from './profile'
@@ -49,9 +49,14 @@ import type { OpponentModel } from './opponent-model'
  * Bluffing is not a separate decision here. A bet with no equity wins the
  * hand when everyone folds, and that branch is already in the valuation, so
  * the bot bluffs exactly when fold equity pays for it — which is what a bluff
- * is. `maybeBluff` in bluff.ts belongs to PersonalityBot, where a bluff is a
- * deliberate override of an honest strength estimate; that is a different
- * model and this one does not route through it.
+ * is.
+ *
+ * On top of all of that sits the one thing a studied player has and a
+ * recreational one doesn't: a solved strategy to fall back on. Where one
+ * applies (heads-up, a trained depth — see `useFundamentals`), the choice is
+ * no longer "take the best-feeling action" but a blend of the solved mix and
+ * that feeling, weighted by `discipline` — see `anchoredChoice`. Where none
+ * applies, nothing changes.
  */
 
 /** How wide a range a bet is assumed to be value-betting. */
@@ -115,6 +120,36 @@ const STAKE_REFERENCE_FRACTION = 0.03
  */
 const LEARNED_BLUFF_GAIN = 0.6
 
+/**
+ * How far a studied player's own read is allowed to pull them off the solved
+ * strategy, in pots: at discipline 0.5, an action the read values a quarter
+ * of a pot below the best one is played e^-1 as often as the anchor alone
+ * would play it. Higher discipline stretches this (d / (1 - d)), so at 0.85
+ * it takes a gap of well over a pot to override the book. See
+ * `anchoredChoice`.
+ */
+const ANCHOR_TEMPERATURE = 0.25
+
+/**
+ * How much of a player's discipline survives being fully tilted. Tilt is
+ * the moment a studied player stops playing what they studied — the
+ * empirically observed signature is exactly the fundamentals going first —
+ * so a maxed-out tilt keeps only 1 - this of it.
+ */
+const TILT_EROSION = 0.8
+
+/**
+ * Where the solved strategy comes from: the whole mixed strategy at a spot,
+ * as real table actions, or null where no solve applies (more than two
+ * players in, a stack depth nothing was trained at). BlueprintSetBot is the
+ * real one; tests can stand in anything with the same shape.
+ */
+export interface Fundamentals {
+  strategyFor(observation: AIObservation): WeightedAction[] | null
+}
+
+type Candidate = { action: PokerAction; outcomes: Outcome[] }
+
 function streetsRemaining(street: Street): number {
   switch (street) {
     case 'preflop':
@@ -144,6 +179,8 @@ export class PsychBot implements Agent {
   private committedThisHand = false
   /** Shared across every bot at the table — see opponent-model.ts. Undefined plays exactly as before it existed. */
   private opponents?: OpponentModel
+  /** The solved strategy, once there is one. Undefined, or a profile with no discipline, plays exactly as before it existed. */
+  private fundamentals?: Fundamentals
 
   constructor(profile: PsychProfile = AVERAGE_HUMAN, buyIn = 1000, rng: Rng = createRng(), opponents?: OpponentModel) {
     this.profile = profile
@@ -155,6 +192,16 @@ export class PsychBot implements Agent {
   /** Current emotional state, for tests and for a future tell in the UI. */
   get tiltLevel(): number {
     return this.tilt
+  }
+
+  /**
+   * Hands this player the solved strategy. A setter rather than a
+   * constructor argument because at a real table it arrives late — the
+   * trained files download in the background while the first hands are
+   * already being played on instinct alone.
+   */
+  useFundamentals(fundamentals: Fundamentals): void {
+    this.fundamentals = fundamentals
   }
 
   decideAction(obs: AIObservation): PokerAction {
@@ -248,7 +295,6 @@ export class PsychBot implements Agent {
     const defence = clamp01(VALUE_SHARE + (1 - VALUE_SHARE) * believed.defenceFrequency)
     const foldEquity = Math.pow(clamp01(1 - defence + effects.aggressionBoost), opponents)
 
-    type Candidate = { action: PokerAction; outcomes: Outcome[] }
     const candidates: Candidate[] = []
     const relative = (finalStack: number) => finalStack - reference
 
@@ -288,6 +334,37 @@ export class PsychBot implements Agent {
         ? ('raise' as const)
         : null
 
+    /** A bet or raise to `target` chips, as a gamble — or null if it wouldn't add anything. */
+    const raiseCandidate = (target: number): Candidate | null => {
+      if (!aggressive) return null
+      const added = target - (me?.betThisStreet ?? 0)
+      if (added <= 0) return null
+      const extraCalled = Math.max(added - toCall, 0)
+
+      // The hand that calls is not the hand that was there before the bet.
+      // Betting folds out the part of their range the hero was beating and
+      // keeps the part beating the hero, so equity in the called branch has
+      // to be measured against the range that actually continues — the top
+      // `defence` share of it. Leaving this out is what makes a bot a
+      // maniac: every bet looks like it either wins the pot outright or
+      // goes to showdown against the same range it faced before.
+      const called = boardRange(CONTINUING_WIDTH * defence, board)
+      const rawEquityIfCalled = multiwayEquity(hole, new Array<Range>(opponents).fill(called), board, {
+        ...sample,
+        participation: participation.map(() => 1),
+      })
+      const equityIfCalled = shrinkTowardCoinFlip(rawEquityIfCalled, streetsRemaining(obs.street))
+
+      return {
+        action: { playerId: obs.playerId, type: aggressive, amount: target },
+        outcomes: [
+          { payoff: relative(stack + pot), probability: foldEquity },
+          { payoff: relative(stack + pot + extraCalled), probability: (1 - foldEquity) * equityIfCalled },
+          { payoff: relative(stack - added), probability: (1 - foldEquity) * (1 - equityIfCalled) },
+        ],
+      }
+    }
+
     if (aggressive) {
       for (const fraction of [0.5, 1]) {
         // A size the pot can explain: raise to the current bet plus a share of
@@ -295,37 +372,10 @@ export class PsychBot implements Agent {
         // raise instead — which is what the heuristic bot does — compounds,
         // because the minimum is already a function of the last raise, and a
         // table of bots doing it three-bets itself all in by the fourth street.
-        const target = clamp(
-          obs.currentBet + Math.round(fraction * (pot + toCall)),
-          obs.minRaiseTo,
-          obs.maxRaiseTo,
+        const candidate = raiseCandidate(
+          clamp(obs.currentBet + Math.round(fraction * (pot + toCall)), obs.minRaiseTo, obs.maxRaiseTo),
         )
-        const added = target - (me?.betThisStreet ?? 0)
-        if (added <= 0) continue
-        const extraCalled = Math.max(added - toCall, 0)
-
-        // The hand that calls is not the hand that was there before the bet.
-        // Betting folds out the part of their range the hero was beating and
-        // keeps the part beating the hero, so equity in the called branch has
-        // to be measured against the range that actually continues — the top
-        // `defence` share of it. Leaving this out is what makes a bot a
-        // maniac: every bet looks like it either wins the pot outright or
-        // goes to showdown against the same range it faced before.
-        const called = boardRange(CONTINUING_WIDTH * defence, board)
-        const rawEquityIfCalled = multiwayEquity(hole, new Array<Range>(opponents).fill(called), board, {
-          ...sample,
-          participation: participation.map(() => 1),
-        })
-        const equityIfCalled = shrinkTowardCoinFlip(rawEquityIfCalled, streetsRemaining(obs.street))
-
-        candidates.push({
-          action: { playerId: obs.playerId, type: aggressive, amount: target },
-          outcomes: [
-            { payoff: relative(stack + pot), probability: foldEquity },
-            { payoff: relative(stack + pot + extraCalled), probability: (1 - foldEquity) * equityIfCalled },
-            { payoff: relative(stack - added), probability: (1 - foldEquity) * (1 - equityIfCalled) },
-          ],
-        })
+        if (candidate) candidates.push(candidate)
       }
     }
 
@@ -333,22 +383,101 @@ export class PsychBot implements Agent {
       return { playerId: obs.playerId, type: obs.legalActions[0] ?? 'fold' }
     }
 
-    let best = candidates[0]
-    let bestValue = subjectiveValue(best.outcomes, prospect)
-    for (const candidate of candidates.slice(1)) {
-      const value = subjectiveValue(candidate.outcomes, prospect)
-      if (value > bestValue) {
-        best = candidate
-        bestValue = value
+    const solved = this.profile.discipline > 0 ? (this.fundamentals?.strategyFor(obs) ?? null) : null
+    let chosen: PokerAction
+    if (solved) {
+      // A read on the opponent is deliberately not a second lever here. It
+      // already moves this bot's own valuation (bluffBeliefFor, above), which
+      // is how it reaches the decision. Letting it also dissolve discipline
+      // was tried and measured: OpponentModel's balanced-aggression baseline
+      // is a full-table number, so heads-up — the only place a solve applies
+      // — nearly every opponent reads as a maniac, discipline collapsed on
+      // every hand, and the blend lost to the pure solve it was built on.
+      // See docs/combined-bot.md.
+      const discipline = this.profile.discipline * (1 - TILT_EROSION * tiltIntensity(this.tilt))
+      const valueCandidate = (action: PokerAction): Candidate | null => {
+        const own = candidates.find((c) => sameAction(c.action, action))
+        if (own) return own
+        return action.type === 'bet' || action.type === 'raise' ? raiseCandidate(action.amount ?? 0) : null
       }
+      chosen = this.anchoredChoice(candidates, solved, valueCandidate, prospect, pot + toCall, discipline)
+    } else {
+      chosen = bestOf(candidates, prospect).action
     }
 
     // Anything but a fold means this hand belongs to them, and a hand they
     // were in is a hand that can tilt them. Checking a monster down and
     // losing it is a bad beat too — being cheap about it does not make it
     // sting less.
-    if (best.action.type !== 'fold') this.committedThisHand = true
-    return best.action
+    if (chosen.type !== 'fold') this.committedThisHand = true
+    return chosen
+  }
+
+  /**
+   * How a studied player actually decides: start from the solved strategy,
+   * and move off it only as far as their own read pays for.
+   *
+   *   pi(a)  proportional to  anchor(a) * exp(q(a) / temperature)
+   *
+   * `anchor` is the solved mix with a `1 - discipline` share moved onto
+   * whatever this player's own valuation likes best (their gut); `q` is that
+   * valuation, in pots, relative to the best action. At discipline 0 this is
+   * exactly the old argmax; at 1 it is exactly the solved strategy; in
+   * between, an action the solve plays and the read likes gets played a lot,
+   * one the solve plays but the read hates gets played less, and one the
+   * solve never plays gets played only if it is the read's own favourite.
+   *
+   * This is KL-regularized play (Jacob et al. 2022, "piKL") — the form that
+   * falls out of maximizing value minus a penalty for straying from a
+   * reference policy, and the one built specifically to model strong players
+   * who are still recognisably human rather than either a solver or a
+   * gambler.
+   */
+  private anchoredChoice(
+    candidates: Candidate[],
+    solved: WeightedAction[],
+    valueCandidate: (action: PokerAction) => Candidate | null,
+    prospect: ProspectParams,
+    potChips: number,
+    discipline: number,
+  ): PokerAction {
+    // Everything either side would consider, each valued once.
+    const options: { candidate: Candidate; solvedWeight: number }[] = candidates.map((candidate) => ({
+      candidate,
+      solvedWeight: 0,
+    }))
+    for (const weighted of solved) {
+      const existing = options.find((o) => sameAction(o.candidate.action, weighted.action))
+      if (existing) {
+        existing.solvedWeight += weighted.probability
+        continue
+      }
+      const candidate = valueCandidate(weighted.action)
+      if (candidate) options.push({ candidate, solvedWeight: weighted.probability })
+    }
+    const solvedTotal = options.reduce((sum, o) => sum + o.solvedWeight, 0)
+    const gut = bestOf(candidates, prospect)
+    if (solvedTotal <= 0 || discipline <= 0) return gut.action
+
+    const d = Math.min(discipline, 0.999)
+    const temperature = ANCHOR_TEMPERATURE * (d / (1 - d))
+    const scale = Math.max(valueOf(potChips, prospect), 1e-9)
+    const values = options.map((o) => subjectiveValue(o.candidate.outcomes, prospect))
+    const top = Math.max(...values)
+
+    const weights = options.map((o, i) => {
+      const anchor = d * (o.solvedWeight / solvedTotal) + (o.candidate === gut ? 1 - d : 0)
+      return anchor * Math.exp((values[i] - top) / scale / temperature)
+    })
+    const total = weights.reduce((sum, w) => sum + w, 0)
+    if (!(total > 0)) return gut.action
+
+    let roll = this.rng() * total
+    for (let i = 0; i < options.length; i++) {
+      roll -= weights[i]
+      if (roll <= 0) return options[i].candidate.action
+    }
+    return options[options.length - 1].candidate.action
   }
 
   /**
@@ -514,6 +643,27 @@ function bettingRange(bluffFrequency: number): Range {
     mixed[id] = valueWeight * valueRange[id] + bluffFrequency * airRange[id]
   }
   return mixed
+}
+
+/** The candidate that feels best — the first one, on a tie, so the choice never depends on anything but the values. */
+function bestOf(candidates: Candidate[], prospect: ProspectParams): Candidate {
+  let best = candidates[0]
+  let bestValue = subjectiveValue(best.outcomes, prospect)
+  for (const candidate of candidates.slice(1)) {
+    const value = subjectiveValue(candidate.outcomes, prospect)
+    if (value > bestValue) {
+      best = candidate
+      bestValue = value
+    }
+  }
+  return best
+}
+
+/** Same move at the table: same type and, for a bet or raise, the same size. */
+function sameAction(a: PokerAction, b: PokerAction): boolean {
+  if (a.type !== b.type) return false
+  if (a.type === 'bet' || a.type === 'raise') return a.amount === b.amount
+  return true
 }
 
 function clamp01(x: number): number {

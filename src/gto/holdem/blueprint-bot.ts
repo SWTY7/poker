@@ -1,4 +1,4 @@
-import type { Agent } from '../../ai/agent'
+import type { Agent, WeightedAction } from '../../ai/agent'
 import type { AIObservation } from '../../ai/observation'
 import { HeuristicBot } from '../../ai/heuristic-bot'
 import { classOf } from '../../math/combos'
@@ -78,7 +78,45 @@ export class BlueprintBot implements Agent {
     return this.fallback.decideAction(obs)
   }
 
+  /**
+   * The whole mixed strategy for this spot, as real table actions, rather
+   * than one action sampled from it — for an agent that wants the solved
+   * answer as an input to its own decision instead of as the decision. Null
+   * wherever `decideAction` would hand over to the fallback. Two abstract
+   * sizes that land on the same real bet (both clamped to the stack, say)
+   * are merged, and a letter the real table won't accept is dropped, so
+   * what comes back is always a distribution over legal actions.
+   */
+  strategyFor(obs: AIObservation): WeightedAction[] | null {
+    this.asked++
+    const resolved = this.resolve(obs)
+    if (!resolved) return null
+
+    const merged = new Map<string, WeightedAction>()
+    resolved.letters.forEach((letter, i) => {
+      const action = this.realise(obs, letter)
+      const probability = resolved.probabilities[i] ?? 0
+      if (!action || probability <= 0) return
+      const key = `${action.type}:${action.amount ?? ''}`
+      const existing = merged.get(key)
+      if (existing) existing.probability += probability
+      else merged.set(key, { action, probability })
+    })
+    const total = [...merged.values()].reduce((sum, w) => sum + w.probability, 0)
+    if (total <= 0) return null
+
+    this.answered++
+    return [...merged.values()].map((w) => ({ action: w.action, probability: w.probability / total }))
+  }
+
   private lookUp(obs: AIObservation): PokerAction | null {
+    const resolved = this.resolve(obs)
+    if (!resolved) return null
+    return this.realise(obs, this.pick(resolved.probabilities, resolved.letters))
+  }
+
+  /** The strategy row for this spot and the abstract letters it is over, or null where the blueprint doesn't apply. */
+  private resolve(obs: AIObservation): { probabilities: number[]; letters: string[] } | null {
     const live = obs.players.filter((p) => !p.folded)
     if (live.length !== 2) return null
 
@@ -112,7 +150,7 @@ export class BlueprintBot implements Agent {
 
     const probabilities = this.strategy.get(key)
     if (!probabilities) return null
-    return this.realise(obs, this.pick(probabilities, replayed.actions))
+    return { probabilities, letters: replayed.actions }
   }
 
   /**

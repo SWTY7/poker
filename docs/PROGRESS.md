@@ -8,9 +8,8 @@ whenever a meaningful piece lands; it's meant to stay current, not to be rewritt
 
 A client-side, No-Limit Texas Hold'em web app — React + TypeScript + Vite, deployed to GitHub Pages, no
 backend, no LLM. What makes it more than a poker engine with a UI on top is the AI opponent layer: every
-bot seat at a table draws one of four genuinely different kinds of opponent, mixed and randomized fresh
-each game, ranging from a plain hand-strength calculator up to a full psychological model and a
-CFR-solved "GTO" bot for heads-up spots.
+bot is a full psychological model, anchored (as far as its character has studied) to a CFR-solved "GTO"
+strategy for heads-up spots, with a different character in each seat, drawn fresh every game.
 
 ## Doc map
 
@@ -22,9 +21,11 @@ CFR-solved "GTO" bot for heads-up spots.
 - [`cfr-distillation-plan.md`](./cfr-distillation-plan.md) — the one initiative currently in progress
   (solve a much higher-resolution CFR "teacher" once, distill it into a small fast "student"). Phase 1's
   pilot is measured; no decision yet on how far to take it. Read its own progress log before continuing it.
-- [`human-strategy-gaps.md`](./human-strategy-gaps.md) — reference list of poker strategies real players use
-  that no current bot does, basics and advanced, grounded in the actual code. Not a plan; nothing in it is
-  scoped or committed to.
+- [`combined-bot.md`](./combined-bot.md) — how the one bot kind blends its own instinct with the solved
+  strategy, why reads don't loosen discipline, and the heads-up benchmark numbers behind both.
+- [`human-strategy-gaps.md`](./human-strategy-gaps.md) — poker strategies real players use that no bot does
+  yet, basics and advanced, each with a concrete implementation suggestion and a suggested order. Not a
+  plan; nothing in it is scoped or committed to.
 
 ## Engine & rules — `src/poker/`
 
@@ -50,15 +51,11 @@ small drag into a four-figure jump).
 
 ## AI opponents — `src/ai/`
 
-`useHoldemGame.ts`'s `buildTable()` draws each bot seat's kind fresh, uniformly at random, every game —
-no settings, no flags, on by default:
+Every bot seat is one model — `PsychBot` — and `useHoldemGame.ts`'s `buildTable()` gives each seat a
+different character from `profile.ts`'s `CAST`, drawn fresh every game. No settings, no flags. What the
+model does, and what the characters vary:
 
-- **`equity`** — `heuristic-bot.ts`. Hand strength versus pot odds and three fixed thresholds. Nothing
-  else. Kept in the mix deliberately as the honest baseline the others improve on, not removed.
-- **`personality`** — `psychology/personality-bot.ts`. Fixed aggression/tightness/bluff-frequency traits
-  bending the same thresholds; no memory, no psychology. Each instance draws its own traits
-  (`randomizePersonalityProfile`), bounded short of the degenerate extremes.
-- **`psych`** — `psychology/psych-bot.ts`, the largest and most-iterated piece:
+- **`psychology/psych-bot.ts`**, the largest and most-iterated piece:
   - Prospect theory (loss aversion, diminishing sensitivity, probability weighting — `prospect.ts`) and
     mental accounting (where the reference point sits, session vs. hand-to-hand — `accounting.ts`).
   - Tilt as a state variable that decays between hands and spikes on a violated expectation, not just a
@@ -78,10 +75,16 @@ no settings, no flags, on by default:
   - Board-texture-aware ranges postflop, reusing the GTO solver's own hand-bucketing machinery
     (`gto/holdem/buckets.ts`'s `bucketOf`) instead of a flat, board-blind percentile cutoff.
   - Randomized per table: which archetype (`profile.ts`'s `CAST`) sits where, and each instance's own
-    level-k depth and confidence (`randomizeProfile`).
-- **`solved`** — a `psych` bot that upgrades to `blueprint-set.ts`'s `BlueprintSetBot` once the trained
-  CFR strategies finish downloading (see below), playing the real solved strategy whenever a hand is
-  actually heads-up at a trusted stack depth, and a full psych bot the rest of the time.
+    level-k depth, confidence and discipline (`randomizeProfile`).
+- **Combined with the solved strategy** (`docs/combined-bot.md`): once the trained CFR strategies download,
+  every bot gets them (`useFundamentals`). Wherever a hand is heads-up at a trained depth, the bot
+  blends the solve's mixed strategy with its own valuation, KL-regularized ("piKL"). How much it
+  trusts the solve is the character's `discipline`, which tilt wears down. `PRO` (discipline 0.85) plays
+  near the solve; the recreational characters (0.1–0.15) mostly play instinct. Multiway, or at an
+  untrained depth, it's pure instinct. Measured heads-up with `npm run benchmark:pro`.
+- **Not seated any more:** `heuristic-bot.ts` (pot odds and three thresholds) stays as the cheap engine
+  test driver and the benchmark floor. The old personality-dial bot was deleted, since a `PsychBot` with
+  the right profile covers everything it did.
 
 ## The GTO solver — `src/gto/`
 
