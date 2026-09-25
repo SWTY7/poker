@@ -22,6 +22,9 @@ CFR-solved "GTO" bot for heads-up spots.
 - [`cfr-distillation-plan.md`](./cfr-distillation-plan.md) — the one initiative currently in progress
   (solve a much higher-resolution CFR "teacher" once, distill it into a small fast "student"). Phase 1's
   pilot is measured; no decision yet on how far to take it. Read its own progress log before continuing it.
+- [`human-strategy-gaps.md`](./human-strategy-gaps.md) — reference list of poker strategies real players use
+  that no current bot does, basics and advanced, grounded in the actual code. Not a plan; nothing in it is
+  scoped or committed to.
 
 ## Engine & rules — `src/poker/`
 
