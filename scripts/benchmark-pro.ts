@@ -3,7 +3,7 @@ import { HoldemEngine } from '../src/poker/game-engine'
 import { buildObservation } from '../src/ai/observation'
 import type { Agent } from '../src/ai/agent'
 import { PsychBot } from '../src/ai/psychology/psych-bot'
-import { OpponentModel } from '../src/ai/psychology/opponent-model'
+import { OpponentModel, actionContext } from '../src/ai/psychology/opponent-model'
 import { AVERAGE_HUMAN, PRO, type PsychProfile } from '../src/ai/psychology/profile'
 import { BlueprintSetBot } from '../src/gto/holdem/blueprint-set'
 import type { BlueprintFile } from '../src/gto/holdem/blueprint'
@@ -44,7 +44,7 @@ function playHand(a: Agent, b: Agent, seed: number, model: OpponentModel): numbe
     if (guard++ > 400) throw new Error('hand never finished')
     const actor = engine.state.players[engine.state.currentPlayerIndex]
     const action = agents[actor.id].decideAction(buildObservation(engine, actor.id))
-    model.observe(action)
+    model.observe(action, actionContext(engine.state, actor.id))
     engine.act(action)
   }
   // Tilt only moves if a bot is told how its hands went, same as at the table.

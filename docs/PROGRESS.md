@@ -65,10 +65,20 @@ model does, and what the characters vary:
   - Loss aversion that scales down as a facing bet becomes a smaller fraction of the stack, so a
     deep-stacked bot doesn't fold a trivial-relative-size raise as readily as a short-stacked one would
     (`STAKE_REFERENCE_FRACTION`).
-  - A shared, per-table `OpponentModel` (`opponent-model.ts`): every bot learns a specific opponent's
-    actual aggression frequency from their public actions this session (never their cards), and a
-    specific aggressor's believed bluff frequency is adjusted by their own learned bias rather than a
-    single generic read for the table.
+  - A shared, per-table `OpponentModel` (`opponent-model.ts`): every bot learns each opponent's aggression
+    and fold-to-a-bet rates from their public actions this session (never their cards). Each read is
+    against what's *normal in that setting*, heads-up or multiway: baselines measured by
+    `npm run calibrate:reads`, since one fixed number once read a whole full table as passive. Confidence
+    grows with the number of actions seen.
+  - Range reading across the whole hand (`range-reading.ts`): every opponent who has acted is read street
+    by street by Bayes' rule over all 1,326 combos. Each postflop action is cut relative to what they can
+    still hold, at the rate that player is seen taking it; the engine stamps each recorded action with its
+    street for this. One measured exception: a bettor's range isn't used for deciding whether to call
+    them, because without showdown information their bluff share can't be read.
+  - Blocker-aware fold equity (`range-reading.ts`'s `splitAgainstBet`): an opponent continues with strong
+    hands plus the top share of their *own* range, decided without seeing the hero's cards. The hero's
+    cards are then removed from what's possible, so holding a card their calling hands need makes a bluff
+    work more often.
   - Position-aware ranges for an opponent who hasn't voluntarily acted yet, preflop, via
     `math/realization.ts`'s real per-position opening widths (`OPEN_PERCENT`) — a still-to-act UTG seat
     reads tighter than a still-to-act button.
@@ -81,7 +91,9 @@ model does, and what the characters vary:
   blends the solve's mixed strategy with its own valuation, KL-regularized ("piKL"). How much it
   trusts the solve is the character's `discipline`, which tilt wears down. `PRO` (discipline 0.85) plays
   near the solve; the recreational characters (0.1–0.15) mostly play instinct. Multiway, or at an
-  untrained depth, it's pure instinct. Measured heads-up with `npm run benchmark:pro`.
+  untrained depth, it's pure instinct. Measured heads-up with `npm run benchmark:pro`. A calibrated read on
+  the heads-up opponent adjusts the solve's mix directly first (`exploits.ts`): call a bluffer down
+  lighter, bluff an over-folder more, stop bluffing a calling station.
 - **Not seated any more:** `heuristic-bot.ts` (pot odds and three thresholds) stays as the cheap engine
   test driver and the benchmark floor. The old personality-dial bot was deleted, since a `PsychBot` with
   the right profile covers everything it did.
@@ -109,8 +121,13 @@ oracle to check against.
 
 ## Verification, as of this writing
 
-397 tests → grew across the session to 427 as of the last full run; `npx vitest run`, `npx tsc --noEmit -p .`,
-and `npx oxlint` are all clean. Re-run them rather than trust this number — it moves.
+440 tests as of the last full run; `npx vitest run`, `npx tsc -b` and `npx oxlint` are all clean. Re-run
+them rather than trust this number — it moves.
+
+**Use `npx tsc -b`, not `npx tsc --noEmit -p .`**: `tsconfig.json` only lists project references, so
+`-p .` typechecks nothing and passes even on a deliberate type error (found 2026-09-25; earlier "tsc clean"
+claims made with it were hollow, though the code passed `tsc -b` once checked). `npm run build` runs
+`tsc -b` too. Nothing typechecks `tests/` or `scripts/` (`tsconfig.app.json` includes only `src`).
 
 ## Deliberately not built
 

@@ -16,6 +16,13 @@ export interface PokerAction {
   type: ActionType
   /** For bet/raise/all-in: the TOTAL amount the player's bet is raised TO this street. */
   amount?: number
+  /**
+   * The street it was taken on. Stamped by the engine when an action is
+   * recorded into the hand's history — anyone at the table knows which
+   * street a bet came on, and reading a hand back depends on it. Absent on an
+   * action an agent is only proposing.
+   */
+  street?: Street
 }
 
 export interface HandResult {

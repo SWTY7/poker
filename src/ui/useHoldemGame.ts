@@ -5,7 +5,7 @@ import type { ActionType, GameState, PokerAction, Street } from '../poker/game-s
 import { buildObservation } from '../ai/observation'
 import type { Agent } from '../ai/agent'
 import { PsychBot } from '../ai/psychology/psych-bot'
-import { OpponentModel } from '../ai/psychology/opponent-model'
+import { OpponentModel, actionContext } from '../ai/psychology/opponent-model'
 import { CAST, randomizeProfile } from '../ai/psychology/profile'
 import { blindLevel, levelForHandsCompleted, type TournamentStructure } from '../game/tournament'
 import { createRng, shuffle } from '../utils/random'
@@ -270,7 +270,7 @@ export function useHoldemGame(options: GameConfigOptions) {
       // Every action at the table, human or bot, goes through here — the one
       // place to feed the shared opponent model so every psych bot's read
       // stays current without each of them separately reconstructing it.
-      opponentModel.observe(action)
+      opponentModel.observe(action, actionContext(engine.state, action.playerId))
       engine.act(action)
       const streetAfter = engine.state.street
       commit()

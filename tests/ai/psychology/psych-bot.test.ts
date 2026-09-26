@@ -17,26 +17,30 @@ const card = (spec: string): Card => ({
 
 /**
  * One river spot, built by hand so the only thing that varies between bots is
- * the bot. The hero holds a bluff-catcher facing 75 into 100 — a fold at
- * 30% pot odds for anybody actually counting.
+ * the bot. The hero holds 99 on A-K-7-4-2 — a pure bluff-catcher, beating
+ * only bluffs — facing a bet into 100. At the default 75 a calm bot folds
+ * every time, which leaves room for a real reason to believe in bluffs (a
+ * read on an aggressive villain, tilt) to tip it into calling. At 40 a calm
+ * bot calls most of the time, which leaves room for a reason to believe in
+ * *fewer* bluffs (a read on a passive villain) to tip it the other way.
  */
-function riverSpot(stack: number): AIObservation {
+function riverSpot(stack: number, bet = 75): AIObservation {
   return {
     playerId: 'hero',
     ownCards: [card('9d'), card('9c')],
     communityCards: [card('Ah'), card('Kd'), card('7s'), card('4c'), card('2h')],
-    potSize: 175,
+    potSize: 100 + bet,
     players: [
       { id: 'hero', stack, betThisStreet: 0, folded: false, isAllIn: false },
-      { id: 'villain', stack: 1000, betThisStreet: 75, folded: false, isAllIn: false },
+      { id: 'villain', stack: 1000, betThisStreet: bet, folded: false, isAllIn: false },
     ],
     legalActions: ['fold', 'call', 'raise'],
     street: 'river',
-    currentBet: 75,
-    toCall: 75,
-    minRaiseTo: 150,
+    currentBet: bet,
+    toCall: bet,
+    minRaiseTo: bet * 2,
     maxRaiseTo: stack,
-    actionHistory: [{ playerId: 'villain', type: 'bet', amount: 75 }],
+    actionHistory: [{ playerId: 'villain', type: 'bet', amount: bet }],
   }
 }
 
@@ -164,32 +168,35 @@ describe('a learned read on a specific opponent', () => {
     const noRead = new PsychBot(AVERAGE_HUMAN, 1000, createRng(13))
 
     const knowsVillain = new OpponentModel()
-    for (let i = 0; i < 40; i++) knowsVillain.observe({ playerId: 'villain', type: 'raise' })
+    for (let i = 0; i < 40; i++) knowsVillain.observe({ playerId: 'villain', type: 'raise' }, { playersInHand: 2, facingBet: false })
     const readsVillain = new PsychBot(AVERAGE_HUMAN, 1000, createRng(13), knowsVillain)
 
     expect(continueRate(readsVillain, spot)).toBeGreaterThan(continueRate(noRead, spot))
   })
 
-  it('does nothing until the opponent model has enough of a sample to say anything', () => {
+  it('barely moves on one action, and moves more the more it has seen', () => {
+    // Confidence grows with evidence (opponent-model.ts) — one raise is a
+    // nudge, forty are a read.
     const spot = riverSpot(1000)
-    const noRead = new PsychBot(AVERAGE_HUMAN, 1000, createRng(13))
-
-    const barelySeen = new OpponentModel()
-    barelySeen.observe({ playerId: 'villain', type: 'raise' })
-    const readsVillain = new PsychBot(AVERAGE_HUMAN, 1000, createRng(13), barelySeen)
-
-    expect(continueRate(readsVillain, spot)).toBe(continueRate(noRead, spot))
+    const once = new OpponentModel()
+    once.observe({ playerId: 'villain', type: 'raise' }, { playersInHand: 2, facingBet: false })
+    const often = new OpponentModel()
+    for (let i = 0; i < 40; i++) often.observe({ playerId: 'villain', type: 'raise' }, { playersInHand: 2, facingBet: false })
+    const noRead = continueRate(new PsychBot(AVERAGE_HUMAN, 1000, createRng(13)), spot, 200)
+    const onceRate = continueRate(new PsychBot(AVERAGE_HUMAN, 1000, createRng(13), once), spot, 200)
+    const oftenRate = continueRate(new PsychBot(AVERAGE_HUMAN, 1000, createRng(13), often), spot, 200)
+    expect(onceRate - noRead).toBeLessThan(oftenRate - noRead)
   })
 
-  it('gives a known-passive villain no extra credit for bluffing', () => {
-    const spot = riverSpot(1000)
+  it('folds more to a known-passive villain, whose bets are value', () => {
+    const spot = riverSpot(1000, 40)
     const noRead = new PsychBot(AVERAGE_HUMAN, 1000, createRng(13))
 
     const passiveVillain = new OpponentModel()
-    for (let i = 0; i < 40; i++) passiveVillain.observe({ playerId: 'villain', type: 'call' })
+    for (let i = 0; i < 40; i++) passiveVillain.observe({ playerId: 'villain', type: 'call' }, { playersInHand: 2, facingBet: true })
     const readsVillain = new PsychBot(AVERAGE_HUMAN, 1000, createRng(13), passiveVillain)
 
-    expect(continueRate(readsVillain, spot)).toBeLessThanOrEqual(continueRate(noRead, spot))
+    expect(continueRate(readsVillain, spot, 200)).toBeLessThan(continueRate(noRead, spot, 200))
   })
 })
 
@@ -419,15 +426,19 @@ describe('a studied player leans on the solved strategy', () => {
 
   it('abandons the book on tilt, which is where fundamentals go first', () => {
     // The solve says fold. Calm, this player folds. Steaming, their instinct
-    // says call and their discipline has worn thin enough to let it.
+    // says call and their discipline has worn thin enough to let it. The
+    // beats come first, from earlier hands, and the book only for this
+    // decision — handed the fold-only book during those hands, a
+    // disciplined player would have folded them and never been beaten.
     const spot = riverSpot(1000)
     const calm = new PsychBot(studied(AVERAGE_HUMAN, 0.8), 1000, createRng(24))
     const steaming = new PsychBot(studied(AVERAGE_HUMAN, 0.8), 1000, createRng(24))
-    for (const bot of [calm, steaming]) bot.useFundamentals(alwaysSays('fold'))
     for (let i = 0; i < 6; i++) {
       steaming.decideAction(riverSpot(400))
       steaming.observeResult({ stack: 400, shareWon: 0, potSize: 900 })
     }
+    expect(steaming.tiltLevel).toBeGreaterThan(1)
+    for (const bot of [calm, steaming]) bot.useFundamentals(alwaysSays('fold'))
     expect(continueRate(calm, spot, 200)).toBe(0)
     expect(continueRate(steaming, spot, 200)).toBeGreaterThan(0)
   })
@@ -439,7 +450,7 @@ describe('a studied player leans on the solved strategy', () => {
     // instinct (1 - discipline) lets some of that through.
     const spot = riverSpot(1000)
     const knowsVillain = new OpponentModel()
-    for (let i = 0; i < 40; i++) knowsVillain.observe({ playerId: 'villain', type: 'raise' })
+    for (let i = 0; i < 40; i++) knowsVillain.observe({ playerId: 'villain', type: 'raise' }, { playersInHand: 2, facingBet: false })
     const noRead = new PsychBot(studied(AVERAGE_HUMAN, 0.8), 1000, createRng(25))
     const read = new PsychBot(studied(AVERAGE_HUMAN, 0.8), 1000, createRng(25), knowsVillain)
     for (const bot of [noRead, read]) bot.useFundamentals(alwaysSays('fold'))
