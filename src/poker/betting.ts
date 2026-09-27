@@ -127,7 +127,10 @@ export function applyAction(state: GameState, action: PokerAction): void {
   }
 
   if (player.stack === 0 && !player.folded) player.isAllIn = true
-  state.actionHistory.push({ ...action, street: state.street })
+  // An all-in is proposed without an amount — it means "everything" — but
+  // anyone reading the hand back needs to know how much everything was.
+  const recorded = action.type === 'all-in' ? { ...action, amount: player.betThisStreet } : action
+  state.actionHistory.push({ ...recorded, street: state.street })
 
   const committed = player.totalContributed - committedBefore
   logEvent(state, {

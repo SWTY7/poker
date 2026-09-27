@@ -118,6 +118,47 @@ describe('reading a range from how the hand was played', () => {
   })
 })
 
+describe('reading a bet by its size', () => {
+  const river = ['Ah', 'Kd', '7s', '4c', '9h']
+  const set = combo('7c', '7d')
+  const middle = combo('Kc', 'Jd')
+  /** Blinds in, a call preflop, checks to the river, then a bet of `amount` into the 20 in the middle. */
+  const sizedBet = (amount: number) => {
+    const obs = observation(river, [
+      { playerId: 'villain', type: 'call', street: 'preflop' },
+      { playerId: 'hero', type: 'check', street: 'preflop' },
+      { playerId: 'hero', type: 'check', street: 'flop' },
+      { playerId: 'villain', type: 'check', street: 'flop' },
+      { playerId: 'hero', type: 'check', street: 'turn' },
+      { playerId: 'villain', type: 'check', street: 'turn' },
+      { playerId: 'hero', type: 'check', street: 'river' },
+      { playerId: 'villain', type: 'bet', amount, street: 'river' },
+    ])
+    obs.players = [
+      { ...obs.players[0], position: 'BB' },
+      { ...obs.players[1], position: 'SB' },
+    ]
+    return obs
+  }
+
+  it('reads a big bet as the top of the range and a small one as the part just below it', () => {
+    const big = read(sizedBet(20), 0.1)
+    const small = read(sizedBet(7), 0.1)
+    // Top pair, good kicker is a hand that bets — but at this size, compared
+    // with a set, a big bet makes it much less likely than a small one does.
+    expect(small[middle] / small[set]).toBeGreaterThan((big[middle] / big[set]) * 1.2)
+  })
+
+  it('reads the bluffs believed for the size the bet actually was', () => {
+    const sizes: (number | null)[] = []
+    readRanges(sizedBet(20), ['villain'], (_, fraction) => {
+      sizes.push(fraction)
+      return 0.2
+    }, () => normal)
+    expect(sizes.some((f) => f !== null && Math.abs(f - 1) < 1e-9)).toBe(true)
+  })
+})
+
 describe('against a bet: who folds, and what the hero\'s cards block', () => {
   // Three hearts on board. Say the only hands strong enough to continue
   // whatever else they hold are flushes — two hearts in the hand.

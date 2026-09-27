@@ -25,9 +25,12 @@ import { textureOf } from './texture'
  * Heads-up rather than six-handed, and that is not laziness. CFR's guarantee
  * — that self-play converges to an equilibrium — is a theorem about
  * two-player zero-sum games and nothing else. Run it on a six-way table and
- * it still produces a strategy, but no theorem says the strategy is good, and
- * there is no equilibrium for it to be converging to in the first place. The
- * honest version of "a strong bot" stops at two players.
+ * it still produces a strategy, but no theorem says the strategy is good:
+ * equilibria still exist, but there can be many, and nothing promises the
+ * run finds one. Past two players, what can be done honestly is solve a game
+ * small enough to *measure* how far the result is from equilibrium — which
+ * preflop is, and preflop-multiway.ts does. The whole game, all four streets,
+ * is not.
  *
  * Unlike everything else in this directory, this game has no oracle. Nobody
  * publishes the value of abstracted heads-up Hold'em, and the tree is far too

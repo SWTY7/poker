@@ -16,7 +16,8 @@
     "pilot:texture": "node scripts/run.mjs scripts/pilot-texture-abstraction.ts",
     "compare:blueprints": "node scripts/run.mjs scripts/compare-blueprints.ts",
     "benchmark:pro": "node scripts/run.mjs scripts/benchmark-pro.ts",
-    "calibrate:reads": "node scripts/run.mjs scripts/calibrate-reads.ts"
+    "calibrate:reads": "node scripts/run.mjs scripts/calibrate-reads.ts",
+    "train:preflop": "node scripts/run.mjs scripts/train-preflop-multiway.ts"
   },
   "dependencies": {
     "react": "^19.2.8",

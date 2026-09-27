@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { BASELINES, OpponentModel, settingOf, type ActionContext } from '../../../src/ai/psychology/opponent-model'
+import {
+  BASELINES,
+  OpponentModel,
+  settingOf,
+  type ActionContext,
+  type ShowdownRecord,
+} from '../../../src/ai/psychology/opponent-model'
+import type { Card } from '../../../src/poker/card'
 import type { PokerAction } from '../../../src/poker/game-state'
 
 function action(playerId: string, type: PokerAction['type']): PokerAction {
@@ -76,5 +83,81 @@ describe('OpponentModel', () => {
   it('calls two players heads-up and three or more multiway', () => {
     expect(settingOf(2)).toBe('headsUp')
     expect(settingOf(3)).toBe('multiway')
+  })
+})
+
+describe('how big they bet', () => {
+  const checkedTo = (pot: number): ActionContext => ({ playersInHand: 2, facingBet: false, postflop: true, pot, currentBet: 0, committed: 0 })
+
+  it('learns the share of bets that are big, from bets made when checked to', () => {
+    const model = new OpponentModel()
+    for (let i = 0; i < 40; i++) model.observe({ playerId: 'villain', type: 'bet', amount: 100 }, checkedTo(100))
+    const rates = model.postflopRates('villain', 'headsUp')
+    expect(rates.large).toBeGreaterThan(BASELINES.headsUp.postflop.large + 0.3)
+  })
+
+  it('starts from normal for anyone not yet seen betting', () => {
+    expect(new OpponentModel().postflopRates('villain', 'headsUp').large).toBe(BASELINES.headsUp.postflop.large)
+  })
+})
+
+describe('what they showed down', () => {
+  const card = (spec: string): Card => ({
+    rank: spec.slice(0, -1) as Card['rank'],
+    suit: { c: 'clubs', d: 'diamonds', h: 'hearts', s: 'spades' }[spec.slice(-1)] as Card['suit'],
+  })
+  const board = ['Ah', 'Kd', '7s', '4c', '2h'].map(card)
+  const blinds = new Map([
+    ['villain', 5],
+    ['hero', 10],
+  ])
+  /** One hand: called preflop, checked to the river, where the villain bets `amount` into 20 and shows `cards`. */
+  const hand = (cards: [string, string], amount: number): ShowdownRecord => ({
+    actions: [
+      { playerId: 'villain', type: 'call', street: 'preflop' },
+      { playerId: 'hero', type: 'check', street: 'preflop' },
+      { playerId: 'hero', type: 'check', street: 'flop' },
+      { playerId: 'villain', type: 'check', street: 'flop' },
+      { playerId: 'hero', type: 'check', street: 'turn' },
+      { playerId: 'villain', type: 'check', street: 'turn' },
+      { playerId: 'hero', type: 'check', street: 'river' },
+      { playerId: 'villain', type: 'bet', amount, street: 'river' },
+      { playerId: 'hero', type: 'call', street: 'river' },
+    ],
+    board,
+    shown: [
+      { playerId: 'villain', cards: cards.map(card) },
+      { playerId: 'hero', cards: [card('9d'), card('9c')] },
+    ],
+    blinds,
+    bigBlind: 10,
+  })
+
+  it('leaves the belief exactly where it was for someone never seen at showdown', () => {
+    expect(new OpponentModel().showdownBluffShare('villain', 'large', 0.2)).toBe(0.2)
+  })
+
+  it('moves the belief toward bluffing for a player shown bluffing their big river bets', () => {
+    const model = new OpponentModel()
+    for (let i = 0; i < 6; i++) model.observeShowdown(hand(['6c', '3d'], 20))
+    expect(model.shownBets('villain')).toBe(6)
+    expect(model.showdownBluffShare('villain', 'large', 0.2)).toBeGreaterThan(0.5)
+    // The small-bet belief has seen nothing and stays put.
+    expect(model.showdownBluffShare('villain', 'small', 0.2)).toBe(0.2)
+  })
+
+  it('moves it toward value for a player who only ever shows the goods', () => {
+    const model = new OpponentModel()
+    for (let i = 0; i < 6; i++) model.observeShowdown(hand(['Ac', 'Kc'], 8))
+    expect(model.showdownBluffShare('villain', 'small', 0.2)).toBeLessThan(0.15)
+    expect(model.shownBets('hero')).toBe(0)
+  })
+
+  it('ignores bets before the river, which reach a showdown only when the bettor kept going', () => {
+    const model = new OpponentModel()
+    const record = hand(['6c', '3d'], 20)
+    record.actions = record.actions.map((a) => (a.street === 'river' ? { ...a, street: 'turn' as const } : a))
+    model.observeShowdown(record)
+    expect(model.shownBets('villain')).toBe(0)
   })
 })

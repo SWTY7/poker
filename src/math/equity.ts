@@ -1,5 +1,5 @@
-import { DECK_SIZE, type CardInt } from '../poker/fast/cards'
-import { evaluateHand } from '../poker/fast/eval7'
+import { DECK_SIZE, rankOf, type CardInt } from '../poker/fast/cards'
+import { PAIR, evaluateHand } from '../poker/fast/eval7'
 import { COMBO_A, COMBO_B, COMBO_COUNT } from './combos'
 import type { Range } from './range'
 import { createRng, type Rng } from '../utils/random'
@@ -273,10 +273,95 @@ export function multiwayEquity(
   board: CardInt[] = [],
   options: { samples?: number; rng?: Rng; participation?: number[] } = {},
 ): number {
+  return sampleShowdowns(hero, villainRanges, board, options, false).equity
+}
+
+/**
+ * What the rest of a hand looks like from here, beyond who wins it: how
+ * often the hero wins or loses *a big pot* — one where both hands are good
+ * enough that more money goes in on the streets still to come.
+ *
+ * That is what implied odds are. A flush draw is behind now and wins a
+ * fifth of the time, but the times it wins are the times it makes a flush
+ * against someone's top pair, and top pair pays off; the times it misses,
+ * it folds and pays nothing more. Top pair has the reverse problem: when it
+ * loses, it is usually to a hand that made something better, and it pays
+ * that hand off too. Equity alone can't tell those apart; this can.
+ *
+ * "Good enough" is judged on the final board by how much a hand improves on
+ * the board itself — the category it makes over the category the five
+ * community cards make alone, which is what separates a hand from a board
+ * everyone shares:
+ *
+ *   strong   two or more categories better (two pair from both hole cards,
+ *            a set, a straight or flush of its own) — bets and raises
+ *   medium   one better, and for a single pair only top pair or an
+ *            overpair — calls
+ *   weak     plays the board — folds to a bet
+ *
+ * Money goes in when both hands are at least medium and one is strong: all
+ * of the future betting if both are strong ("big"), one bet's worth if one
+ * is only medium ("some" — it calls once, then gives up or checks it down).
+ * The hero is compared with the best opponent hand on the board — whoever
+ * they beat, or lose to. Ties move nothing. How big those amounts are in
+ * chips is the caller's to say; this only says how often each happens.
+ */
+export interface ShowdownOdds {
+  /** Share of the pot won on average, ties split — exactly what `multiwayEquity` returns. */
+  equity: number
+  /** Probability of winning with all of the future betting going in, and with one bet of it. */
+  winBig: number
+  winSome: number
+  /** Probability of losing with one bet of the future betting going in, and with all of it. */
+  loseSome: number
+  loseBig: number
+}
+
+export function multiwayShowdown(
+  hero: readonly [CardInt, CardInt],
+  villainRanges: Range[],
+  board: CardInt[] = [],
+  options: { samples?: number; rng?: Rng; participation?: number[] } = {},
+): ShowdownOdds {
+  return sampleShowdowns(hero, villainRanges, board, options, true)
+}
+
+/** Whether the future betting goes in for these two hands' strengths (0 weak, 1 medium, 2 strong): 1 all of it, 0.5 one bet, 0 none. */
+const FUTURE_SHARE = [
+  [0, 0, 0],
+  [0, 0, 0.5],
+  [0, 0.5, 1],
+]
+
+const BOARD_SCRATCH: CardInt[] = [0, 0, 0, 0, 0]
+
+/**
+ * 0 weak, 1 medium, 2 strong: how far a seven-card hand's category rises
+ * above the board's own. A single pair on an unpaired board is medium only
+ * if it is top pair or an overpair — a pair of deuces under a king is a hand
+ * that folds to a bet, not one that pays it off.
+ */
+function strengthTier(handScore: number, boardCategory: number, boardHigh: number): number {
+  const category = handScore >>> 20
+  const lift = category - boardCategory
+  if (lift >= 2) return 2
+  if (lift !== 1) return 0
+  if (category === PAIR && ((handScore >>> 16) & 0xf) < boardHigh) return 0
+  return 1
+}
+
+function sampleShowdowns(
+  hero: readonly [CardInt, CardInt],
+  villainRanges: Range[],
+  board: CardInt[],
+  options: { samples?: number; rng?: Rng; participation?: number[] },
+  withFuture: boolean,
+): ShowdownOdds {
   const samples = options.samples ?? 300
   const random = options.rng ?? createRng()
   const participation = options.participation
-  if (villainRanges.length === 0) return 1
+  const nothing = { winBig: 0, winSome: 0, loseSome: 0, loseBig: 0 }
+  if (villainRanges.length === 0) return { equity: 1, ...nothing }
 
   const deadFromStart = new Uint8Array(DECK_SIZE)
   deadFromStart[hero[0]] = 1
@@ -298,7 +383,7 @@ export function multiwayEquity(
     }
     return { ids, cumulative, total }
   })
-  if (tables.some((table) => table.total === 0)) return 0
+  if (tables.some((table) => table.total === 0)) return { equity: 0, ...nothing }
 
   const need = 5 - board.length
   const villainCount = villainRanges.length
@@ -312,6 +397,10 @@ export function multiwayEquity(
 
   let score = 0
   let counted = 0
+  let winBig = 0
+  let winSome = 0
+  let loseSome = 0
+  let loseBig = 0
 
   for (let s = 0; s < samples; s++) {
     // Deal every opponent a hand from their own range, rejecting deals where
@@ -362,8 +451,10 @@ export function multiwayEquity(
     const heroScore = evaluateHand(hands[0])
     let best = heroScore
     let tied = 1
+    let bestVillain = -1
     for (let h = 0; h < live; h++) {
       const villainScore = evaluateHand(hands[inHand[h]])
+      if (villainScore > bestVillain) bestVillain = villainScore
       if (villainScore > best) {
         best = villainScore
         tied = 1
@@ -373,9 +464,34 @@ export function multiwayEquity(
     }
     if (heroScore === best) score += 1 / tied
     counted++
+
+    if (withFuture && heroScore !== bestVillain) {
+      let boardHigh = 0
+      for (let i = 0; i < 5; i++) {
+        BOARD_SCRATCH[i] = hands[0][2 + i]
+        boardHigh = Math.max(boardHigh, rankOf(BOARD_SCRATCH[i]) + 2)
+      }
+      const boardCategory = evaluateHand(BOARD_SCRATCH) >>> 20
+      const share =
+        FUTURE_SHARE[strengthTier(heroScore, boardCategory, boardHigh)][strengthTier(bestVillain, boardCategory, boardHigh)]
+      if (share === 1) {
+        if (heroScore > bestVillain) winBig++
+        else loseBig++
+      } else if (share > 0) {
+        if (heroScore > bestVillain) winSome++
+        else loseSome++
+      }
+    }
   }
 
-  return counted === 0 ? 0 : score / counted
+  if (counted === 0) return { equity: 0, ...nothing }
+  return {
+    equity: score / counted,
+    winBig: winBig / counted,
+    winSome: winSome / counted,
+    loseSome: loseSome / counted,
+    loseBig: loseBig / counted,
+  }
 }
 
 /** The one-opponent case, which is what most callers want. */

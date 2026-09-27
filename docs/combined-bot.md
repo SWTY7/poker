@@ -201,3 +201,48 @@ here. It was noise.
 The recreational bot is harder to beat now, even for pure GTO. The pro still plays the solve to a draw. The
 round-3 gain of the pro over pure GTO against recreational players is no longer visible (+14.5 vs +23.0,
 within noise): a tougher opponent leaves less to exploit.
+
+## Bet sizes, implied odds, showdown memory, and the multiway preflop book (2026-09-27)
+
+Four additions (details in `human-strategy-gaps.md` items 1, 2, 4, 6 and 9, and `multiway-preflop.md`):
+
+- **Implied odds** (`math/equity.ts`'s `multiwayShowdown`): a showdown is valued with the money later
+  streets add when both hands turn out good. This replaced the old "shrink equity toward a coin flip"
+  discount.
+- **Five bet sizes, and size-aware reading** (`sizing.ts`): each size priced for what folds to it and what
+  calls it. Opponents' bets are read by size, and how often each player bets big is learned.
+- **Showdown memory** (`OpponentModel.observeShowdown`): river bets seen at showdown, scored value or bluff
+  by size, move the belief about that player's bluffs.
+- **The multiway preflop book**, asked before the heads-up blueprints (`firstAnswer`).
+
+Measured the same way as before: A/B against an exact copy of the previous bot, duplicate-scored, and
+against the pure solve.
+
+### Ablations, six-handed at 100bb (new vs previous, 1,200 deals unless noted)
+
+| variant | bb/100 |
+|---|---|
+| everything on (600 deals) | +156 ± 55 |
+| everything on, deal set A | +210 ± 41 |
+| everything on, deal set B | +197 ± 45 |
+| without the preflop book | +242 ± 45 |
+| without implied odds | +116 ± 69 |
+| without the new sizes and size reading | +142 ± 34 |
+| without showdown memory | +303 ± 52 |
+| showdown memory, but never reading a bettor's range from it, set A | +215 ± 47 |
+| the same, set B | +296 ± 51 |
+
+**What it changed.** The first design also let showdown memory switch a bettor's range to the full read
+range once six of their river bets had been seen ("now the bluff share is *known*"). That's the switch that
+cost 83 bb/100 last round when the bluff share was guessed, and it didn't pay here either. With it off,
+the two deal sets measured +215 and +296, against +210 and +197 with it on. That's not significant on its
+own, but it leans the same way as the "no showdown memory at all" run. **Dropped.** Showdown memory now
+feeds only the air share of the value-plus-air mixture used for bettors.
+
+Everything else stays. None of the other removals measured better than the full bot beyond noise. The
+book is also not *for* beating this particular opponent: it's the solve, and its job is to be hard to
+exploit.
+
+**One caution on reading these.** Every run is chaotic: the same deals diverge once any decision differs,
+so shared seeds don't cancel the variance between two variants. A difference between two rows needs about
+twice the error bar of one row to mean anything.

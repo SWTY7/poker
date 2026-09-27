@@ -8,6 +8,7 @@ import type { PositionLabel } from '../../poker/position'
 import { DEFAULT_BUCKETS, NO_BUCKET, bucketOf } from '../../gto/holdem/buckets'
 import type { AIObservation } from '../observation'
 import type { PostflopRates } from './opponent-model'
+import { blindsFrom, sizeActions, sizeBucket, type SizeBucket } from './sizing'
 
 /**
  * Reading a hand: what each opponent can still be holding, given everything
@@ -55,40 +56,51 @@ const BLUFF_REGION = 0.35
 /** Beyond half, "bluffs" would outnumber the hands being represented — not a player, a random number generator. */
 const MAX_BLUFF_SHARE = 0.5
 
+/**
+ * Reading a small bet: of the hands strong enough to bet big, the share
+ * that bet big rather than small. Less than all of them — people bet small
+ * with the nuts too, to be called — which is why a small bet caps a range
+ * only partly.
+ */
+const BIG_HANDS_BET_BIG = 0.6
+
 type Move = 'openRaise' | 'reraise' | 'preflopCall' | 'preflopCheck' | 'bet' | 'raise' | 'call' | 'check'
 
 const BOARD_CARDS: Record<Street, number> = { preflop: 0, flop: 3, turn: 4, river: 5, showdown: 5 }
 
 /**
  * Reads the range of each of `playerIds` from this hand's action history.
- * `bluffShare` is the share of that opponent's bets believed to be bluffs —
- * the same belief PsychBot already holds about them. `rates` is how often
- * that opponent bets, folds, calls and raises after the flop (the opponent
- * model's measured read, blended toward normal), which sets how wide each
- * postflop action's range is.
+ * `bluffShare` is the share of that opponent's bets of a given size (a
+ * fraction of the pot; null where there is no size to speak of) believed to
+ * be bluffs — the same belief PsychBot already holds about them. `rates` is
+ * how often that opponent bets, folds, calls and raises after the flop, and
+ * how often their bets are big (the opponent model's measured read, blended
+ * toward normal), which sets how wide each postflop action's range is.
  */
 export function readRanges(
   obs: AIObservation,
   playerIds: string[],
-  bluffShare: (playerId: string) => number,
+  bluffShare: (playerId: string, fraction: number | null) => number,
   rates: (playerId: string) => PostflopRates,
 ): Map<string, Range> {
   const board = toCardInts(obs.communityCards)
   const ranges = new Map<string, Range>()
   for (const id of playerIds) ranges.set(id, new Float64Array(COMBO_COUNT).fill(1))
 
+  const bigBlind = obs.bigBlind ?? 0
   let street: Street | null = null
   let level = 0
-  for (const action of obs.actionHistory) {
+  for (const sized of sizeActions(obs.actionHistory, blindsFrom(obs.players, bigBlind), bigBlind, obs.street)) {
+    const action = sized.action
     // An action with no street stamp is one described by hand rather than
     // recorded by the engine; the only street it can belong to is this one.
     const actionStreet = action.street ?? obs.street
     if (actionStreet !== street) {
       street = actionStreet
-      level = street === 'preflop' ? (obs.bigBlind ?? 0) : 0
+      level = street === 'preflop' ? bigBlind : 0
     }
 
-    const move = classify(action, street, level, obs.bigBlind ?? 0)
+    const move = classify(action, street, level, bigBlind)
     if (action.amount !== undefined && action.amount > level) level = action.amount
     const range = ranges.get(action.playerId)
     if (!range || !move) continue
@@ -99,11 +111,12 @@ export function readRanges(
     // taken over hands they could actually be holding.
     for (let id = 0; id < COMBO_COUNT; id++) if (strength[id] < 0) range[id] = 0
 
-    const bluffs = Math.min(Math.max(bluffShare(action.playerId), 0), MAX_BLUFF_SHARE)
+    const bluffs = Math.min(Math.max(bluffShare(action.playerId, sized.fraction), 0), MAX_BLUFF_SHARE)
+    const size = move === 'bet' && sized.fraction !== null ? sizeBucket(sized.fraction) : null
     const likely =
       street === 'preflop'
         ? preflopLikelihood(move, obs.players.find((p) => p.id === action.playerId)?.position ?? null)
-        : postflopLikelihood(move, range, strength, rates(action.playerId), bluffs)
+        : postflopLikelihood(move, range, strength, rates(action.playerId), bluffs, size)
 
     let peak = 0
     for (let id = 0; id < COMBO_COUNT; id++) {
@@ -172,6 +185,14 @@ function preflopLikelihood(move: Move, position: PositionLabel | null): (s: numb
  * Aggressive actions split into value — the top of the range — and bluffs
  * from its bottom `BLUFF_REGION`, in the believed share. A call is the band
  * between what folds (the bottom `fold` share) and what raises for value.
+ *
+ * A bet's size says which part of the value it is. Big bets come from the
+ * top: the big-bet share of their betting range, with the bluffs believed
+ * for that size. Small bets come from just below it — the next slice down,
+ * with the top only partly removed (`BIG_HANDS_BET_BIG`), since strong
+ * hands bet small too. That is "a big bet is a big hand" as a player means
+ * it: a statement about where in the range, not certainty. Where there is
+ * no size to go on, a bet is the whole betting range, as before.
  */
 function postflopLikelihood(
   move: Move,
@@ -179,6 +200,7 @@ function postflopLikelihood(
   strength: Float64Array,
   rates: PostflopRates,
   bluffShare: number,
+  size: SizeBucket | null,
 ): (s: number) => number {
   const cut = (share: number) => topShareCut(range, strength, share)
   const airCut = cut(1 - BLUFF_REGION)
@@ -188,8 +210,16 @@ function postflopLikelihood(
     return (s: number) => Math.min(1, above(s, valueCut) + airRate * (1 - above(s, airCut)))
   }
   switch (move) {
-    case 'bet':
-      return aggressive(rates.bet)
+    case 'bet': {
+      if (size === null) return aggressive(rates.bet)
+      const big = rates.bet * rates.large
+      if (size === 'large') return aggressive(big)
+      const topCut = cut(big * (1 - bluffShare))
+      const bandCut = cut(rates.bet * (1 - bluffShare))
+      const airRate = Math.min(1, (rates.bet * (1 - rates.large) * bluffShare) / BLUFF_REGION)
+      return (s) =>
+        Math.min(1, above(s, bandCut) * (1 - BIG_HANDS_BET_BIG * above(s, topCut)) + airRate * (1 - above(s, airCut)))
+    }
     case 'raise':
       return aggressive(rates.raise)
     case 'check': {

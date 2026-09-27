@@ -55,6 +55,18 @@ const MIDDLE_SEATS: PositionLabel[][] = [
 ]
 
 /**
+ * The position names of an `n`-handed table, in the order the seats act
+ * before the flop: the seats between the big blind and the button first,
+ * then the button, then the blinds. Heads-up the button is the small blind,
+ * so it is just the two blinds.
+ */
+export function preflopSeatOrder(n: number): PositionLabel[] {
+  if (n <= 2) return ['SB', 'BB']
+  const middle = MIDDLE_SEATS[n - 3] ?? MIDDLE_SEATS[MIDDLE_SEATS.length - 1]
+  return [...middle, 'BTN', 'SB', 'BB']
+}
+
+/**
  * Maps each live seat to its poker position name. Heads-up has only the two
  * blinds, and the dealer is also the small blind.
  */

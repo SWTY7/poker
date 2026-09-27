@@ -2,8 +2,12 @@ import { readFileSync } from 'node:fs'
 import { HoldemEngine } from '../src/poker/game-engine'
 import { buildObservation } from '../src/ai/observation'
 import type { Agent } from '../src/ai/agent'
-import { PsychBot } from '../src/ai/psychology/psych-bot'
+import { readdirSync } from 'node:fs'
+import { PsychBot, firstAnswer } from '../src/ai/psychology/psych-bot'
+import { MultiwayPreflopBook } from '../src/gto/holdem/preflop-multiway-bot'
+import type { MultiwayStrategyFile } from '../src/gto/holdem/preflop-multiway'
 import { actionContext, settingOf, type Setting } from '../src/ai/psychology/opponent-model'
+import { sizeBucket } from '../src/ai/psychology/sizing'
 import { CAST, randomizeProfile } from '../src/ai/psychology/profile'
 import { BlueprintSetBot } from '../src/gto/holdem/blueprint-set'
 import type { BlueprintFile } from '../src/gto/holdem/blueprint'
@@ -35,6 +39,9 @@ interface Count {
   folds: number
   calls: number
   raises: number
+  /** Bets when checked to whose size is known, and how many were large (sizing.ts). */
+  sized: number
+  large: number
 }
 
 function play(engine: HoldemEngine, agents: Record<string, Agent>, counts: Record<Setting, Count>, only?: Setting) {
@@ -62,7 +69,14 @@ function play(engine: HoldemEngine, agents: Record<string, Agent>, counts: Recor
         else count.calls++
       } else if (context.postflop) {
         count.checkedTo++
-        if (aggressive) count.bets++
+        if (aggressive) {
+          count.bets++
+          const amount = action.type === 'all-in' ? (context.committed ?? 0) + actor.stack : action.amount
+          if (amount !== undefined && context.pot) {
+            count.sized++
+            if (sizeBucket((amount - (context.currentBet ?? 0)) / context.pot) === 'large') count.large++
+          }
+        }
       }
     }
     engine.act(action)
@@ -80,6 +94,8 @@ const empty = (): Count => ({
   folds: 0,
   calls: 0,
   raises: 0,
+  sized: 0,
+  large: 0,
 })
 
 function report(label: string, count: Count): void {
@@ -90,7 +106,8 @@ function report(label: string, count: Count): void {
   console.log(
     `    postflop: bet when checked to ${(count.bets / count.checkedTo).toFixed(3)} (${count.checkedTo}), ` +
       `facing a bet fold ${(count.folds / count.faced).toFixed(3)} / call ${(count.calls / count.faced).toFixed(3)} / ` +
-      `raise ${(count.raises / count.faced).toFixed(3)} (${count.faced})`,
+      `raise ${(count.raises / count.faced).toFixed(3)} (${count.faced}); ` +
+      `large bets ${(count.large / count.sized).toFixed(3)} (${count.sized})`,
   )
 }
 
@@ -104,6 +121,11 @@ export default function main(args: string[]): void {
 
   // Decoding the four trained depths is the expensive part; do it once.
   const solve = new BlueprintSetBot(files, { rng: createRng(1) })
+  // The multiway table plays with what the app's bots have: the preflop book first, then the blueprints.
+  const preflop = readdirSync('src/gto/holdem')
+    .filter((name) => /^preflop-\dmax-\d+\.json$/.test(name))
+    .map((name) => JSON.parse(readFileSync(`src/gto/holdem/${name}`, 'utf-8')) as MultiwayStrategyFile)
+  const fundamentals = firstAnswer(new MultiwayPreflopBook(preflop), solve)
 
   const headsUp = { headsUp: empty(), multiway: empty() }
   const perDepth = Math.ceil(headsUpHands / files.length)
@@ -130,7 +152,7 @@ export default function main(args: string[]): void {
     const agents: Record<string, Agent> = {}
     players.forEach((p, i) => {
       const bot = new PsychBot(randomizeProfile(CAST[(i + hand) % CAST.length], rng), stack, createRng(hand * 10 + i))
-      bot.useFundamentals(solve)
+      bot.useFundamentals(fundamentals)
       agents[p.id] = bot
     })
     for (let i = 0; i < 25 && engine.canStartHand(); i++) play(engine, agents, table, 'multiway')

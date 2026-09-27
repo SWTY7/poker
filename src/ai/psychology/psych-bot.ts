@@ -1,7 +1,7 @@
 import type { PokerAction, Street } from '../../poker/game-state'
 import { toCardInts } from '../../poker/fast/cards'
 import type { CardInt } from '../../poker/fast/cards'
-import { multiwayEquity } from '../../math/equity'
+import { multiwayShowdown, type ShowdownOdds } from '../../math/equity'
 import { emptyRange, type Range } from '../../math/range'
 import { topPercentRange, OPEN_PERCENT } from '../../math/realization'
 import { COMBO_A, COMBO_B, COMBO_COUNT } from '../../math/combos'
@@ -19,6 +19,7 @@ import { AVERAGE_HUMAN } from './profile'
 import { BASELINES, settingOf, type OpponentModel } from './opponent-model'
 import { readRanges, splitAgainstBet } from './range-reading'
 import { exploitReads } from './exploits'
+import { blindsFrom, sizeActions, sizeBucket } from './sizing'
 
 /**
  * One bot, three biases, one decision rule.
@@ -40,13 +41,12 @@ import { exploitReads } from './exploits'
  *   tilt          scales loss aversion, inflates belief in bluffs, and
  *                 inflates belief in fold equity
  *
- * The lookahead is one street deep with no future betting: a call is priced
- * as though the hand checks down from here, and a bet as though the opponent
- * folds or calls but never raises. That understates implied odds and
- * therefore draws, and it flatters aggression, and both are the first things
- * to fix if these bots are ever meant to be strong rather than human. Neither
- * affects the three behaviours this layer exists to produce, all of which are
- * about how the same numbers are felt rather than about what they are.
+ * The streets still to come are priced, not searched: a showdown is valued
+ * with the money that goes in later when both hands turn out good
+ * (implied odds, and reverse implied odds — math/equity.ts's
+ * multiwayShowdown), and every bet size on offer is valued for what folds to
+ * it and what calls it. What is still missing is the opponent raising back:
+ * a bet is priced as folded to or called, never re-raised.
  *
  * Bluffing is not a separate decision here. A bet with no equity wins the
  * hand when everyone folds, and that branch is already in the valuation, so
@@ -84,18 +84,26 @@ const VALUE_SHARE = VALUE_WIDTH / CONTINUING_WIDTH
 const MIN_BLUFF_BELIEF = 0.08
 
 /**
- * A raise here is priced as though the opponent only ever folds or calls it
- * — never raises back — and that omission gets more wrong the more streets
- * remain to do it on. Real players shove a set on the flop far more readily
- * than the same equity from an overpair with two cards still to come, and
- * the difference is entirely "what can still go wrong before showdown", not
- * the hand itself. Rather than searching those streets, this shrinks the
- * computed equity-if-called toward a coin flip in proportion to what is left
- * to happen — a plain discount on how much today's snapshot should be
- * trusted, not a claim about what will happen. At the river there is nothing
- * left to discount, so this is a no-op there by construction.
+ * Bet and raise sizes this bot considers, as a share of the pot after
+ * calling: a third, a half, three quarters, the pot, and an overbet. Each is
+ * priced separately — what folds to it, what calls it, and what calling
+ * hands it is up against — so a size is chosen for what it does, not
+ * because it is the only one on offer.
  */
-const LOOKAHEAD_DECAY = 0.12
+const BET_FRACTIONS = [1 / 3, 0.5, 0.75, 1, 1.5]
+
+/** The size assumed for a bet whose size can't be read (a bet described without an amount). */
+const DEFAULT_BET_FRACTION = 0.6
+
+/**
+ * How big the bets on streets still to come are assumed to be, as a share of
+ * the pot at the time, when both hands are good enough to put money in (see
+ * math/equity.ts's multiwayShowdown). Half the pot per street is the
+ * ordinary size; what it adds up to grows with how many streets are left,
+ * which is the whole difference between a draw on the flop and the same
+ * draw on the turn.
+ */
+const FUTURE_BET = 0.5
 
 /**
  * Loss aversion is calibrated on stakes that were a real fraction of
@@ -150,7 +158,28 @@ export interface Fundamentals {
   strategyFor(observation: AIObservation): WeightedAction[] | null
 }
 
+/**
+ * Several solves as one: each spot is answered by the first that has
+ * something to say about it — the multiway preflop book before the flop
+ * with three or more dealt in, the heads-up blueprints once it is down to
+ * two, and nothing (the player's own judgement) anywhere else.
+ */
+export function firstAnswer(...sources: Fundamentals[]): Fundamentals {
+  return {
+    strategyFor(observation: AIObservation): WeightedAction[] | null {
+      for (const source of sources) {
+        const answer = source.strategyFor(observation)
+        if (answer) return answer
+      }
+      return null
+    },
+  }
+}
+
 type Candidate = { action: PokerAction; outcomes: Outcome[] }
+
+/** Chips still to go in on later streets: when both hands are strong, and when one only calls. */
+type Future = { big: number; some: number }
 
 function streetsRemaining(street: Street): number {
   switch (street) {
@@ -166,9 +195,46 @@ function streetsRemaining(street: Street): number {
   }
 }
 
-function shrinkTowardCoinFlip(equity: number, streetsLeft: number): number {
-  const shrink = Math.max(0, 1 - LOOKAHEAD_DECAY * streetsLeft)
-  return 0.5 + (equity - 0.5) * shrink
+/**
+ * A showdown as a gamble: winning `win` or losing down to `lose`, plus — on
+ * the share of run-outs where both hands are good enough to keep betting —
+ * the future money on top, won or lost with it. On the river there is no
+ * future, and it is exactly the two-outcome gamble it always was.
+ *
+ * The big-pot outcomes are folded into one on each side, at their average
+ * size, rather than kept as separate small-probability outcomes: prospect
+ * theory's probability weighting is not additive, and splitting one outcome
+ * into several would inflate how much it is felt for no reason but
+ * bookkeeping.
+ */
+function showdownOutcomes(
+  odds: ShowdownOdds,
+  win: number,
+  lose: number,
+  future: Future,
+  relative: (finalStack: number) => number,
+): Outcome[] {
+  if (future.big <= 0 && future.some <= 0) {
+    return [
+      { payoff: relative(win), probability: odds.equity },
+      { payoff: relative(lose), probability: 1 - odds.equity },
+    ]
+  }
+  const bigWin = odds.winBig + odds.winSome
+  const bigLoss = odds.loseBig + odds.loseSome
+  const outcomes: Outcome[] = [
+    { payoff: relative(win), probability: odds.equity - bigWin },
+    { payoff: relative(lose), probability: 1 - odds.equity - bigLoss },
+  ]
+  if (bigWin > 0) {
+    const extra = (future.big * odds.winBig + future.some * odds.winSome) / bigWin
+    outcomes.push({ payoff: relative(win + extra), probability: bigWin })
+  }
+  if (bigLoss > 0) {
+    const extra = (future.big * odds.loseBig + future.some * odds.loseSome) / bigLoss
+    outcomes.push({ payoff: relative(lose - extra), probability: bigLoss })
+  }
+  return outcomes
 }
 
 export class PsychBot implements Agent {
@@ -231,38 +297,51 @@ export class PsychBot implements Agent {
     const read = readOpponents(obs)
     const opponentPosition = (playerId: string) => obs.players.find((p) => p.id === playerId)?.position ?? null
     const setting = settingOf(obs.players.filter((p) => !p.folded).length)
+    const bigBlind = obs.bigBlind ?? 0
 
-    // What the opponent is betting, and therefore what to measure against.
-    const believed = believedOpponentStrategy(
-      this.profile.level,
-      toCall > 0 ? toCall : Math.round(pot * 0.6),
-      Math.max(pot - toCall, 1),
-      this.profile.confidence,
-    )
-    const baseBluffBelief = clamp01(Math.max(believed.bluffFrequency, MIN_BLUFF_BELIEF) + effects.bluffBeliefBoost)
-    // The level-k prior is the same for anyone the bot hasn't specifically
-    // clocked, but a specific opponent who has been betting and raising more
-    // than is normal *in this setting* has to be doing it with a range that
-    // has more air in it — arithmetic, not a read on their cards. The read
-    // grows with how much of them has been seen (opponent-model.ts).
-    const bluffBeliefFor = (playerId: string) =>
-      clamp01(baseBluffBelief + (this.opponents?.aggressionBias(playerId, setting) ?? 0) * LEARNED_BLUFF_GAIN)
+    // How big each opponent's latest bet or raise this hand was, as a share
+    // of the pot — a third of the pot and an overbet are different claims.
+    const lastBetFraction = new Map<string, number>()
+    for (const sized of sizeActions(obs.actionHistory, blindsFrom(obs.players, bigBlind), bigBlind, obs.street)) {
+      if (sized.fraction !== null) lastBetFraction.set(sized.action.playerId, sized.fraction)
+    }
+
+    // What this bot's level believes about a bet of a given size — how often
+    // it is a bluff, and how often it gets defended. Only the size relative
+    // to the pot matters, so it is asked in units of a 100-chip pot.
+    const believedAt = (fraction: number) =>
+      believedOpponentStrategy(this.profile.level, Math.max(fraction, 0.01) * 100, 100, this.profile.confidence)
+
+    // Whether a bet of this size is a bluff. The level-k belief at that size
+    // is where it starts; a specific opponent who has been betting and
+    // raising more than is normal *in this setting* has to be doing it with
+    // a range that has more air in it — arithmetic, not a read on their
+    // cards — and grows with how much of them has been seen
+    // (opponent-model.ts). Then what they actually showed down: every river
+    // bet of theirs seen at showdown at this size, value or bluff, moves the
+    // belief toward what they really do — the one read taken from cards
+    // rather than actions.
+    const bluffBeliefFor = (playerId: string, fraction: number | null) => {
+      const size = fraction ?? DEFAULT_BET_FRACTION
+      const levelK = Math.max(believedAt(size).bluffFrequency, MIN_BLUFF_BELIEF) + effects.bluffBeliefBoost
+      const prior = clamp01(levelK + (this.opponents?.aggressionBias(playerId, setting) ?? 0) * LEARNED_BLUFF_GAIN)
+      return this.opponents ? this.opponents.showdownBluffShare(playerId, sizeBucket(size), prior) : prior
+    }
 
     // The hand has to beat everyone still in, and they are not all telling
     // the same story. Anyone who has acted this hand is read from what they
     // did, street by street (range-reading.ts): a check-call then a check is
     // a different range from a bet-call, however the same player got there.
     //
-    // With one exception, measured rather than assumed: whether a *bet* is
-    // a bluff. Reading that needs a bluff share, and from actions alone the
-    // only estimate is the level-k belief — about one bet in eight for a
-    // typical level-1 player. Against someone who really bets two hands in
-    // three, that reads their bets as far stronger than they are, and the
-    // bot folded its way to losing 83 bb/100 heads-up (docs/combined-bot.md).
-    // So a bettor's range, for deciding whether to call them, stays the
-    // value-plus-air mixture below; their read range is still used for how
-    // they'd respond to a raise (fold equity, below). What would fix it is
-    // what people use: showdowns — seeing what a bettor actually had.
+    // With one exception, measured rather than assumed: a *bettor's* range,
+    // for deciding whether to call them. Reading it from the hand needs
+    // their bluff share, and reading it as too small once cost the bot 83
+    // bb/100 heads-up; switching to the read range once enough of a
+    // bettor's river bets had been seen at showdown measured no better than
+    // not switching, six-handed (docs/combined-bot.md). So a bettor's range,
+    // for calling them, stays the value-plus-air mixture below — with the
+    // air share now taken from what they have shown down (bluffBeliefFor) —
+    // and their read range is still used for how they'd respond to a raise.
     const ratesFor = (playerId: string) =>
       this.opponents?.postflopRates(playerId, setting) ?? { ...BASELINES[setting].postflop }
     const tracked = readRanges(obs, [...read.aggressors, ...read.callers], bluffBeliefFor, ratesFor)
@@ -270,7 +349,7 @@ export class PsychBot implements Agent {
     const ranges: Range[] = []
     const participation: number[] = []
     for (const id of read.aggressors) {
-      ranges.push(bettingRange(bluffBeliefFor(id)))
+      ranges.push(bettingRange(bluffBeliefFor(id, lastBetFraction.get(id) ?? null)))
       participation.push(1)
     }
     for (const id of read.callers) {
@@ -293,10 +372,30 @@ export class PsychBot implements Agent {
       ranges.push(position ? topSlice(width) : continuingRange(board))
       participation.push(width)
     }
-    const equity = multiwayEquity(hole, ranges, board, { ...sample, participation })
+    const now = multiwayShowdown(hole, ranges, board, { ...sample, participation })
+    const equity = now.equity
     this.lastEquity = equity
 
-    // How often a bet takes it down.
+    // The streets still to come, priced (math/equity.ts's multiwayShowdown):
+    // when both hands end up good, more goes in, and the better one wins it.
+    // Two strong hands put in what half-pot bets on every street left add up
+    // to; a strong hand against one that only calls gets one of those bets.
+    // Both are capped by what the players involved have behind — the stakes
+    // of the hand from here, not just of this decision.
+    const streetsLeft = streetsRemaining(obs.street)
+    const liveOpponents = obs.players.filter((p) => !p.folded && p.id !== obs.playerId)
+    const future = (potAfter: number, stackAfter: number, opponentsBehind: number): Future => {
+      const cap = Math.max(0, Math.min(stackAfter, opponentsBehind))
+      if (streetsLeft === 0) return { big: 0, some: 0 }
+      return {
+        big: Math.min(cap, (potAfter * ((1 + 2 * FUTURE_BET) ** streetsLeft - 1)) / 2),
+        some: Math.min(cap, potAfter * FUTURE_BET),
+      }
+    }
+    const deepestOpponent = Math.max(0, ...liveOpponents.map((p) => p.stack))
+
+    // How often a bet of a given size takes it down, and what it is up
+    // against when it doesn't.
     //
     // Two translations happen here. The level-k defence frequency is about a
     // bluff-catcher, because that is the hand the toy game gives its
@@ -313,27 +412,51 @@ export class PsychBot implements Agent {
     // itself — chosen without knowing the hero's cards. Then the hero's own
     // cards come out of it, which is where blockers come from: holding the
     // ace of the flush suit removes their nut flushes from the part that
-    // calls, so the same bluff folds them more often. For someone who hasn't
-    // acted, whose range is still the generic continuing one, this is exactly
-    // `defence`, as it always was — plus the blockers.
+    // calls, so the same bluff folds them more often.
+    //
+    // Size enters through `defence`: the bigger the bet for the pot, the less
+    // of a range can afford to defend against it (the level-k frequencies are
+    // built on exactly that price), so a big bet folds out more and gets
+    // called by less — and what calls it is stronger, which the equity when
+    // called then measures.
     //
     // Then everybody has to fold, not just the one being bet at, which is
     // why a bluff into four players is not the same proposition as the same
     // bluff heads-up. A specific opponent seen folding to bets more (or less)
     // than is normal here moves their own share by that much.
-    const defence = clamp01(VALUE_SHARE + (1 - VALUE_SHARE) * believed.defenceFrequency)
-    const continuing = boardRange(CONTINUING_WIDTH * defence, board)
     const opponentIds = [...read.aggressors, ...read.callers, ...read.unknown]
-    let foldEquity = 1
-    const calledRanges: Range[] = []
-    opponentIds.forEach((id) => {
-      const range = tracked.get(id) ?? continuingRange(board)
-      const split = splitAgainstBet(range, continuing, defence, board, hole)
-      const folds = split ? split.folds : 1 - defence
-      const foldRead = this.opponents?.foldBias(id, setting) ?? 0
-      foldEquity *= clamp01(folds + foldRead + effects.aggressionBoost)
-      calledRanges.push(split?.called ?? continuing)
-    })
+    const priced = new Map<string, { foldEquity: number; ifCalled: ShowdownOdds }>()
+    const againstBet = (target: number) => {
+      const fraction = (target - obs.currentBet) / Math.max(pot + toCall, 1)
+      const defence = clamp01(VALUE_SHARE + (1 - VALUE_SHARE) * believedAt(fraction).defenceFrequency)
+      const key = defence.toFixed(2)
+      const cached = priced.get(key)
+      if (cached) return cached
+      const continuing = boardRange(CONTINUING_WIDTH * defence, board)
+      let foldEquity = 1
+      const calledRanges: Range[] = []
+      for (const id of opponentIds) {
+        const range = tracked.get(id) ?? continuingRange(board)
+        const split = splitAgainstBet(range, continuing, defence, board, hole)
+        const folds = split ? split.folds : 1 - defence
+        const foldRead = this.opponents?.foldBias(id, setting) ?? 0
+        foldEquity *= clamp01(folds + foldRead + effects.aggressionBoost)
+        calledRanges.push(split?.called ?? continuing)
+      }
+      // The hand that calls is not the hand that was there before the bet.
+      // Betting folds out the part of their range the hero was beating and
+      // keeps the part beating the hero, so the called branch is measured
+      // against what actually continues. Leaving this out is what makes a
+      // bot a maniac: every bet looks like it either wins the pot outright or
+      // goes to showdown against the same range it faced before.
+      const ifCalled = multiwayShowdown(hole, calledRanges, board, {
+        ...sample,
+        participation: calledRanges.map(() => 1),
+      })
+      const result = { foldEquity, ifCalled }
+      priced.set(key, result)
+      return result
+    }
 
     const candidates: Candidate[] = []
     const relative = (finalStack: number) => finalStack - reference
@@ -351,20 +474,20 @@ export class PsychBot implements Agent {
     if (obs.legalActions.includes('check')) {
       candidates.push({
         action: { playerId: obs.playerId, type: 'check' },
-        outcomes: [
-          { payoff: relative(stack + pot), probability: equity },
-          { payoff: relative(stack), probability: 1 - equity },
-        ],
+        outcomes: showdownOutcomes(now, stack + pot, stack, future(pot, stack, deepestOpponent), relative),
       })
     }
 
     if (obs.legalActions.includes('call')) {
       candidates.push({
         action: { playerId: obs.playerId, type: 'call' },
-        outcomes: [
-          { payoff: relative(stack + pot), probability: equity },
-          { payoff: relative(stack - toCall), probability: 1 - equity },
-        ],
+        outcomes: showdownOutcomes(
+          now,
+          stack + pot,
+          stack - toCall,
+          future(pot + toCall, stack - toCall, deepestOpponent),
+          relative,
+        ),
       })
     }
 
@@ -375,45 +498,39 @@ export class PsychBot implements Agent {
         : null
 
     /** A bet or raise to `target` chips, as a gamble — or null if it wouldn't add anything. */
-    const raiseCandidate = (target: number): Candidate | null => {
-      if (!aggressive) return null
+    const raiseCandidate = (target: number, type: 'bet' | 'raise' | 'all-in' | null = aggressive): Candidate | null => {
+      if (!type) return null
       const added = target - (me?.betThisStreet ?? 0)
       if (added <= 0) return null
       const extraCalled = Math.max(added - toCall, 0)
-
-      // The hand that calls is not the hand that was there before the bet.
-      // Betting folds out the part of their range the hero was beating and
-      // keeps the part beating the hero, so equity in the called branch has
-      // to be measured against the part of each opponent's range that
-      // actually continues (`calledRanges`, above). Leaving this out is what
-      // makes a bot a maniac: every bet looks like it either wins the pot
-      // outright or goes to showdown against the same range it faced before.
-      const rawEquityIfCalled = multiwayEquity(hole, calledRanges, board, {
-        ...sample,
-        participation: participation.map(() => 1),
-      })
-      const equityIfCalled = shrinkTowardCoinFlip(rawEquityIfCalled, streetsRemaining(obs.street))
-
+      const { foldEquity, ifCalled } = againstBet(target)
+      const called = showdownOutcomes(
+        ifCalled,
+        stack + pot + extraCalled,
+        stack - added,
+        future(pot + added + extraCalled, stack - added, deepestOpponent - extraCalled),
+        relative,
+      )
       return {
-        action: { playerId: obs.playerId, type: aggressive, amount: target },
+        action: type === 'all-in' ? { playerId: obs.playerId, type } : { playerId: obs.playerId, type, amount: target },
         outcomes: [
           { payoff: relative(stack + pot), probability: foldEquity },
-          { payoff: relative(stack + pot + extraCalled), probability: (1 - foldEquity) * equityIfCalled },
-          { payoff: relative(stack - added), probability: (1 - foldEquity) * (1 - equityIfCalled) },
+          ...called.map((o) => ({ payoff: o.payoff, probability: (1 - foldEquity) * o.probability })),
         ],
       }
     }
 
     if (aggressive) {
-      for (const fraction of [0.5, 1]) {
+      for (const fraction of BET_FRACTIONS) {
         // A size the pot can explain: raise to the current bet plus a share of
         // what would be in the middle after calling it. Sizing off the minimum
         // raise instead — which is what the heuristic bot does — compounds,
         // because the minimum is already a function of the last raise, and a
         // table of bots doing it three-bets itself all in by the fourth street.
-        const candidate = raiseCandidate(
-          clamp(obs.currentBet + Math.round(fraction * (pot + toCall)), obs.minRaiseTo, obs.maxRaiseTo),
-        )
+        const target = clamp(obs.currentBet + Math.round(fraction * (pot + toCall)), obs.minRaiseTo, obs.maxRaiseTo)
+        // Two fractions can clamp to the same chips; one candidate is enough.
+        if (candidates.some((c) => c.action.amount === target)) continue
+        const candidate = raiseCandidate(target)
         if (candidate) candidates.push(candidate)
       }
     }
@@ -450,7 +567,9 @@ export class PsychBot implements Agent {
       const valueCandidate = (action: PokerAction): Candidate | null => {
         const own = candidates.find((c) => sameAction(c.action, action))
         if (own) return own
-        return action.type === 'bet' || action.type === 'raise' ? raiseCandidate(action.amount ?? 0) : null
+        if (action.type === 'bet' || action.type === 'raise') return raiseCandidate(action.amount ?? 0)
+        // A book's all in, from a stack too short to raise any other way.
+        return action.type === 'all-in' ? raiseCandidate(obs.maxRaiseTo, 'all-in') : null
       }
       chosen = this.anchoredChoice(candidates, solved, valueCandidate, prospect, pot + toCall, discipline)
     } else {

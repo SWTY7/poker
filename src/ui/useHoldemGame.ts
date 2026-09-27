@@ -4,8 +4,8 @@ import type { PlayerSetup } from '../poker/game-engine'
 import type { ActionType, GameState, PokerAction, Street } from '../poker/game-state'
 import { buildObservation } from '../ai/observation'
 import type { Agent } from '../ai/agent'
-import { PsychBot } from '../ai/psychology/psych-bot'
-import { OpponentModel, actionContext } from '../ai/psychology/opponent-model'
+import { PsychBot, firstAnswer } from '../ai/psychology/psych-bot'
+import { OpponentModel, actionContext, showdownOf } from '../ai/psychology/opponent-model'
 import { CAST, randomizeProfile } from '../ai/psychology/profile'
 import { blindLevel, levelForHandsCompleted, type TournamentStructure } from '../game/tournament'
 import { createRng, shuffle } from '../utils/random'
@@ -212,6 +212,10 @@ export function useHoldemGame(options: GameConfigOptions) {
     if (!engine.state.handInProgress) {
       turboRef.current = false
       reportResults()
+      // Cards turned over at showdown are the one read taken from cards
+      // rather than actions: what a bettor actually had (opponent-model.ts).
+      const showdown = showdownOf(engine.state)
+      if (showdown) opponentModel.observeShowdown(showdown)
       for (const result of engine.state.lastResults) {
         biggestPotRef.current = Math.max(biggestPotRef.current, result.potAmount)
       }
@@ -226,33 +230,49 @@ export function useHoldemGame(options: GameConfigOptions) {
         ),
       })
     }
-  }, [engine, humanIds, options.startingStack, reportResults])
+  }, [engine, humanIds, options.startingStack, reportResults, opponentModel])
 
   /**
    * Hands every bot the solved strategy once its trained depths download.
    *
-   * Four trained depths (10/20/40/75bb) are a few megabytes together, so
-   * they load in the background while the first hands are played on
-   * instinct alone — which is exactly what these bots would do without a
-   * solve anyway. One `BlueprintSetBot` is shared by the whole table: it
-   * picks whichever trained depth is closest to the actual effective stack
-   * and only answers for a hand that is heads-up at a depth it trusts (see
-   * blueprint-bot.ts and blueprint-set.ts). How much each bot then leans on
-   * that answer is its own profile's discipline — see psych-bot.ts.
+   * Two solves, a few megabytes together, loaded in the background while the
+   * first hands are played on instinct alone — which is exactly what these
+   * bots would do without a solve anyway:
+   *
+   *   - the multiway preflop book (preflop-multiway-bot.ts): before the
+   *     flop, with three or more players dealt in, for the table's size and
+   *     the nearest of 8/20/40/100bb;
+   *   - the heads-up blueprints (blueprint-set.ts), four trained depths
+   *     (10/20/40/75bb): any street, once the hand is down to two.
+   *
+   * The book is asked first, and wherever it has nothing (a limp, a line it
+   * didn't ship) the blueprints get their turn. One of each is shared by the
+   * whole table. How much each bot then leans on the answer is its own
+   * profile's discipline — see psych-bot.ts.
    */
   useEffect(() => {
     if (bots.length === 0) return
 
     let cancelled = false
+    const preflopFiles = import.meta.glob<{ default: unknown }>('../gto/holdem/preflop-*max-*.json')
     void Promise.all([
       import('../gto/holdem/blueprint-set'),
-      import('../gto/holdem/blueprint-10.json'),
-      import('../gto/holdem/blueprint-20.json'),
-      import('../gto/holdem/blueprint-40.json'),
-      import('../gto/holdem/blueprint-75.json'),
-    ]).then(([module, ...files]) => {
+      import('../gto/holdem/preflop-multiway-bot'),
+      Promise.all([
+        import('../gto/holdem/blueprint-10.json'),
+        import('../gto/holdem/blueprint-20.json'),
+        import('../gto/holdem/blueprint-40.json'),
+        import('../gto/holdem/blueprint-75.json'),
+      ]),
+      Promise.all(Object.values(preflopFiles).map((load) => load())),
+    ]).then(([blueprints, preflop, blueprintFiles, preflopBooks]) => {
       if (cancelled) return
-      const solved = new module.BlueprintSetBot(files.map((f) => f.default as never), { rng: createRng() })
+      const headsUp = new blueprints.BlueprintSetBot(
+        blueprintFiles.map((f) => f.default as never),
+        { rng: createRng() },
+      )
+      const book = new preflop.MultiwayPreflopBook(preflopBooks.map((f) => f.default as never))
+      const solved = firstAnswer(book, headsUp)
       for (const bot of bots) bot.useFundamentals(solved)
     })
     return () => {

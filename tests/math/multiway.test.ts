@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { Card } from '../../src/poker/card'
 import { toCardInt } from '../../src/poker/fast/cards'
-import { handVsRange, multiwayEquity, quickEquity } from '../../src/math/equity'
+import { handVsRange, multiwayEquity, multiwayShowdown, quickEquity } from '../../src/math/equity'
 import { fullRange, parseRange } from '../../src/math/range'
 import { createRng } from '../../src/utils/random'
 
@@ -113,5 +113,38 @@ describe('opponents who are not actually in the hand', () => {
       expect(equities[i]).toBeLessThan(equities[i - 1])
     }
     expect(equities[0]).toBe(1)
+  })
+})
+
+describe('the money still to come', () => {
+  it('reports exactly the same equity as the plain calculation, from the same deals', () => {
+    const villains = [parseRange('TT+, AJs+, KQs, AQo+')]
+    const plain = multiwayEquity(hand('9h', '8h'), villains, board('7h 6c 2h'), { samples: 2000, rng: createRng(4) })
+    const odds = multiwayShowdown(hand('9h', '8h'), villains, board('7h 6c 2h'), { samples: 2000, rng: createRng(4) })
+    expect(odds.equity).toBe(plain)
+  })
+
+  it('has a big draw win big pots and lose small ones', () => {
+    // A straight-flush draw against big pairs: when it gets there it has a
+    // straight or a flush against an overpair that pays; when it misses it
+    // has nothing, and folds.
+    const odds = multiwayShowdown(hand('9h', '8h'), [parseRange('QQ-JJ')], board('7h 6c 2h'), { samples: 4000, rng: createRng(5) })
+    expect(odds.winSome + odds.winBig).toBeGreaterThan(0.3)
+    expect(odds.loseSome + odds.loseBig).toBeLessThan(0.1)
+  })
+
+  it('has top pair against a set-heavy range pay off when it loses', () => {
+    const odds = multiwayShowdown(hand('Ac', 'Kd'), [parseRange('77, 66, 22, AA')], board('Ah 7c 6d 2s'), {
+      samples: 4000,
+      rng: createRng(6),
+    })
+    expect(odds.loseSome + odds.loseBig).toBeGreaterThan(0.6)
+    expect(odds.winBig).toBeLessThan(0.05)
+  })
+
+  it('moves no money on a board nobody improves on', () => {
+    // Both players play the board — a straight on the table.
+    const odds = multiwayShowdown(hand('2c', '3d'), [parseRange('44')], board('Th Jc Qd Ks As'), { samples: 500, rng: createRng(7) })
+    expect(odds.winBig + odds.winSome + odds.loseSome + odds.loseBig).toBe(0)
   })
 })
