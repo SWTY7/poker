@@ -246,3 +246,36 @@ exploit.
 **One caution on reading these.** Every run is chaotic: the same deals diverge once any decision differs,
 so shared seeds don't cancel the variance between two variants. A difference between two rows needs about
 twice the error bar of one row to mean anything.
+
+### Final numbers (trust switch dropped, baselines re-measured)
+
+Head-to-head against the previous bot (2,000 heads-up pairs; 1,200 six-handed deals):
+
+| matchup | bb/100 |
+|---|---|
+| heads-up 20bb, recreational | +34.0 ± 8.9 |
+| heads-up 20bb, pro | +9.4 ± 11.8 |
+| heads-up 100bb, recreational | +94.0 ± 27.1 |
+| heads-up 100bb, pro | +120.4 ± 44.2 |
+| six-handed 100bb, whole cast | +236.3 ± 44.9 |
+
+Against the pure solve, heads-up 20bb (same deals for new and previous):
+
+| character | new | previous |
+|---|---|---|
+| recreational | +8.4 ± 11.1 | −40.4 ± 13.0 |
+| pro | +2.8 ± 11.7 | −1.6 ± 11.9 |
+
+Separately, the pure 20bb blueprint against the recreational bot with no book at all measured +1.8 ± 5.8 and
++9.3 ± 6.0 on two deal sets (4,000 pairs each). It used to be +31.4.
+
+**Reading it:** the gain is now everywhere, not just six-handed. The biggest change is the recreational
+bot against GTO: from losing 40 bb/100 to no measurable loss. Its biases are all still there (tilt, loss
+aversion, the reference point). What changed is that its valuation stopped being one street deep and
+single-sized, and those were the flaws a balanced opponent was punishing. The pro still plays the solve to
+a draw, which is what it should do. Nothing beats a balanced opponent measurably, and the gains show
+against the previous, more exploitable bots.
+
+The first heads-up run of this round, *with* the trust switch and the old baselines, measured −4.0 ± 9.3
+(recreational, 20bb). The final version measured +34.0 ± 8.9 on the same deals. Most of that difference
+is the two changes above. Some of it is run-to-run chaos, and it shouldn't all be credited to them.
