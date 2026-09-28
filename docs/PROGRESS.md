@@ -27,7 +27,8 @@ strategy for heads-up spots, with a different character in each seat, drawn fres
   yet, basics and advanced, each with a concrete implementation suggestion and a suggested order. Not a
   plan; nothing in it is scoped or committed to.
 - [`plans/`](./plans/README.md) — the two tracks in progress and how they share the code: game modes /
-  career / rivals (`plans/game-modes.md`) and reading the human → personality lab (`plans/psychology-lab.md`).
+  career / rivals (`plans/game-modes.md`), the home game for real cards (`plans/home-game.md`), and reading
+  the human → personality lab (`plans/psychology-lab.md`).
   Start here if you're picking up either one.
 - [`multiway-preflop.md`](./multiway-preflop.md) — the solved preflop book for three to six players: the
   game, how it's trained, and how far from equilibrium it measures.
@@ -54,6 +55,12 @@ this layer hasn't needed rework since the milestones in the v1 plan.
   anyone who left steaming already tilted, and after every hand saves each rival's public stats (VPIP, PFR,
   fold-to-bet, river bluffs seen at showdown), your net against them, their read on you, and how hot
   they'll arrive next time. Pass-and-play and Quick Play have no rivals.
+- `career.ts`: Career seasons, saved under `poker.career`. Four tiers (Local → Regional → National →
+  Championship), each a fixed field of four rivals plus a walk-in, seated with more discipline and depth
+  tier by tier. A season is five single-table tournaments (Sit & Go ×2, Standard ×2, a Deep final; the
+  Championship is one Deep final), with points 10/6/4/3/2/1. Top two move up; a Championship win is a
+  title, defended next season. Screens: `CareerHub` (events, standings, next event) and its season summary,
+  reached from a door in the Career lobby.
 
 ## The table UI — `src/ui/`
 
@@ -167,7 +174,7 @@ oracle to check against.
 
 ## Verification, as of this writing
 
-523 tests as of the last full run (2026-09-28); `npx vitest run`, `npx tsc -b` and `npx oxlint` are all clean. Re-run
+537 tests as of the last full run (2026-09-28); `npx vitest run`, `npx tsc -b` and `npx oxlint` are all clean. Re-run
 them rather than trust this number — it moves.
 
 **Use `npx tsc -b`, not `npx tsc --noEmit -p .`**: `tsconfig.json` only lists project references, so

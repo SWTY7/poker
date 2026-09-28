@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { Profile } from '../game/profile'
 import type { GameMode } from '../game/mode'
+import { TIERS, type CareerData } from '../game/career'
 import { canClaimDailyStake, DAILY_STAKE_AMOUNT, DAILY_STAKE_THRESHOLD } from '../game/profile'
 import { DealIcon, TrophyIcon } from './icons'
 import { ChipIcon } from './ChipIcon'
@@ -16,6 +17,8 @@ interface LobbyProps {
   onResetProfile: () => void
   onChooseCash: () => void
   onChooseTournament: () => void
+  career: CareerData
+  onChooseCareer: () => void
 }
 
 /**
@@ -43,6 +46,8 @@ export function Lobby({
   onResetProfile,
   onChooseCash,
   onChooseTournament,
+  career,
+  onChooseCareer,
 }: LobbyProps) {
   const [confirmingReset, setConfirmingReset] = useState(false)
   const canClaim = canClaimDailyStake(profile)
@@ -152,6 +157,21 @@ export function Lobby({
               <div className="menu-divider" />
 
               <section className="lobby-doors">
+                <button type="button" className="lobby-door lobby-door-wide" onClick={onChooseCareer}>
+                  <span className="lobby-door-icon">
+                    <TrophyIcon />
+                  </span>
+                  <span className="lobby-door-title">
+                    {TIERS[career.tier].name} season {career.season}
+                    {career.titles > 0 && ` · ${career.titles} title${career.titles === 1 ? '' : 's'}`}
+                  </span>
+                  <span className="lobby-door-copy">
+                    {career.lastSeason
+                      ? 'Season over. See how it finished.'
+                      : `Event ${career.eventIndex + 1} of ${TIERS[career.tier].events.length}. The same rivals every event; finish top two to move up a tier.`}
+                  </span>
+                </button>
+
                 <button type="button" className="lobby-door" onClick={onChooseCash}>
                   <span className="lobby-door-icon">
                     <DealIcon />

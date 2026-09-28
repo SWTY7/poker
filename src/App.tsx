@@ -6,6 +6,7 @@ import { TournamentSetup } from './ui/TournamentSetup'
 import type { TournamentEntry } from './ui/TournamentSetup'
 import { TournamentResults } from './ui/TournamentResults'
 import { TableSeating } from './ui/TableSeating'
+import { CareerHub } from './ui/CareerHub'
 import type { TournamentOutcome } from './ui/TournamentResults'
 import { Table } from './ui/Table'
 import { useHoldemGame } from './ui/useHoldemGame'
@@ -32,6 +33,17 @@ import {
 import { loadMode, profileAfterTableExit, saveMode, type GameMode } from './game/mode'
 import { RivalSession, loadRivals, planTable, saveRivals, type SeatPlan } from './game/rivals'
 import { createRng } from './utils/random'
+import {
+  FIELD_SIZE,
+  YOU,
+  finishingOrder,
+  loadCareer,
+  nextEvent,
+  planEvent,
+  recordEvent,
+  saveCareer,
+  type CareerData,
+} from './game/career'
 
 interface CashEntry {
   mode: 'cash'
@@ -50,6 +62,11 @@ interface TournamentGameEntry {
   fieldSize: number
   structure: TournamentStructure
   prizePool: number
+  /**
+   * A Career season event: who each seat is in the season's standings, by
+   * player id (`p0` is you; a walk-in is null).
+   */
+  career?: { entrants: Record<string, string | null> }
 }
 
 type GameEntry = CashEntry | QuickEntry | TournamentGameEntry
@@ -61,7 +78,8 @@ type Screen =
   | { kind: 'tournament-setup' }
   | { kind: 'seating'; config: GameConfigOptions; entry: CashEntry | TournamentGameEntry; seats: SeatPlan[]; title: string }
   | { kind: 'game'; config: GameConfigOptions; entry: GameEntry }
-  | { kind: 'results'; outcome: TournamentOutcome }
+  | { kind: 'results'; outcome: TournamentOutcome; backTo: 'lobby' | 'career' }
+  | { kind: 'career' }
 
 interface TournamentExitPayload {
   standings: Standing[]
@@ -69,6 +87,8 @@ interface TournamentExitPayload {
   humanId: string
   /** True when the human quit rather than the tournament actually concluding — see LeaveDialog's note on what that does and doesn't tell you. */
   forfeited: boolean
+  /** Every player id, best finish first (`career.ts`'s `finishingOrder`). */
+  order: string[]
   handsPlayed: number
   biggestPot: number
 }
@@ -106,6 +126,7 @@ function GameScreen({ config, entry, onTableExit, onTournamentExit }: GameScreen
       names,
       humanId: game.humanIds[0],
       forfeited: false,
+      order: finishingOrder(game.state, game.humanIds[0], false),
       handsPlayed: game.session.handsPlayed,
       biggestPot: game.session.biggestPot,
     })
@@ -141,6 +162,7 @@ function GameScreen({ config, entry, onTableExit, onTournamentExit }: GameScreen
       names,
       humanId,
       forfeited: true,
+      order: game.state ? finishingOrder(game.state, humanId, true) : [humanId],
       handsPlayed: game.session.handsPlayed,
       biggestPot: game.session.biggestPot,
     })
@@ -184,6 +206,11 @@ function App() {
   const [profile, setProfile] = useState<Profile>(() => loadProfile())
   const [screen, setScreen] = useState<Screen>({ kind: 'lobby' })
   const [mode, setMode] = useState<GameMode>(() => loadMode())
+  const [career, setCareer] = useState<CareerData>(() => loadCareer())
+
+  useEffect(() => {
+    saveCareer(career)
+  }, [career])
 
   // The bankroll is the one thing in this app that has to survive a closed
   // tab, so every change to it is written straight through rather than only
@@ -216,13 +243,18 @@ function App() {
    * before the buy-in is taken. Pass-and-play has no single "you" for a rival
    * to remember, so it deals straight in with a random table as before.
    */
-  const toTable = (config: GameConfigOptions, entry: CashEntry | TournamentGameEntry, title: string) => {
+  const toTable = (
+    config: GameConfigOptions,
+    entry: CashEntry | TournamentGameEntry,
+    title: string,
+    seats: SeatPlan[] = planTable(config.playerCount - 1, createRng()),
+  ) => {
     if (!canAffordBuyIn(profile.bankroll, entry.buyIn)) return
     if (config.humanCount !== 1) {
       beginCareerGame(config, entry)
       return
     }
-    setScreen({ kind: 'seating', config, entry, seats: planTable(config.playerCount - 1, createRng()), title })
+    setScreen({ kind: 'seating', config, entry, seats, title })
   }
 
   const handleSit = () => {
@@ -240,17 +272,7 @@ function App() {
   }
 
   const handleRegisterTournament = (registration: TournamentEntry) => {
-    const opening = blindLevel(registration.structure, 1)
-    const config: GameConfigOptions = {
-      playerCount: registration.fieldSize,
-      humanCount: 1,
-      startingStack: registration.structure.startingStack,
-      smallBlind: opening.smallBlind,
-      bigBlind: opening.bigBlind,
-      ante: opening.ante,
-      showHandOdds: false,
-      tournament: { structure: registration.structure },
-    }
+    const config = tournamentConfig(registration.structure, registration.fieldSize)
     toTable(
       config,
       {
@@ -261,6 +283,29 @@ function App() {
         prizePool: registration.buyIn * registration.fieldSize,
       },
       `${registration.structure.name} tournament, ${registration.fieldSize} players, $${registration.buyIn.toLocaleString()} buy-in`,
+    )
+  }
+
+  /** The season's next event: the tier's own field, seated at the tier's strength. */
+  const handlePlayEvent = () => {
+    const event = nextEvent(career)
+    const seats = planEvent(career, createRng())
+    const entrants: Record<string, string | null> = { p0: YOU }
+    seats.forEach((seat, i) => {
+      entrants[`p${i + 1}`] = seat.kind === 'rival' ? seat.rival.id : null
+    })
+    toTable(
+      tournamentConfig(event.structure, FIELD_SIZE),
+      {
+        mode: 'tournament',
+        buyIn: event.tier.buyIn,
+        fieldSize: FIELD_SIZE,
+        structure: event.structure,
+        prizePool: event.tier.buyIn * FIELD_SIZE,
+        career: { entrants },
+      },
+      `${event.tier.name} season ${career.season}, event ${event.number} of ${event.of}: ${event.structure.name}, $${event.tier.buyIn} buy-in`,
+      seats,
     )
   }
 
@@ -279,6 +324,10 @@ function App() {
     }
     const entry = screen.entry
     const finish = payload.standings.find((s) => s.playerId === payload.humanId)?.position ?? entry.fieldSize
+    const careerEntrants = entry.career?.entrants
+    if (careerEntrants) {
+      setCareer((c) => recordEvent(c, payload.order.map((id) => careerEntrants[id] ?? null)))
+    }
     // A quit pays exactly what that finish is worth, same as busting there
     // naturally would — real tournaments don't confiscate money you'd
     // already locked up just because you stopped playing it out. `forfeited`
@@ -306,6 +355,7 @@ function App() {
         buyIn: entry.buyIn,
         forfeited: payload.forfeited,
       },
+      backTo: careerEntrants ? 'career' : 'lobby',
     })
   }
 
@@ -321,6 +371,8 @@ function App() {
           onResetProfile={() => setProfile(defaultProfile())}
           onChooseCash={() => setScreen({ kind: 'cash-setup' })}
           onChooseTournament={() => setScreen({ kind: 'tournament-setup' })}
+          career={career}
+          onChooseCareer={() => setScreen({ kind: 'career' })}
         />
       )
     case 'cash-setup':
@@ -331,14 +383,51 @@ function App() {
       return <TournamentSetup bankroll={profile.bankroll} onBack={goLobby} onRegister={handleRegisterTournament} />
     case 'seating':
       return (
-        <TableSeating seats={screen.seats} rivals={loadRivals()} title={screen.title} onSit={handleSit} onBack={goLobby} />
+        <TableSeating
+          seats={screen.seats}
+          rivals={loadRivals()}
+          title={screen.title}
+          onSit={handleSit}
+          onBack={screen.entry.mode === 'tournament' && screen.entry.career ? () => setScreen({ kind: 'career' }) : goLobby}
+        />
+      )
+    case 'career':
+      return (
+        <CareerHub
+          career={career}
+          bankroll={profile.bankroll}
+          onPlayEvent={handlePlayEvent}
+          onDismissSeason={() => setCareer((c) => ({ ...c, lastSeason: null }))}
+          onBack={goLobby}
+        />
       )
     case 'game':
       return (
         <GameScreen config={screen.config} entry={screen.entry} onTableExit={handleTableExit} onTournamentExit={handleTournamentExit} />
       )
     case 'results':
-      return <TournamentResults outcome={screen.outcome} onBackToLobby={goLobby} />
+      return (
+        <TournamentResults
+          outcome={screen.outcome}
+          onBackToLobby={screen.backTo === 'career' ? () => setScreen({ kind: 'career' }) : goLobby}
+          backLabel={screen.backTo === 'career' ? 'Back to the season' : undefined}
+        />
+      )
+  }
+}
+
+/** A single-table tournament's table settings, opening at its first blind level. */
+function tournamentConfig(structure: TournamentStructure, fieldSize: number): GameConfigOptions {
+  const opening = blindLevel(structure, 1)
+  return {
+    playerCount: fieldSize,
+    humanCount: 1,
+    startingStack: structure.startingStack,
+    smallBlind: opening.smallBlind,
+    bigBlind: opening.bigBlind,
+    ante: opening.ante,
+    showHandOdds: false,
+    tournament: { structure },
   }
 }
 

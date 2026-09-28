@@ -536,3 +536,56 @@
 .seating-note-known {
   color: var(--text-dim);
 }
+
+.lobby-door-wide {
+  grid-column: 1 / -1;
+}
+
+/* ---------- career hub ---------- */
+
+.career-events,
+.career-standings {
+  list-style: none;
+  margin: 0.4rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.career-event {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.35rem 0.6rem;
+  border-radius: var(--r-sm);
+  font-size: var(--fs-sm);
+  color: var(--text-faint);
+}
+
+.career-event-done {
+  color: var(--text-dim);
+}
+
+.career-event-next {
+  color: var(--text);
+  font-weight: 700;
+  box-shadow: 0 0 0 1px var(--accent) inset;
+}
+
+.career-event-finish {
+  font-family: var(--font-mono);
+  color: var(--accent);
+}
+
+.career-titles {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: var(--accent);
+  font-family: var(--font-mono);
+}
+
+.career-titles svg {
+  width: 0.9rem;
+  height: 0.9rem;
+}
