@@ -237,6 +237,21 @@ function showdownOutcomes(
   return outcomes
 }
 
+/**
+ * What a bot just did and how hard it was to choose, for timing tells: the
+ * table can make a close decision take longer than an obvious one.
+ */
+export interface DecisionInfo {
+  action: PokerAction
+  /**
+   * The gap between the best option and the best of a different kind (fold
+   * / check-call / bet-raise), by this bot's own valuation, in pots (see
+   * `marginOf`). Small is a close call. Null when only one kind of action
+   * was on the table.
+   */
+  margin: number | null
+}
+
 export class PsychBot implements Agent {
   readonly profile: PsychProfile
   private rng: Rng
@@ -249,6 +264,7 @@ export class PsychBot implements Agent {
   private opponents?: OpponentModel
   /** The solved strategy, once there is one. Undefined, or a profile with no discipline, plays exactly as before it existed. */
   private fundamentals?: Fundamentals
+  private decision: DecisionInfo | null = null
 
   constructor(profile: PsychProfile = AVERAGE_HUMAN, buyIn = 1000, rng: Rng = createRng(), opponents?: OpponentModel) {
     this.profile = profile
@@ -263,6 +279,29 @@ export class PsychBot implements Agent {
   }
 
   /**
+   * What the last `decideAction` call chose and how hard it was — for timing
+   * tells. Null before the first decision.
+   */
+  get lastDecision(): DecisionInfo | null {
+    return this.decision
+  }
+
+  /**
+   * Seats this player already steaming, from something that happened before
+   * this sitting — a rival who was busted last time comes back tilted.
+   * `strength` is how hard that memory lands, 0..1, on the same scale as a
+   * hand's jolt: 1 is a full buy-in lost as a certain favourite. The
+   * profile's own sensitivity (kappa) scales it, exactly as it scales a beat
+   * at the table, so a stoic player shrugs it off and a steamer arrives hot.
+   * Never lowers tilt that is already there. It fades hand by hand like any
+   * other tilt.
+   */
+  startTilted(strength: number): void {
+    const tilt = this.profile.tilt.kappa * clamp01(strength)
+    this.tilt = Math.max(this.tilt, tilt)
+  }
+
+  /**
    * Hands this player the solved strategy. A setter rather than a
    * constructor argument because at a real table it arrives late — the
    * trained files download in the background while the first hands are
@@ -273,6 +312,7 @@ export class PsychBot implements Agent {
   }
 
   decideAction(obs: AIObservation): PokerAction {
+    this.decision = null
     const me = obs.players.find((p) => p.id === obs.playerId)
     this.session.stack = me?.stack ?? this.session.stack
 
@@ -536,7 +576,9 @@ export class PsychBot implements Agent {
     }
 
     if (candidates.length === 0) {
-      return { playerId: obs.playerId, type: obs.legalActions[0] ?? 'fold' }
+      const forced: PokerAction = { playerId: obs.playerId, type: obs.legalActions[0] ?? 'fold' }
+      this.decision = { action: forced, margin: null }
+      return forced
     }
 
     const book = this.profile.discipline > 0 ? (this.fundamentals?.strategyFor(obs) ?? null) : null
@@ -557,6 +599,7 @@ export class PsychBot implements Agent {
           )
         : book
     let chosen: PokerAction
+    let margin: number | null
     if (solved) {
       // Reads don't loosen discipline here — they already act twice, more
       // precisely: on the book, as targeted exploits (above), and on this
@@ -571,10 +614,14 @@ export class PsychBot implements Agent {
         // A book's all in, from a stack too short to raise any other way.
         return action.type === 'all-in' ? raiseCandidate(obs.maxRaiseTo, 'all-in') : null
       }
-      chosen = this.anchoredChoice(candidates, solved, valueCandidate, prospect, pot + toCall, discipline)
+      const choice = this.anchoredChoice(candidates, solved, valueCandidate, prospect, pot + toCall, discipline)
+      chosen = choice.action
+      margin = choice.margin
     } else {
       chosen = bestOf(candidates, prospect).action
+      margin = marginOf(candidates, prospect, pot + toCall)
     }
+    this.decision = { action: chosen, margin }
 
     // Anything but a fold means this hand belongs to them, and a hand they
     // were in is a hand that can tilt them. Checking a monster down and
@@ -611,7 +658,7 @@ export class PsychBot implements Agent {
     prospect: ProspectParams,
     potChips: number,
     discipline: number,
-  ): PokerAction {
+  ): { action: PokerAction; margin: number | null } {
     // Everything either side would consider, each valued once.
     const options: { candidate: Candidate; solvedWeight: number }[] = candidates.map((candidate) => ({
       candidate,
@@ -628,7 +675,8 @@ export class PsychBot implements Agent {
     }
     const solvedTotal = options.reduce((sum, o) => sum + o.solvedWeight, 0)
     const gut = bestOf(candidates, prospect)
-    if (solvedTotal <= 0 || discipline <= 0) return gut.action
+    const margin = marginOf(options.map((o) => o.candidate), prospect, potChips)
+    if (solvedTotal <= 0 || discipline <= 0) return { action: gut.action, margin }
 
     const d = Math.min(discipline, 0.999)
     const temperature = ANCHOR_TEMPERATURE * (d / (1 - d))
@@ -641,14 +689,14 @@ export class PsychBot implements Agent {
       return anchor * Math.exp((values[i] - top) / scale / temperature)
     })
     const total = weights.reduce((sum, w) => sum + w, 0)
-    if (!(total > 0)) return gut.action
+    if (!(total > 0)) return { action: gut.action, margin }
 
     let roll = this.rng() * total
     for (let i = 0; i < options.length; i++) {
       roll -= weights[i]
-      if (roll <= 0) return options[i].candidate.action
+      if (roll <= 0) return { action: options[i].candidate.action, margin }
     }
-    return options[options.length - 1].candidate.action
+    return { action: options[options.length - 1].candidate.action, margin }
   }
 
   /**
@@ -828,6 +876,33 @@ function bestOf(candidates: Candidate[], prospect: ProspectParams): Candidate {
     }
   }
   return best
+}
+
+/**
+ * How clear the choice was: the best-feeling option against the best one of
+ * a *different kind* — give up (fold), go along (check or call), or push
+ * (bet, raise, all in) — in pots (the subjective value of winning the pot,
+ * the unit the solve blend uses). 0 is a coin flip between, say, calling
+ * and folding; 1 is "obviously this". Two sizes of the same raise don't
+ * count as a hard decision: that is how much, not whether, and nobody
+ * tanks over it. Null when only one kind of action was on the table.
+ * Computing it never changes a decision — it consumes no randomness.
+ */
+function marginOf(candidates: Candidate[], prospect: ProspectParams, potChips: number): number | null {
+  const bestByKind = new Map<string, number>()
+  for (const candidate of candidates) {
+    const kind = kindOf(candidate.action.type)
+    const value = subjectiveValue(candidate.outcomes, prospect)
+    bestByKind.set(kind, Math.max(bestByKind.get(kind) ?? -Infinity, value))
+  }
+  if (bestByKind.size < 2) return null
+  const [first, second] = [...bestByKind.values()].sort((a, b) => b - a)
+  return (first - second) / Math.max(valueOf(potChips, prospect), 1e-9)
+}
+
+function kindOf(type: PokerAction['type']): 'fold' | 'passive' | 'aggressive' {
+  if (type === 'fold') return 'fold'
+  return type === 'check' || type === 'call' ? 'passive' : 'aggressive'
 }
 
 /** Same move at the table: same type and, for a bet or raise, the same size. */

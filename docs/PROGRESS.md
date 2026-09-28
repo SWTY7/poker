@@ -103,6 +103,12 @@ model does, and what the characters vary:
     reads tighter than a still-to-act button.
   - Board-texture-aware ranges postflop, reusing the GTO solver's own hand-bucketing machinery
     (`gto/holdem/buckets.ts`'s `bucketOf`) instead of a flat, board-blind percentile cutoff.
+  - Hooks for the game-modes track (step 0 of `docs/plans/psychology-lab.md`, none of which changes a
+    decision): `OpponentModel.toJSON` / `restore` / `fromJSON` save a read and bring it back faded by a
+    `decay` factor, and can pool several saved reads on one player; `PsychBot.startTilted(strength)` seats
+    a bot already steaming, scaled by its own tilt sensitivity; `PsychBot.lastDecision.margin` says how
+    clear the last choice was, in pots, between kinds of action (fold / check-call / bet-raise), for
+    timing tells.
   - Randomized per table: which archetype (`profile.ts`'s `CAST`) sits where, and each instance's own
     level-k depth, confidence and discipline (`randomizeProfile`).
 - **Combined with the solved strategy** (`docs/combined-bot.md`): once the trained CFR strategies download,
@@ -146,7 +152,7 @@ oracle to check against.
 
 ## Verification, as of this writing
 
-483 tests as of the last full run (2026-09-27); `npx vitest run`, `npx tsc -b` and `npx oxlint` are all clean. Re-run
+498 tests as of the last full run (2026-09-28); `npx vitest run`, `npx tsc -b` and `npx oxlint` are all clean. Re-run
 them rather than trust this number — it moves.
 
 **Use `npx tsc -b`, not `npx tsc --noEmit -p .`**: `tsconfig.json` only lists project references, so

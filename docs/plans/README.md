@@ -33,13 +33,13 @@ The hotspots:
    saved data, and the existing profile needs no migration.
 3. **`src/ai/psychology/*`**. The game track needs three small things from the bots. They're built in the
    **psychology** track first and merged, so the game track only calls them:
-   - `OpponentModel` serialize/restore (`toJSON` / `fromJSON`) with evidence decay between sessions,
-     so a rival's read on you persists without freezing.
-   - A way to start a bot tilted (`PsychBot.startTilted(level)` or a constructor option), for "a rival you
-     busted comes back steaming".
-   - A per-decision **closeness** number (the gap between the best and second-best action's value, in pots)
-     returned alongside the action, for timing tells.
-   These are the first item in `psychology-lab.md`.
+   - `OpponentModel` serialize/restore (`toJSON` / `restore` / `fromJSON`) with evidence decay between
+     sessions, so a rival's read on you persists without freezing.
+   - A way to start a bot tilted (`PsychBot.startTilted(strength)`), for "a rival you busted comes back
+     steaming".
+   - A per-decision **margin** (`PsychBot.lastDecision.margin`: the gap between the best action and the best
+     action of another kind, in pots; small = close call), for timing tells.
+   All three are built: step 0 in `psychology-lab.md` has the exact API.
 4. **Hand review** belongs to the psychology track (it uses the same engine as the leak finder). Its on/off
    toggle goes in Quick Play, which the game track creates. Order it this way: the game track lands the mode
    toggle and the Quick Play screen early, then the psychology track adds the review toggle there. If the

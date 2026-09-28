@@ -64,8 +64,8 @@
 ### 4. Timing tells
 
 - Replace `useHoldemGame.ts`'s fixed `THINK_TIME` per action type with a function of the decision's
-  **closeness** (psychology track exposes it) and a per-character tempo. Close decisions take longer, obvious
-  ones snap. Each character's pattern must be **consistent**, so it can be learned.
+  **margin** (`PsychBot.lastDecision.margin`, built by the psychology track; small = close) and a
+  per-character tempo. Close decisions take longer, obvious ones snap. Each character's pattern must be **consistent**, so it can be learned.
 - Career only. Quick Play keeps today's fixed pacing.
 
 ### 5. Basic achievements

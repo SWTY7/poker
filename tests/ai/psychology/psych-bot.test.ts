@@ -597,3 +597,88 @@ describe('a studied player leans on the solved strategy', () => {
     expect(continueRate(read, spot, 200)).toBeGreaterThan(continueRate(noRead, spot, 200))
   })
 })
+
+describe('arriving already tilted', () => {
+  it('starts a steamer hot and a stoic player calm, from the same memory', () => {
+    const steamer = new PsychBot(AVERAGE_HUMAN, 1000, createRng(30))
+    const stoic = new PsychBot(RATIONAL, 1000, createRng(30))
+    steamer.startTilted(1)
+    stoic.startTilted(1)
+    expect(steamer.tiltLevel).toBe(AVERAGE_HUMAN.tilt.kappa)
+    expect(stoic.tiltLevel).toBe(0)
+  })
+
+  it('clamps the memory to a full beat and never lowers tilt that is already there', () => {
+    const bot = new PsychBot(AVERAGE_HUMAN, 1000, createRng(31))
+    bot.startTilted(50)
+    expect(bot.tiltLevel).toBe(AVERAGE_HUMAN.tilt.kappa)
+    bot.startTilted(0.1)
+    expect(bot.tiltLevel).toBe(AVERAGE_HUMAN.tilt.kappa)
+    bot.startTilted(-3)
+    expect(bot.tiltLevel).toBe(AVERAGE_HUMAN.tilt.kappa)
+  })
+
+  it('plays like a bot that was beaten at this table, and fades the same way', () => {
+    const spot = riverSpot(1000)
+    const calm = new PsychBot(AVERAGE_HUMAN, 1000, createRng(32))
+    const steaming = new PsychBot(AVERAGE_HUMAN, 1000, createRng(32))
+    steaming.startTilted(1)
+    expect(continueRate(calm, spot)).toBe(0)
+    expect(continueRate(steaming, spot)).toBeGreaterThan(0)
+    for (let i = 0; i < 30; i++) steaming.observeResult({ stack: 1000, shareWon: 0, potSize: 0 })
+    expect(steaming.tiltLevel).toBeLessThan(0.1)
+  })
+})
+
+describe('how hard a decision was', () => {
+  it('is nothing before the first decision', () => {
+    expect(new PsychBot().lastDecision).toBeNull()
+  })
+
+  it('reports the action it took and a margin in pots', () => {
+    const bot = new PsychBot(AVERAGE_HUMAN, 1000, createRng(33))
+    const action = bot.decideAction(riverSpot(1000))
+    expect(bot.lastDecision?.action).toEqual(action)
+    expect(bot.lastDecision?.margin).toBeGreaterThanOrEqual(0)
+  })
+
+  it('is closest where the choice flips, and clear at either end', () => {
+    // The same bluff-catcher facing bets from a tenth of the pot to eight
+    // times it: an easy call when it's cheap, an easy fold when it's huge,
+    // and a real decision in between, where the answer changes.
+    const bot = new PsychBot(AVERAGE_HUMAN, 1000, createRng(34))
+    const at = (bet: number) => {
+      const action = bot.decideAction(riverSpot(1000, bet))
+      return { type: action.type, margin: bot.lastDecision!.margin! }
+    }
+    const cheap = at(10)
+    const huge = at(800)
+    const middle = [40, 60].map(at)
+    expect(cheap.type).toBe('call')
+    expect(huge.type).toBe('fold')
+    expect(middle.map((m) => m.type)).toEqual(['call', 'fold'])
+    for (const m of middle) {
+      expect(m.margin).toBeLessThan(cheap.margin / 3)
+      expect(m.margin).toBeLessThan(huge.margin / 3)
+    }
+  })
+
+  it('does not count two sizes of the same raise as a hard decision', () => {
+    // Every candidate here is a raise of some size or a fold, so the margin
+    // is raise against fold, however close the sizes are to each other.
+    const bot = new PsychBot(RATIONAL, 1000, createRng(35))
+    const spot = { ...riverSpot(1000, 10), legalActions: ['fold', 'raise'] as AIObservation['legalActions'] }
+    spot.ownCards = [card('Ac'), card('Ad')]
+    bot.decideAction(spot)
+    expect(bot.lastDecision!.margin!).toBeGreaterThan(0.1)
+  })
+
+  it('never changes what the bot does', { timeout: 30_000 }, () => {
+    // Reading the margin must not consume randomness or touch any state:
+    // two identical bots, one read after every decision, play identically.
+    const a = playSession(7, 40)
+    const b = playSession(7, 40)
+    for (const bot of b.bots) expect(bot.lastDecision).not.toBeNull()
+    expect(b.actions).toEqual(a.actions)
+  })
+})

@@ -18,16 +18,24 @@ codebase with the game-modes track.*
 - The `AIObservation` boundary: bots never see hidden cards. Everything below that looks at the human's own
   cards lives **outside** it, in `src/review/`, and nothing in `src/ai/` may import from there.
 
-## Step 0: seams the game-modes track needs (do first, small, merge early)
+## Step 0: seams the game-modes track needs — done (2026-09-28)
 
-1. `OpponentModel.toJSON()` / `OpponentModel.fromJSON(data, decay)`: serialize tallies per player. Restoring
-   multiplies every count by `decay` (e.g. 0.7), so old evidence fades and a read never freezes.
-2. `PsychBot` option to start tilted (`startTilted(level)`), clamped to the profile's own tilt range.
-3. A decision's **closeness**: the value gap between the chosen and the next-best action, in pots, exposed
-   next to the action (e.g. `lastDecision: { closeness }` on the bot). This is for timing tells. It must not
-   change any decision.
+1. `OpponentModel.toJSON(players?)` → plain versioned JSON (`OpponentModelData`), keyed by player id.
+   `model.restore(data, decay)` adds it back with every count multiplied by `decay` (e.g. 0.7), so old
+   evidence fades and a read restored every sitting stays bounded (never freezes). `restore` adds rather
+   than replaces, so two rivals' saved reads on the player can be pooled into the table's shared model.
+   `OpponentModel.fromJSON(data, decay)` is the same into a fresh model. Junk input is ignored.
+2. `PsychBot.startTilted(strength)`: strength 0..1 on a hand's jolt scale (1 = a full buy-in lost as a
+   certain favourite), multiplied by the profile's own `tilt.kappa`, so a stoic stays calm. Never lowers
+   existing tilt; fades like any tilt.
+3. `PsychBot.lastDecision`: `{ action, margin }`. `margin` is the gap, in pots, between the best option and
+   the best option of a *different kind* (fold / check-call / bet-raise) by the bot's own valuation. Two
+   raise sizes aren't a hard decision. Null when only one kind was legal. Measured: smallest where the
+   call/fold answer flips, larger at both obvious ends. Verified to change no decision: identical action
+   logs before/after over 180 six-handed hands with the solve blend on.
 
-Tests for each, then a PR. The game track builds rivals, pre-tilt and timing on these.
+Tests: `tests/ai/psychology/opponent-model.test.ts` ("a read carried between sittings"),
+`tests/ai/psychology/psych-bot.test.ts` ("arriving already tilted", "how hard a decision was").
 
 ## Phase 1: "What the table thinks of you"
 
