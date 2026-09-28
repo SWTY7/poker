@@ -57,7 +57,14 @@ state are the same pieces, and only card dealing is missing.
 
 ## Build steps (each its own small PR)
 
-### 1. The chips-only table, as pure logic
+### 1. The chips-only table, as pure logic — done 2026-09-28
+
+*`src/home/table.ts`, tests in `tests/home/table.test.ts` (18, including a 4,000-step random session that
+checks no chip is ever created or lost). `poker/betting.ts` needed no logic change: its functions now take
+a `BettingState` (the card-free part of `GameState`), so the same rules run both games. Undo reaches back
+as far as the current hand's deal, including a mis-tapped award, and never into the previous hand.
+Joining mid-hand seats you folded until the next deal. A busted player is back in after a rebuy
+(`adjustStack`).*
 
 - `src/home/table.ts`: a reducer. `(state, command) → state`, with commands such as `join`, `seat`,
   `startHand`, `act`, `advanceStreet`, `award`, `undo`, `adjustStack`. No networking, no React.

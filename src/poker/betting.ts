@@ -2,14 +2,21 @@ import type { ActionType, GameState, HandLogEntry, PokerAction } from './game-st
 import type { PlayerState } from './player'
 import { totalPot } from './pot'
 
-function getPlayer(state: GameState, playerId: string): PlayerState {
+/**
+ * The part of a table the betting rules read and write. No cards: the same
+ * rules run the dealt game (`GameState`) and the home game, where the cards
+ * are real and only the chips live in the app.
+ */
+export type BettingState = Pick<GameState, 'players' | 'currentBet' | 'minRaise' | 'street' | 'actionHistory' | 'handLog'>
+
+function getPlayer(state: BettingState, playerId: string): PlayerState {
   const player = state.players.find((p) => p.id === playerId)
   if (!player) throw new Error(`Unknown player: ${playerId}`)
   return player
 }
 
 /** Appends one line to the hand narration, stamping it with sequence and pot. */
-export function logEvent(state: GameState, entry: Omit<HandLogEntry, 'seq' | 'potAfter'>): void {
+export function logEvent(state: BettingState, entry: Omit<HandLogEntry, 'seq' | 'potAfter'>): void {
   state.handLog.push({
     ...entry,
     seq: state.handLog.length,
@@ -17,7 +24,7 @@ export function logEvent(state: GameState, entry: Omit<HandLogEntry, 'seq' | 'po
   })
 }
 
-export function getLegalActions(state: GameState, playerId: string): ActionType[] {
+export function getLegalActions(state: BettingState, playerId: string): ActionType[] {
   const player = getPlayer(state, playerId)
   if (player.folded || player.isAllIn) return []
 
@@ -43,11 +50,11 @@ export function getLegalActions(state: GameState, playerId: string): ActionType[
   return actions
 }
 
-export function minRaiseTargetAmount(state: GameState): number {
+export function minRaiseTargetAmount(state: BettingState): number {
   return state.currentBet + state.minRaise
 }
 
-export function maxRaiseTargetAmount(state: GameState, playerId: string): number {
+export function maxRaiseTargetAmount(state: BettingState, playerId: string): number {
   const player = getPlayer(state, playerId)
   return player.betThisStreet + player.stack
 }
@@ -66,7 +73,7 @@ function commitChips(player: PlayerState, amount: number): void {
  * players who already acted. Real casino rules sometimes deny full
  * re-raising rights after a short all-in raise; that nuance is not modeled.
  */
-export function applyAction(state: GameState, action: PokerAction): void {
+export function applyAction(state: BettingState, action: PokerAction): void {
   const player = getPlayer(state, action.playerId)
   if (player.folded || player.isAllIn) {
     throw new Error(`Player ${action.playerId} cannot act (already folded or all-in)`)
@@ -144,7 +151,7 @@ export function applyAction(state: GameState, action: PokerAction): void {
   })
 }
 
-export function isBettingRoundComplete(state: GameState): boolean {
+export function isBettingRoundComplete(state: BettingState): boolean {
   const contenders = state.players.filter((p) => !p.folded)
   if (contenders.length <= 1) return true
   const stillToAct = contenders.filter((p) => !p.isAllIn)
@@ -152,12 +159,12 @@ export function isBettingRoundComplete(state: GameState): boolean {
   return stillToAct.every((p) => p.hasActed && p.betThisStreet === state.currentBet)
 }
 
-export function isHandOver(state: GameState): boolean {
+export function isHandOver(state: BettingState): boolean {
   return state.players.filter((p) => !p.folded).length <= 1
 }
 
 /** Finds the next player able to act, starting the search after `fromIndex`. */
-export function nextActingPlayerIndex(state: GameState, fromIndex: number): number | null {
+export function nextActingPlayerIndex(state: BettingState, fromIndex: number): number | null {
   const n = state.players.length
   for (let step = 1; step <= n; step++) {
     const idx = (fromIndex + step) % n

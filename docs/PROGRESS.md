@@ -62,6 +62,13 @@ this layer hasn't needed rework since the milestones in the v1 plan.
   title, defended next season. Screens: `CareerHub` (events, standings, next event) and its season summary,
   reached from a door in the Career lobby.
 
+## Home game — `src/home/`
+
+The home game (`docs/plans/home-game.md`): real cards on a real table, with only the chips in the app.
+`table.ts` is its pure reducer: seating, blinds and the button, the betting rules from `poker/betting.ts`
+(which now take a card-free `BettingState`), streets advanced by the host, side pots, the host's showdown
+award with odd chips by seat, rebuys, and undo. The room (PeerJS) and screens are still to come.
+
 ## The table UI — `src/ui/`
 
 The lobby opens on a Quick Play / Career toggle (`docs/plans/game-modes.md` step 1). Quick Play is a practice
@@ -174,7 +181,7 @@ oracle to check against.
 
 ## Verification, as of this writing
 
-537 tests as of the last full run (2026-09-28); `npx vitest run`, `npx tsc -b` and `npx oxlint` are all clean. Re-run
+555 tests as of the last full run (2026-09-28); `npx vitest run`, `npx tsc -b` and `npx oxlint` are all clean. Re-run
 them rather than trust this number — it moves.
 
 **Use `npx tsc -b`, not `npx tsc --noEmit -p .`**: `tsconfig.json` only lists project references, so
