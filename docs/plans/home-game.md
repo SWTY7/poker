@@ -74,7 +74,15 @@ Joining mid-hand seats you folded until the next deal. A busted player is back i
 - Tests: blinds and button rotation, legal actions and min-raise, a street closing, fold-to-one, side pots
   with a short all-in, split pots and odd chips, undo, and chips conserved across a whole session.
 
-### 2. The room: PeerJS host and joiners
+### 2. The room: PeerJS host and joiners — done 2026-09-28
+
+*`src/home/room.ts` (`HostCore`, the protocol, no network; tests in `tests/home/room.test.ts`) and
+`src/home/peer.ts` (the PeerJS wiring, `peerjs` 1.5). Joiners may only send `act` for their own id; every
+other command is the host's alone. Phones get the table without its undo history, plus who's connected.
+Joiners ping every 4 s and treat three missed beats as a lost host. A host reopening its own room number
+retries for about 30 s while the signalling server lets go of the old id. Checked in two browser tabs over
+the real PeerJS server: join, a raise round trip, an out-of-turn move refused with its reason, and a host
+reload with the joiner reconnecting to the same seat mid-hand.*
 
 - Add the `peerjs` dependency. `src/home/room.ts`: the host creates the peer and joiners connect.
   - Joiners send commands; the host validates them with the reducer and broadcasts the new state.

@@ -67,7 +67,9 @@ this layer hasn't needed rework since the milestones in the v1 plan.
 The home game (`docs/plans/home-game.md`): real cards on a real table, with only the chips in the app.
 `table.ts` is its pure reducer: seating, blinds and the button, the betting rules from `poker/betting.ts`
 (which now take a card-free `BettingState`), streets advanced by the host, side pots, the host's showdown
-award with odd chips by seat, rebuys, and undo. The room (PeerJS) and screens are still to come.
+award with odd chips by seat, rebuys, and undo. `room.ts` is the room without the network (the host runs
+every command; joiners may only act for themselves), and `peer.ts` connects it over PeerJS, with a 4-digit
+room number and reconnection. The screens are still to come.
 
 ## The table UI — `src/ui/`
 
