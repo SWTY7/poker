@@ -79,6 +79,12 @@ Decisions made along the way:*
   final, and winning it is a title.
 - Screens: a career hub (current tier, standings, next event, scouting notes) and a season summary.
 
+### Then: the home game
+
+*Added 2026-09-28: an offline multiplayer mode (real cards, the app keeps the chips, a host deals and picks
+showdown winners, joiners use a 4-digit room code). Its own plan: [`home-game.md`](./home-game.md). Built
+after step 3, before step 4.*
+
 ### 4. Timing tells
 
 - Replace `useHoldemGame.ts`'s fixed `THINK_TIME` per action type with a function of the decision's

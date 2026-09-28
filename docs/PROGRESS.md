@@ -27,7 +27,8 @@ strategy for heads-up spots, with a different character in each seat, drawn fres
   yet, basics and advanced, each with a concrete implementation suggestion and a suggested order. Not a
   plan; nothing in it is scoped or committed to.
 - [`plans/`](./plans/README.md) — the two tracks in progress and how they share the code: game modes /
-  career / rivals (`plans/game-modes.md`) and reading the human → personality lab (`plans/psychology-lab.md`).
+  career / rivals (`plans/game-modes.md`), the home game for real cards (`plans/home-game.md`), and reading
+  the human → personality lab (`plans/psychology-lab.md`).
   Start here if you're picking up either one.
 - [`multiway-preflop.md`](./multiway-preflop.md) — the solved preflop book for three to six players: the
   game, how it's trained, and how far from equilibrium it measures.
