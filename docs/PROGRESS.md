@@ -124,6 +124,31 @@ model does, and what the characters vary:
   test driver and the benchmark floor. The old personality-dial bot was deleted, since a `PsychBot` with
   the right profile covers everything it did.
 
+## Reading the human — `src/review/`
+
+Phase 1 of `docs/plans/psychology-lab.md`. The one part of the app that looks at the human's own hole cards
+on purpose, so it lives outside `src/ai/`, and nothing in `src/ai/` or `src/gto/` imports it.
+
+- **`log.ts`**: `HandLogger` follows the solo human through a sitting. `useHoldemGame.ts` makes three
+  calls: when a hand is dealt, before each human action (with the table's solve's mix for that spot, where
+  one applies), and when the hand ends. Each finished hand is a `HandRecord`: position, players, blinds,
+  cards, board, every public action, the human's decisions with pot / to-call / stack, net chips, showdown
+  and win. Stored under `localStorage` `poker.review` (versioned, newest 2,000 hands), downloadable as
+  JSON. Pass-and-play isn't logged, since one log would mix several people.
+- **`style.ts`**: VPIP, PFR, 3-bet, aggression factor, c-bet, fold to c-bet, WTSD, W$SD, bb/100, and a
+  tilt signature (VPIP/PFR in the 10 hands after losing 25+ big blinds, same sitting, against every
+  other hand). Every stat carries its count and its number of chances.
+- **`leaks.ts`**: compares each covered decision's *kind* (fold / check-call / bet-raise) with the solve's
+  mix. A kind the solve plays under 10% of the time in that spot is off the book. It's listed only once it
+  repeats (2+) in the same spot the same way, ranked by a stand-in cost: (1 − the solve's share) × pot in
+  bb. The trained files store frequencies, not values, so this isn't chips lost.
+- **`table-read.ts`**: the shared `OpponentModel`'s read on the human in plain words (aggression and
+  folding against the measured normal, bet sizing, river bets seen at showdown), with what the bots do
+  about it. Only reads with 10+ actions behind them are said.
+- UI: the read is on the leave screen ("What the table thinks of you"). A **Your play** screen, from a
+  button in the lobby, shows the style profile (all hands or last session), the leaks, the tilt
+  signature, and a download and delete of the history.
+
 ## The GTO solver — `src/gto/`
 
 From-scratch CFR and Monte Carlo CFR (`cfr.ts`, `mccfr.ts`), verified against solved-game oracles at small
@@ -152,7 +177,7 @@ oracle to check against.
 
 ## Verification, as of this writing
 
-498 tests as of the last full run (2026-09-28); `npx vitest run`, `npx tsc -b` and `npx oxlint` are all clean. Re-run
+523 tests as of the last full run (2026-09-28); `npx vitest run`, `npx tsc -b` and `npx oxlint` are all clean. Re-run
 them rather than trust this number — it moves.
 
 **Use `npx tsc -b`, not `npx tsc --noEmit -p .`**: `tsconfig.json` only lists project references, so

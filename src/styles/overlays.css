@@ -375,3 +375,28 @@
 .sheet-group:first-child {
   margin-top: 0;
 }
+
+/* ---------- what the table thinks of you (leave screen) ---------- */
+
+.table-read {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.table-read-list {
+  margin: 0;
+  padding-left: 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: var(--text-dim);
+}
+
+.table-read-sample {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--text-faint);
+}

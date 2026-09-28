@@ -5,6 +5,7 @@ import { Lobby } from './ui/Lobby'
 import { TournamentSetup } from './ui/TournamentSetup'
 import type { TournamentEntry } from './ui/TournamentSetup'
 import { TournamentResults } from './ui/TournamentResults'
+import { YourPlay } from './ui/YourPlay'
 import type { TournamentOutcome } from './ui/TournamentResults'
 import { Table } from './ui/Table'
 import { useHoldemGame } from './ui/useHoldemGame'
@@ -51,6 +52,7 @@ type Screen =
   | { kind: 'tournament-setup' }
   | { kind: 'game'; config: GameConfigOptions; entry: GameEntry }
   | { kind: 'results'; outcome: TournamentOutcome }
+  | { kind: 'your-play' }
 
 interface TournamentExitPayload {
   standings: Standing[]
@@ -164,6 +166,7 @@ function GameScreen({ config, entry, onCashExit, onTournamentExit }: GameScreenP
       startingStack={config.startingStack}
       canStartHand={game.canStartHand()}
       tournament={tournamentHud}
+      readOnYou={game.isSolo ? game.readOnYou : undefined}
     />
   )
 }
@@ -270,6 +273,7 @@ function App() {
           onResetProfile={() => setProfile(defaultProfile())}
           onChooseCash={() => setScreen({ kind: 'cash-setup' })}
           onChooseTournament={() => setScreen({ kind: 'tournament-setup' })}
+          onOpenYourPlay={() => setScreen({ kind: 'your-play' })}
         />
       )
     case 'cash-setup':
@@ -282,6 +286,8 @@ function App() {
       )
     case 'results':
       return <TournamentResults outcome={screen.outcome} onBackToLobby={goLobby} />
+    case 'your-play':
+      return <YourPlay onBack={goLobby} />
   }
 }
 

@@ -467,3 +467,85 @@
   color: var(--warn);
   font-weight: 700;
 }
+
+/* ---------- your play (review/) ---------- */
+
+.your-play-card {
+  width: min(36rem, 100%);
+}
+
+.your-play-scope {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+.your-play-headline {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+}
+
+.your-play-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.9rem 0.6rem;
+  margin-top: 0.6rem;
+}
+
+.your-play-detail {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  color: var(--text-faint);
+}
+
+.your-play-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.your-play-note,
+.your-play-empty {
+  margin: 0;
+  font-size: var(--fs-xs);
+  line-height: 1.5;
+  color: var(--text-dim);
+}
+
+.your-play-leaks {
+  margin: 0;
+  padding-left: 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: var(--fs-xs);
+  line-height: 1.5;
+  color: var(--text-dim);
+}
+
+.your-play-leaks strong {
+  color: var(--text);
+}
+
+.your-play-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
+@media (max-width: 480px) {
+  .your-play-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.lobby-your-play-row {
+  display: flex;
+  justify-content: center;
+}

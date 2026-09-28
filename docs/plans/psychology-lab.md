@@ -37,7 +37,22 @@ codebase with the game-modes track.*
 Tests: `tests/ai/psychology/opponent-model.test.ts` ("a read carried between sittings"),
 `tests/ai/psychology/psych-bot.test.ts` ("arriving already tilted", "how hard a decision was").
 
-## Phase 1: "What the table thinks of you"
+## Phase 1: "What the table thinks of you" — done (2026-09-28)
+
+Built as planned; details in `docs/PROGRESS.md` ("Reading the human"). Decisions made along the way:
+
+- The log keeps the solve's mix *by kind* (fold / check-call / bet-raise) at each human decision, computed
+  at the table when the decision is made, so the leak finder never has to rebuild an observation later.
+- A leak is a kind the solve plays under 10% of the time in the spot, repeated at least twice in the same
+  spot the same way. Its "cost" is a ranking stand-in, (1 − solve's share) × pot in bb, since the trained
+  files hold frequencies, not values. Real EV per decision would need the solves to store values, a Phase 2
+  question.
+- The tilt signature compares VPIP/PFR in the 10 hands after a 25bb+ loss (same sitting) with all other
+  hands.
+- The table read is only shown on the leave screen (the model lives with the table). Saving it at the end
+  of a sitting could come with the game track's rivals, which persist reads anyway.
+
+Original plan, for reference:
 
 1. **Hand-history logging** of the human seat (`src/review/log.ts`, storage `poker.review`, versioned, JSON
    export). Every decision with its state: street, position, pot, stacks/depth, facing bet, hole cards, board,

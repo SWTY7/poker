@@ -12,6 +12,7 @@ interface LobbyProps {
   onResetProfile: () => void
   onChooseCash: () => void
   onChooseTournament: () => void
+  onOpenYourPlay: () => void
 }
 
 /**
@@ -26,7 +27,14 @@ interface LobbyProps {
  * every field either doesn't apply half the time or means something subtly
  * different depending on a toggle at the top. Separate screens instead.
  */
-export function Lobby({ profile, onClaimDailyStake, onResetProfile, onChooseCash, onChooseTournament }: LobbyProps) {
+export function Lobby({
+  profile,
+  onClaimDailyStake,
+  onResetProfile,
+  onChooseCash,
+  onChooseTournament,
+  onOpenYourPlay,
+}: LobbyProps) {
   const [confirmingReset, setConfirmingReset] = useState(false)
   const canClaim = canClaimDailyStake(profile)
 
@@ -137,6 +145,12 @@ export function Lobby({ profile, onClaimDailyStake, onResetProfile, onChooseCash
               </section>
             </>
           )}
+
+          <div className="lobby-your-play-row">
+            <button type="button" className="btn btn-secondary" onClick={onOpenYourPlay}>
+              Your play — style, leaks, hand history
+            </button>
+          </div>
 
           <div className="lobby-reset-row">
             {confirmingReset ? (

@@ -46,6 +46,10 @@ The hotspots:
    psychology track gets there first, it adds the toggle to the existing cash setup screen, and the game
    track moves it.
 
+**Touched by the psychology track outside its own folders** (keep in mind when merging): one button in
+`src/ui/Lobby.tsx` ("Your play", prop `onOpenYourPlay`), a `your-play` screen in `App.tsx`, a `readOnYou`
+prop through `Table.tsx` to `LeaveDialog.tsx`, and the logger's three calls in `useHoldemGame.ts`.
+
 ## Token-efficiency notes
 
 - Compact or restart a session once a piece of work is committed and its plan file is updated. The plan

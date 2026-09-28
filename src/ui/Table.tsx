@@ -18,6 +18,7 @@ import { PositionLegend } from './PositionLegend'
 import { LeaveDialog } from './LeaveDialog'
 import { useMediaQuery } from './useMediaQuery'
 import type { SessionStats, Speed } from './useHoldemGame'
+import type { ReadLine } from '../review/table-read'
 
 interface TableProps {
   state: GameState
@@ -50,6 +51,8 @@ interface TableProps {
   canStartHand: boolean
   /** Present for a tournament: the live level, blinds clock and payout ladder for the HUD. */
   tournament?: TournamentHudInfo
+  /** What the bots have learned about you, for the leave screen. Absent in pass-and-play. */
+  readOnYou?: () => ReadLine[]
 }
 
 const STREET_BANNER: Record<string, string> = {
@@ -136,6 +139,7 @@ export function Table({
   showHandOdds,
   startingStack,
   canStartHand,
+  readOnYou,
   tournament,
 }: TableProps) {
   /**
@@ -495,6 +499,7 @@ export function Table({
           handInProgress={state.handInProgress}
           onConfirm={onExit}
           onCancel={() => setShowLeave(false)}
+          read={readOnYou?.()}
           tournament={
             tournament ? { playersRemaining: tournament.playersRemaining, fieldSize: tournament.fieldSize } : undefined
           }
