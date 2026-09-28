@@ -67,7 +67,19 @@ Decisions made along the way:*
   seed, random names from a separate pool). No memory, no notes.
 - Hook: one `onHandEnd` call in `useHoldemGame.ts` updates rival stats. The logic lives in `rivals.ts`.
 
-### 3. Career seasons
+### 3. Career seasons — done 2026-09-28
+
+*Built in `src/game/career.ts` (tests: `tests/game/career.test.ts`), `src/ui/CareerHub.tsx`, and `App.tsx`
+routing. Decisions made along the way:*
+- *Fields: Local pia/tomas/hal/wes, Regional lina/jax/mona/eli, National rosa/gus/jax/eli, Championship
+  nadia/otto/rosa/gus (some rivals follow you up). Tier boosts: discipline +0/0.1/0.2/0.3, level +0/0/1/1.*
+- *Buy-ins $50/$100/$250/$500; prizes use the normal 6-player payout (65/35).*
+- *The standings are you plus the tier's four rivals; walk-ins score nothing. Ties go to the better finish in
+  the final, then against you.*
+- *Promotion: top two. Everyone else repeats the tier. The "bottom finisher repeats" line needed no separate
+  rule, since rivals don't change tier.*
+- *Championship: win it for a title and defend it next season; lose it and you drop to National.*
+- *A quit event: players still in are placed by chips, with you behind them (the same place a quit is paid).*
 
 - `src/game/career.ts`, storage `poker.career`: tier, season number, event index, points table, titles.
 - **Tiers:** Local → Regional → National → Championship. Each tier's field is a fixed group of rivals plus a
