@@ -22,7 +22,12 @@
 
 ## Steps, in order (each its own small PR)
 
-### 1. Mode toggle + Quick Play
+### 1. Mode toggle + Quick Play — done 2026-09-28
+
+*Built as planned. The mode and the exit rule live in `src/game/mode.ts` (tested in `tests/game/mode.test.ts`);
+Quick Play's setup is `MenuScreen variant="quick"`. Speed stays the table's own control, not a setup field.
+The psychology track's hand-review toggle goes in `MenuScreen`'s "Study aids" group, shown only when
+`variant === 'quick'`.*
 
 - `src/ui/Lobby.tsx`: Quick / Career toggle, saved under a `localStorage` key (`poker.mode`).
 - A Quick Play setup screen, built from `MenuScreen.tsx`'s settings minus buy-in and bankroll. It starts a game

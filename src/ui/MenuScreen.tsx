@@ -17,6 +17,12 @@ interface MenuScreenProps {
    */
   bankroll?: number
   onBack?: () => void
+  /**
+   * `quick` is Quick Play's practice table: the same settings, but the stack
+   * is only a depth to play at, not a buy-in, and its last setup is saved
+   * apart from the cash game's so switching modes doesn't overwrite either.
+   */
+  variant?: 'cash' | 'quick'
 }
 
 const MIN_PLAYERS = 2
@@ -43,19 +49,21 @@ const DEFAULT_CONFIG: GameConfigOptions = {
   showHandOdds: false,
 }
 
-const STORAGE_KEY = 'poker.lastConfig'
+const STORAGE_KEY = { cash: 'poker.lastConfig', quick: 'poker.quickConfig' } as const
 
 /**
  * The table's front door. Configures a fresh session and remembers the last
  * setup picked, so returning here to change the blinds doesn't mean
  * re-entering everything from scratch.
  */
-export function MenuScreen({ onStart, bankroll, onBack }: MenuScreenProps) {
+export function MenuScreen({ onStart, bankroll, onBack, variant = 'cash' }: MenuScreenProps) {
+  const quick = variant === 'quick'
+  const storageKey = STORAGE_KEY[variant]
   const [config, setConfig] = useState<GameConfigOptions>(() => {
     // Merge over the defaults rather than trusting the stored shape outright —
     // a config saved before `humanCount` existed would otherwise come back
     // with that field `undefined` and break every clamp below it.
-    const stored = readJSON<Partial<GameConfigOptions>>(STORAGE_KEY, {})
+    const stored = readJSON<Partial<GameConfigOptions>>(storageKey, {})
     const merged = { ...DEFAULT_CONFIG, ...stored }
     // A stack the bankroll can no longer cover — spent it since, or this is
     // the first time bankroll-backed buy-ins exist at all — falls back to
@@ -84,7 +92,7 @@ export function MenuScreen({ onStart, bankroll, onBack }: MenuScreenProps) {
 
   const handleStart = () => {
     if (!canAffordBuyIn) return
-    writeJSON(STORAGE_KEY, config)
+    writeJSON(storageKey, config)
     onStart(config)
   }
 
@@ -110,8 +118,18 @@ export function MenuScreen({ onStart, bankroll, onBack }: MenuScreenProps) {
               <path d={SUIT_PATH.diamonds} />
             </svg>
           </div>
-          <div className="menu-subtitle">Set up the table, then deal yourself in.</div>
-          {bankroll !== undefined && (
+          <div className="menu-subtitle">
+            {quick ? 'A practice table. Nothing is bought in, nothing is recorded.' : 'Set up the table, then deal yourself in.'}
+          </div>
+          {quick && onBack && (
+            <div className="menu-bankroll-row">
+              <span className="menu-bankroll">Quick Play</span>
+              <button type="button" className="menu-back-link" onClick={onBack}>
+                ← Lobby
+              </button>
+            </div>
+          )}
+          {!quick && bankroll !== undefined && (
             <div className="menu-bankroll-row">
               <span className="menu-bankroll">Bankroll ${bankroll.toLocaleString()}</span>
               {onBack && (
@@ -211,10 +229,11 @@ export function MenuScreen({ onStart, bankroll, onBack }: MenuScreenProps) {
               <span className="menu-field-icon menu-field-icon-gold">
                 <ChipIcon amount={config.startingStack} />
               </span>
-              <span className="menu-field-label">Starting stack</span>
-              <InfoTip label="Starting stack">
-                What everyone buys in for — yours comes out of your bankroll. Bigger stacks mean more room to play
-                after the flop, and longer before anyone busts.
+              <span className="menu-field-label">{quick ? 'Stack depth' : 'Starting stack'}</span>
+              <InfoTip label={quick ? 'Stack depth' : 'Starting stack'}>
+                {quick
+                  ? 'What everyone starts with. Bigger stacks mean more room to play after the flop, and longer before anyone busts.'
+                  : 'What everyone buys in for — yours comes out of your bankroll. Bigger stacks mean more room to play after the flop, and longer before anyone busts.'}
               </InfoTip>
             </div>
             <div className="buyin-options">
