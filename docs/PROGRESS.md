@@ -69,7 +69,9 @@ The home game (`docs/plans/home-game.md`): real cards on a real table, with only
 (which now take a card-free `BettingState`), streets advanced by the host, side pots, the host's showdown
 award with odd chips by seat, rebuys, and undo. `room.ts` is the room without the network (the host runs
 every command; joiners may only act for themselves), and `peer.ts` connects it over PeerJS, with a 4-digit
-room number and reconnection. The screens are still to come.
+room number and reconnection. Screens in `src/ui/home/`: Home Game is a third lobby mode (Host / Join /
+Reopen room), a share link `?room=1234` opens onto joining, and one table screen serves everyone, with the
+dealer's controls on the host's phone.
 
 ## The table UI — `src/ui/`
 
@@ -183,7 +185,7 @@ oracle to check against.
 
 ## Verification, as of this writing
 
-555 tests as of the last full run (2026-09-28); `npx vitest run`, `npx tsc -b` and `npx oxlint` are all clean. Re-run
+568 tests as of the last full run (2026-09-28); `npx vitest run`, `npx tsc -b` and `npx oxlint` are all clean. Re-run
 them rather than trust this number — it moves.
 
 **Use `npx tsc -b`, not `npx tsc --noEmit -p .`**: `tsconfig.json` only lists project references, so

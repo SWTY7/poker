@@ -15,6 +15,8 @@ import type { Command, HomeState } from './table'
 const PREFIX = 'swty7-poker-'
 const HEARTBEAT_MS = 4000
 const RETRY_MS = 2000
+/** An attempt that has neither opened nor failed by now is given up and tried again. */
+const OPEN_TIMEOUT_MS = 8000
 
 export type RoomStatus = 'connecting' | 'open' | 'reconnecting' | 'closed'
 
@@ -149,7 +151,13 @@ export function joinRoom(
     const mine = ++generation
     const live = () => mine === generation
     conn = peer.connect(PREFIX + code, { reliable: true })
+    // PeerJS can leave an attempt hanging with no open and no error (a host
+    // that came back mid-attempt, a signalling reconnect): don't wait forever.
+    const opening = setTimeout(() => {
+      if (live() && !conn?.open) retry(`Can’t reach room ${code}. Retrying…`)
+    }, OPEN_TIMEOUT_MS)
     conn.on('open', () => {
+      clearTimeout(opening)
       if (!live()) return
       lastPong = Date.now()
       send({ v: PROTOCOL, t: 'hello', playerId, name })
@@ -174,7 +182,11 @@ export function joinRoom(
 
   events.onStatus('connecting')
   peer = new Peer()
-  peer.on('open', connect)
+  // Also fires when the peer re-registers with the signalling server; only
+  // start an attempt if none is live or already scheduled.
+  peer.on('open', () => {
+    if (!conn && !pending) connect()
+  })
   peer.on('error', (error: { type?: string }) => {
     if (error.type === 'peer-unavailable') retry(`No room ${code} yet. Is the host’s screen open?`)
     else if (error.type === 'network' || error.type === 'server-error' || error.type === 'socket-error') {

@@ -1,0 +1,301 @@
+/* ---------- the home game ----------
+   Phone-first: one column, big tap targets, and the numbers people argue
+   about (pot, stacks, bets) in the mono face the rest of the app uses for
+   money. */
+
+.home-content {
+  width: min(32rem, 100%);
+  gap: 0.75rem;
+}
+
+.home-header {
+  width: 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.home-header-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.35rem;
+}
+
+.home-room-label {
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.home-room-code {
+  font-family: var(--font-mono);
+  font-size: 2.4rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+}
+
+.home-status {
+  font-size: var(--fs-2xs);
+  padding: 0.15rem 0.5rem;
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  color: var(--text-dim);
+  text-align: right;
+}
+
+.home-status-open {
+  color: var(--accent);
+}
+
+.home-status-reconnecting,
+.home-status-connecting {
+  color: var(--warn);
+}
+
+.home-leave-confirm {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+  font-size: var(--fs-2xs);
+  color: var(--warn);
+}
+
+.home-share {
+  overflow-wrap: anywhere;
+}
+
+.home-error {
+  border: 1px solid var(--warn);
+  background: transparent;
+  color: var(--warn);
+  border-radius: var(--r-md);
+  padding: 0.5rem 0.75rem;
+  font-size: var(--fs-sm);
+  text-align: left;
+  cursor: pointer;
+}
+
+.home-waiting,
+.home-center {
+  text-align: center;
+}
+
+.home-pot {
+  padding: 0.75rem 1rem;
+}
+
+.home-pot-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.home-street {
+  font-size: var(--fs-sm);
+  color: var(--text-dim);
+}
+
+.home-pot-amount {
+  font-family: var(--font-mono);
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  color: var(--text);
+}
+
+.home-results {
+  list-style: none;
+  margin: 0.4rem 0 0;
+  padding: 0;
+  font-size: var(--fs-sm);
+  color: var(--accent);
+}
+
+.home-seats {
+  list-style: none;
+  margin: 0;
+  padding: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.home-seat {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.45rem 0.5rem;
+  border-radius: var(--r-md);
+}
+
+.home-seat-turn {
+  box-shadow: 0 0 0 1px var(--accent) inset;
+  background: var(--accent-tint);
+}
+
+.home-seat-dim {
+  opacity: 0.5;
+}
+
+.home-seat-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.home-seat-name {
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.home-you,
+.home-offline {
+  font-weight: 400;
+  font-size: var(--fs-2xs);
+  color: var(--text-faint);
+}
+
+.home-seat-sub {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+  font-size: var(--fs-2xs);
+  color: var(--text-dim);
+}
+
+.home-marker {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  padding: 0 0.3rem;
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  color: var(--accent);
+}
+
+.home-state {
+  text-transform: uppercase;
+  letter-spacing: var(--track);
+}
+
+.home-bet {
+  font-family: var(--font-mono);
+  color: var(--text);
+}
+
+.home-stack {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: var(--text);
+}
+
+.home-seat-edit {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.home-stack-input,
+.home-amount,
+.home-field input {
+  min-width: 0;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--text);
+  border-radius: var(--r-sm);
+  padding: 0.45rem 0.5rem;
+  font-family: var(--font-mono);
+  /* 16px or more, so iOS doesn't zoom the page when an input is tapped. */
+  font-size: 1rem;
+}
+
+.home-stack-input {
+  width: 5.5rem;
+  text-align: right;
+}
+
+.home-icon-btn {
+  width: 1.9rem;
+  height: 1.9rem;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--text-dim);
+  border-radius: var(--r-sm);
+  cursor: pointer;
+}
+
+.home-icon-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.home-actions-mine {
+  box-shadow: 0 0 0 1px var(--accent) inset;
+}
+
+.home-action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.home-action-row > .btn {
+  flex: 1 1 6rem;
+}
+
+.home-action-row > .menu-option {
+  flex: 1 1 4rem;
+}
+
+.home-raise {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.home-amount {
+  flex: 1 1 8rem;
+}
+
+.home-dealer,
+.home-showdown,
+.home-blinds {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.home-pot-pick-title {
+  font-weight: 700;
+  margin-bottom: 0.35rem;
+}
+
+.home-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+
+.home-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: var(--fs-xs);
+  color: var(--text-dim);
+}
+
+.home-field input.home-code-input {
+  font-size: 2rem;
+  letter-spacing: 0.3em;
+  text-align: center;
+}

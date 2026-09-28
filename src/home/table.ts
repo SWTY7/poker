@@ -71,6 +71,9 @@ export interface HomeState extends Table {
   undo: Table[]
 }
 
+/** The table without its undo history: what phones are sent, and all the read-only helpers below need. */
+export type TableSnapshot = Omit<HomeState, 'undo'>
+
 export type Command =
   | { type: 'join'; id: string; name: string }
   | { type: 'remove'; id: string }
@@ -115,7 +118,7 @@ function fail(message: string): never {
 }
 
 /** True between hands, when seats, stacks and blinds may change. */
-export function betweenHands(state: HomeState): boolean {
+export function betweenHands(state: TableSnapshot): boolean {
   return state.phase === 'lobby' || state.phase === 'hand-over'
 }
 
@@ -268,7 +271,7 @@ function nextSeat(state: Table, from: number): number {
   return fail('Nobody has chips.')
 }
 
-export function canStartHand(state: HomeState): boolean {
+export function canStartHand(state: TableSnapshot): boolean {
   return betweenHands(state) && state.players.filter(inHand).length >= 2
 }
 
@@ -414,7 +417,7 @@ function seatOrderFromDealer(state: Table): string[] {
 // ---------- what a phone needs to show ----------
 
 /** What the player to act may do, and the bet sizes allowed. */
-export function options(state: HomeState, playerId: string): { actions: ActionType[]; toCall: number; minTo: number; maxTo: number } | null {
+export function options(state: TableSnapshot, playerId: string): { actions: ActionType[]; toCall: number; minTo: number; maxTo: number } | null {
   if (state.phase !== 'betting' || state.players[state.currentPlayerIndex]?.id !== playerId) return null
   const player = state.players[state.currentPlayerIndex]
   return {
@@ -426,11 +429,11 @@ export function options(state: HomeState, playerId: string): { actions: ActionTy
 }
 
 /** Every chip at the table, in stacks and in the pot. Never changes except by the host adjusting a stack. */
-export function chipsInPlay(state: HomeState): number {
+export function chipsInPlay(state: TableSnapshot): number {
   return state.players.reduce((sum, p) => sum + p.stack + (betweenHands(state) ? 0 : p.totalContributed), 0)
 }
 
 /** Chips in the middle, bets in front of players included. */
-export function potTotal(state: HomeState): number {
+export function potTotal(state: TableSnapshot): number {
   return betweenHands(state) ? 0 : totalPot(state.players)
 }

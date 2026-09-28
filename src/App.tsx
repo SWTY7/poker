@@ -7,6 +7,11 @@ import type { TournamentEntry } from './ui/TournamentSetup'
 import { TournamentResults } from './ui/TournamentResults'
 import { TableSeating } from './ui/TableSeating'
 import { CareerHub } from './ui/CareerHub'
+import { HostEntry, JoinEntry, type HostSetup } from './ui/home/HomeEntry'
+import { HostScreen, JoinScreen } from './ui/home/HomeScreens'
+import { newTable, type HomeState } from './home/table'
+import { isRoomCode } from './home/room'
+import { loadHost, loadMe, saveMe } from './home/saved'
 import type { TournamentOutcome } from './ui/TournamentResults'
 import { Table } from './ui/Table'
 import { useHoldemGame } from './ui/useHoldemGame'
@@ -80,6 +85,10 @@ type Screen =
   | { kind: 'game'; config: GameConfigOptions; entry: GameEntry }
   | { kind: 'results'; outcome: TournamentOutcome; backTo: 'lobby' | 'career' }
   | { kind: 'career' }
+  | { kind: 'home-host-setup' }
+  | { kind: 'home-join'; code: string }
+  | { kind: 'home-host'; initial: HomeState; resumeCode: string | null; hostPlayerId: string | null; hostName: string | null }
+  | { kind: 'home-player'; code: string; playerId: string; name: string }
 
 interface TournamentExitPayload {
   standings: Standing[]
@@ -204,8 +213,13 @@ function GameScreen({ config, entry, onTableExit, onTournamentExit }: GameScreen
 
 function App() {
   const [profile, setProfile] = useState<Profile>(() => loadProfile())
-  const [screen, setScreen] = useState<Screen>({ kind: 'lobby' })
-  const [mode, setMode] = useState<GameMode>(() => loadMode())
+  // A shared link (.../?room=1234) opens straight onto joining that room.
+  const [linkedRoom] = useState(() => {
+    const code = new URLSearchParams(location.search).get('room')
+    return code && isRoomCode(code) ? code : null
+  })
+  const [screen, setScreen] = useState<Screen>(() => (linkedRoom ? { kind: 'home-join', code: linkedRoom } : { kind: 'lobby' }))
+  const [mode, setMode] = useState<GameMode>(() => (linkedRoom ? 'home' : loadMode()))
   const [career, setCareer] = useState<CareerData>(() => loadCareer())
 
   useEffect(() => {
@@ -221,6 +235,30 @@ function App() {
   }, [profile])
 
   const goLobby = () => setScreen({ kind: 'lobby' })
+
+  const handleOpenRoom = ({ config, hostName }: HostSetup) => {
+    const me = loadMe()
+    if (hostName) saveMe({ ...me, name: hostName })
+    setScreen({ kind: 'home-host', initial: newTable(config), resumeCode: null, hostPlayerId: hostName ? me.playerId : null, hostName })
+  }
+
+  const handleResumeRoom = () => {
+    const saved = loadHost()
+    if (!saved) return
+    setScreen({ kind: 'home-host', initial: saved.state, resumeCode: saved.code, hostPlayerId: saved.hostPlayerId, hostName: null })
+  }
+
+  const handleJoinRoom = (code: string, name: string) => {
+    const me = { ...loadMe(), name, code }
+    saveMe(me)
+    setScreen({ kind: 'home-player', code, playerId: me.playerId, name })
+  }
+
+  const leaveHome = () => {
+    // Drop a ?room= link from the address bar, so a reload lands in the lobby rather than rejoining.
+    if (location.search) history.replaceState(null, '', location.pathname)
+    goLobby()
+  }
 
   const handleModeChange = (next: GameMode) => {
     setMode(next)
@@ -373,6 +411,10 @@ function App() {
           onChooseTournament={() => setScreen({ kind: 'tournament-setup' })}
           career={career}
           onChooseCareer={() => setScreen({ kind: 'career' })}
+          savedRoom={loadHost()?.code ?? null}
+          onHostGame={() => setScreen({ kind: 'home-host-setup' })}
+          onResumeRoom={handleResumeRoom}
+          onJoinGame={() => setScreen({ kind: 'home-join', code: loadMe().code })}
         />
       )
     case 'cash-setup':
@@ -391,6 +433,22 @@ function App() {
           onBack={screen.entry.mode === 'tournament' && screen.entry.career ? () => setScreen({ kind: 'career' }) : goLobby}
         />
       )
+    case 'home-host-setup':
+      return <HostEntry initialName={loadMe().name} onOpen={handleOpenRoom} onBack={goLobby} />
+    case 'home-join':
+      return <JoinEntry initialName={loadMe().name} initialCode={screen.code} onJoin={handleJoinRoom} onBack={leaveHome} />
+    case 'home-host':
+      return (
+        <HostScreen
+          initial={screen.initial}
+          resumeCode={screen.resumeCode}
+          hostPlayerId={screen.hostPlayerId}
+          hostName={screen.hostName}
+          onExit={leaveHome}
+        />
+      )
+    case 'home-player':
+      return <JoinScreen code={screen.code} playerId={screen.playerId} name={screen.name} onExit={leaveHome} />
     case 'career':
       return (
         <CareerHub
