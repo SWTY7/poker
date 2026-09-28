@@ -3,7 +3,7 @@ import { HoldemEngine } from '../src/poker/game-engine'
 import { buildObservation } from '../src/ai/observation'
 import type { Agent } from '../src/ai/agent'
 import { PsychBot } from '../src/ai/psychology/psych-bot'
-import { OpponentModel, actionContext } from '../src/ai/psychology/opponent-model'
+import { OpponentModel, actionContext, showdownOf } from '../src/ai/psychology/opponent-model'
 import { AVERAGE_HUMAN, PRO, type PsychProfile } from '../src/ai/psychology/profile'
 import { BlueprintSetBot } from '../src/gto/holdem/blueprint-set'
 import type { BlueprintFile } from '../src/gto/holdem/blueprint'
@@ -47,7 +47,9 @@ function playHand(a: Agent, b: Agent, seed: number, model: OpponentModel): numbe
     model.observe(action, actionContext(engine.state, actor.id))
     engine.act(action)
   }
-  // Tilt only moves if a bot is told how its hands went, same as at the table.
+  // Showdowns and tilt only move if the table is told how hands went, same as in the app.
+  const showdown = showdownOf(engine.state)
+  if (showdown) model.observeShowdown(showdown)
   const results = engine.state.lastResults
   const potSize = results.reduce((sum, r) => sum + r.potAmount, 0)
   for (const player of engine.state.players) {

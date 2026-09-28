@@ -201,3 +201,81 @@ here. It was noise.
 The recreational bot is harder to beat now, even for pure GTO. The pro still plays the solve to a draw. The
 round-3 gain of the pro over pure GTO against recreational players is no longer visible (+14.5 vs +23.0,
 within noise): a tougher opponent leaves less to exploit.
+
+## Bet sizes, implied odds, showdown memory, and the multiway preflop book (2026-09-27)
+
+Four additions (details in `human-strategy-gaps.md` items 1, 2, 4, 6 and 9, and `multiway-preflop.md`):
+
+- **Implied odds** (`math/equity.ts`'s `multiwayShowdown`): a showdown is valued with the money later
+  streets add when both hands turn out good. This replaced the old "shrink equity toward a coin flip"
+  discount.
+- **Five bet sizes, and size-aware reading** (`sizing.ts`): each size priced for what folds to it and what
+  calls it. Opponents' bets are read by size, and how often each player bets big is learned.
+- **Showdown memory** (`OpponentModel.observeShowdown`): river bets seen at showdown, scored value or bluff
+  by size, move the belief about that player's bluffs.
+- **The multiway preflop book**, asked before the heads-up blueprints (`firstAnswer`).
+
+Measured the same way as before: A/B against an exact copy of the previous bot, duplicate-scored, and
+against the pure solve.
+
+### Ablations, six-handed at 100bb (new vs previous, 1,200 deals unless noted)
+
+| variant | bb/100 |
+|---|---|
+| everything on (600 deals) | +156 ± 55 |
+| everything on, deal set A | +210 ± 41 |
+| everything on, deal set B | +197 ± 45 |
+| without the preflop book | +242 ± 45 |
+| without implied odds | +116 ± 69 |
+| without the new sizes and size reading | +142 ± 34 |
+| without showdown memory | +303 ± 52 |
+| showdown memory, but never reading a bettor's range from it, set A | +215 ± 47 |
+| the same, set B | +296 ± 51 |
+
+**What it changed.** The first design also let showdown memory switch a bettor's range to the full read
+range once six of their river bets had been seen ("now the bluff share is *known*"). That's the switch that
+cost 83 bb/100 last round when the bluff share was guessed, and it didn't pay here either. With it off,
+the two deal sets measured +215 and +296, against +210 and +197 with it on. That's not significant on its
+own, but it leans the same way as the "no showdown memory at all" run. **Dropped.** Showdown memory now
+feeds only the air share of the value-plus-air mixture used for bettors.
+
+Everything else stays. None of the other removals measured better than the full bot beyond noise. The
+book is also not *for* beating this particular opponent: it's the solve, and its job is to be hard to
+exploit.
+
+**One caution on reading these.** Every run is chaotic: the same deals diverge once any decision differs,
+so shared seeds don't cancel the variance between two variants. A difference between two rows needs about
+twice the error bar of one row to mean anything.
+
+### Final numbers (trust switch dropped, baselines re-measured)
+
+Head-to-head against the previous bot (2,000 heads-up pairs; 1,200 six-handed deals):
+
+| matchup | bb/100 |
+|---|---|
+| heads-up 20bb, recreational | +34.0 ± 8.9 |
+| heads-up 20bb, pro | +9.4 ± 11.8 |
+| heads-up 100bb, recreational | +94.0 ± 27.1 |
+| heads-up 100bb, pro | +120.4 ± 44.2 |
+| six-handed 100bb, whole cast | +236.3 ± 44.9 |
+
+Against the pure solve, heads-up 20bb (same deals for new and previous):
+
+| character | new | previous |
+|---|---|---|
+| recreational | +8.4 ± 11.1 | −40.4 ± 13.0 |
+| pro | +2.8 ± 11.7 | −1.6 ± 11.9 |
+
+Separately, the pure 20bb blueprint against the recreational bot with no book at all measured +1.8 ± 5.8 and
++9.3 ± 6.0 on two deal sets (4,000 pairs each). It used to be +31.4.
+
+**Reading it:** the gain is now everywhere, not just six-handed. The biggest change is the recreational
+bot against GTO: from losing 40 bb/100 to no measurable loss. Its biases are all still there (tilt, loss
+aversion, the reference point). What changed is that its valuation stopped being one street deep and
+single-sized, and those were the flaws a balanced opponent was punishing. The pro still plays the solve to
+a draw, which is what it should do. Nothing beats a balanced opponent measurably, and the gains show
+against the previous, more exploitable bots.
+
+The first heads-up run of this round, *with* the trust switch and the old baselines, measured −4.0 ± 9.3
+(recreational, 20bb). The final version measured +34.0 ± 8.9 on the same deals. Most of that difference
+is the two changes above. Some of it is run-to-run chaos, and it shouldn't all be credited to them.

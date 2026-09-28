@@ -18,33 +18,30 @@ aversion, a learned per-opponent aggression read, and — heads-up — the solve
 
 ## The gaps, with suggestions
 
-### 1. Implied odds (and reverse implied odds) — *basic, missing*
+### 1. Implied odds (and reverse implied odds) — *built (2026-09-27)*
 
-**What's wrong:** `psych-bot.ts` prices a call as if the hand checks down from here. A flush draw is worth
-more than its current equity because it wins extra bets when it hits; a non-nut draw is worth *less* because
-it sometimes hits and still loses a big pot.
+**Built:** `math/equity.ts`'s `multiwayShowdown` samples the rest of the hand as before, and also records,
+per run-out, whether both hands end up good enough to keep betting. "Good enough" is judged by how far each
+hand rises above what the board makes alone: two categories or more is strong (sets, two pair from both
+hole cards, a straight or flush of its own), one is medium only for top pair or an overpair, anything else
+folds to a bet. Strong against strong puts in the half-pot bets of every street left; strong against medium
+puts in one of them. PsychBot adds those chips to the showdown outcomes of check, call and the called branch
+of every bet. On the river nothing is left and the old two-outcome gamble is exactly what's priced. It
+replaced `shrinkTowardCoinFlip`.
 
-**Suggestion:** give the `call` candidate a future-street branch instead of the current two outcomes.
-`buckets.ts`'s `strengthOf` already separates E[HS] (average strength) from E[HS²] (how "swingy" the hand is)
-— their gap is exactly how drawy a hand is. Estimate the chance the hand improves to the top of the range
-from that gap, and the extra chips won when it does as *remaining stack × the opponent's believed calling
-frequency × a typical bet size*. Reverse implied odds is the same branch with a loss: the share of "hits"
-that are still beaten (a non-nut flush draw's hits against the nut flush). This can replace the
-`shrinkTowardCoinFlip` discount, which is a stand-in for exactly this.
+**What it does:** the same turn draw at the same price is called more with money behind than without
+(test). Top pair against a set-heavy range now carries the cost of paying it off. A loss-averse character
+now shies from big pots it can lose, which is how "scared money" plays.
 
-**Effort:** small. **Check:** multiway play (where no solve applies) should call draws wider at deep
-stacks than shallow ones, and `benchmark:pro` shouldn't regress.
+### 2. Multi-street plans — *partly built*
 
-### 2. Multi-street plans — *basic, missing*
+**Built:** the future streets are *priced* (item 1): a bet or call is valued with the money later streets
+add. **Still missing:** the opponent raising back (a bet is priced as folded to or called, never
+re-raised), and plans that carry across streets.
 
-**What's wrong:** every decision is one street deep. No bot plans "call the flop, bluff the turn if a
-scare card comes", or keeps firing because the line so far tells a strong story.
-
-**Suggestion:** two steps, cheapest first.
-- **One extra ply** (scoped in an earlier plan, never built): when pricing a bet, split "called" into
-  "called and it goes to showdown" and "called, then raised back", with the raise-back probability from the
-  same level-k defence numbers already computed. This is the fix `psych-bot.ts`'s own header asks for — it
-  says the current shape "flatters aggression".
+**Suggestion for the rest:**
+- **One extra ply:** when pricing a bet, split "called" into "called" and "called, then raised back",
+  with the raise-back probability from the level-k defence numbers already computed.
 - **A per-hand plan:** a small `HandPlan` object on the bot, made when it first puts money in ("value",
   "semi-bluff with a flush draw", "float"), and consulted on later streets: a semi-bluff that picked up
   equity keeps betting, a float bets when checked to, a bluff gives up when the scare card doesn't come.
@@ -52,7 +49,7 @@ scare card comes", or keeps firing because the line so far tells a strong story.
   multiway pots, where nothing else does.
 
 **Effort:** small (ply), medium (plans). **Check:** the existing "neither a maniac nor a calling station"
-aggression-ratio test, plus `benchmark:pro`.
+aggression-ratio test, plus the six-handed A/B.
 
 ### 3. Card removal / blockers — *built (2026-09-25)*
 
@@ -80,9 +77,13 @@ uses population widths by position. Nothing is ever ruled out completely.
 **The exception:** a *bettor's* range is not used for deciding whether to call them. It still feeds how
 they'd respond to a raise. Reading a bet needs a bluff share, and actions alone only give the level-k
 belief (about one bet in eight). Measured against an opponent who really bets two hands in three, reading
-bets as mostly value made the bot lose 83 bb/100 heads-up (`docs/combined-bot.md`). The fix is **showdown
-information**: learning each player's real bluff share from the hands they turn over. That's the natural
-next step for this item.
+bets as mostly value made the bot lose 83 bb/100 heads-up (`docs/combined-bot.md`).
+
+**Showdown memory, built (2026-09-27):** the opponent model now learns each player's real bluff share from
+the river bets they turn over, per size (`OpponentModel.observeShowdown`). That feeds the air share of the
+value-plus-air mixture used for bettors. Switching bettors over to the fully read range once enough
+showdowns were seen was also tried: six-handed it measured no better (and leaned worse) than not
+switching, so it was dropped. The exception stands.
 
 ### 5. Exploitative deviation from equilibrium — *built (2026-09-25)*
 
@@ -103,20 +104,19 @@ about 12% of the time. It read nearly everyone as passive, making the bots under
 version of this doc blamed heads-up instead; measured, heads-up play sits right around 35%. See
 `docs/combined-bot.md`.
 
-### 6. Bet sizing as a signal — *advanced, missing*
+### 6. Bet sizing as a signal — *built (2026-09-27)*
 
-**Using it:** PsychBot only prices half-pot and pot. Its `raiseCandidate` already values any size, so adding
-33% and 75% pot and a 150% overbet is a few lines. The solve can't follow cheaply: every extra size
-multiplies the CFR tree, and (lesson from the pilots) that should be measured with the pilot script before
-anyone trains on it.
+**Using it:** PsychBot prices five sizes (a third, half, three quarters, pot, 1.5× pot). Each is priced
+separately. The defence it faces comes from the level-k frequencies at that price, so a bigger bet folds
+out more and is called by stronger hands, and the called branch is measured against those hands. The solve
+still has three sizes; adding more there multiplies the CFR tree and should be piloted first.
 
-**Reading it:** facing a bet, the believed range ignores the size. Make `bettingRange` take the bet-to-pot
-ratio. Small bets come from a wider, merged range (medium hands and some air); big bets and overbets are
-*polarized* — mostly very strong or nothing. Concretely: shrink the value slice's width and raise the air
-share as size grows.
-
-**Effort:** small (sizes), small (reading). **Check:** spot tests — the same hand should call a small bet
-more readily than an overbet with an equal price.
+**Reading it:** `sizing.ts` rebuilds the pot through the hand, so every bet is known as a fraction of the
+pot it went into. The opponent model learns how often each player's bets are big (≥ 60% pot). Range
+reading takes a big bet from the top of the range (the big-bet share of it, with the bluffs believed for
+that size) and a small bet from just below it, with the top only partly removed, since strong hands bet
+small too. The bluff belief itself is per size: level-k at that price, the aggression read, then showdown
+memory for that size.
 
 ### 7. Table image / meta-game across hands — *advanced, missing*
 
@@ -144,16 +144,13 @@ players but fine for ≤ 9 with memoization.
 **Effort:** medium. **Check:** near the bubble, the same hand at the same price should call less often in
 a tournament than in a cash game.
 
-### 9. Short-stack push/fold beyond heads-up — *advanced, missing*
+### 9. Multiway preflop, short stacks included — *built (2026-09-27)*
 
-**Suggestion:** the heads-up push/fold solver (`pushfold.ts`, 338 information sets) extends to three- and
-four-handed shove/call/overcall with a few thousand information sets, still tiny. Honest caveat: CFR has no
-convergence *guarantee* past two players, so validate against the widely published 3-max push/fold Nash
-charts rather than trusting convergence. With ICM payouts (item 8) this becomes the tournament endgame
-chart. It plugs into the combined bot through the same `Fundamentals` interface the blueprint uses, as the
-anchor for short-stack spots at any table size.
-
-**Effort:** medium. **Check:** agreement with published 3-max charts; short-stack tournament benchmarks.
+**Built, and wider than suggested:** a full multiway preflop solve rather than push/fold only. Three to six
+players, open/3-bet/4-bet/all in, at 8, 20, 40 and 100bb (`docs/multiway-preflop.md`). The 8bb files are
+close to push/fold charts. It is validated against the exact heads-up push/fold solution and by a sampled
+best response, not by trusting convergence. It plugs in through `Fundamentals` ahead of the heads-up
+blueprints. **Still missing:** ICM (item 8), so in a tournament it plays chips, not prize money.
 
 ### 10. Timing / physical tells — *mostly out of scope*
 
@@ -168,8 +165,9 @@ priority.
 
 ## Suggested order
 
-1. ~~Blockers (3)~~, ~~range reading (4)~~ and ~~calibrated reads and exploits (5)~~: built. Next,
-   **bet-size reading (6)**: small, self-contained, and noticeable at the table.
-2. **Implied odds (1)** and **one extra ply (2)**: fix the lookahead flaws PsychBot's own header names.
-3. **ICM (8) → multiway push/fold (9)**: together, only when tournaments are the focus.
+1. ~~Blockers (3)~~, ~~range reading (4)~~, ~~calibrated reads and exploits (5)~~, ~~implied odds (1)~~,
+   ~~bet sizing (6)~~ and ~~multiway preflop (9)~~: built. Showdown memory, which item 4's exception
+   asked for, is built too (see `docs/combined-bot.md` for what it measured).
+2. **The raise-back ply (2)**: the last lookahead flaw PsychBot's own header names.
+3. **ICM (8)**: makes the preflop book and every decision tournament-aware.
 4. **Image (7)** and **timing (10)**: flavor, cheap.

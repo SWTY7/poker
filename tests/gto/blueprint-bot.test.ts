@@ -95,17 +95,18 @@ describe('the blueprint on disk', () => {
 describe('the blueprint at a table', () => {
   const bot = () => new BlueprintBot(file, { fallback: new HeuristicBot(createRng(9)), rng: createRng(9) })
 
-  it('beats both of the bots already in the repo', { timeout: 300_000 }, () => {
+  it('beats the heuristic bot, and holds the recreational psych bot to at least a draw', { timeout: 300_000 }, () => {
     // Both matchups in one test, because duplicate pairs are the expensive
-    // part and the claim is the same claim twice. The figures, measured over
-    // four thousand pairs rather than the two thousand run here:
+    // part. The figures, measured over four thousand pairs rather than the
+    // two thousand run here:
     //
     //   against the heuristic bot        +39.2 +/- 8.4 bb/100
-    //   against the average human bot    +31.4 +/- 8.9
-    //   against the grinder              +27.1 +/- 9.0
+    //   against the average human bot     +1.8 +/- 5.8
     //
-    // and, for scale, the heuristic bot against the average human bot is
-    // -58.6 +/- 9.3 — the psychology layer is not the weak one here.
+    // The second used to be +31.4. Since the psych bot started pricing the
+    // streets still to come and choosing among five bet sizes (2026-09-27),
+    // the pure solve no longer beats its recreational character measurably —
+    // the psychology layer is not the weak one here.
     const blueprint = bot()
     const versusHeuristic = duplicate(blueprint, new HeuristicBot(createRng(2)), 2_000, 2)
     const versusPsych = duplicate(bot(), new PsychBot(AVERAGE_HUMAN, STACK, createRng(3)), 2_000, 3)
@@ -113,7 +114,8 @@ describe('the blueprint at a table', () => {
     // The bottom of a two-sigma interval, because a poker result inside its
     // own error bar is not a result.
     expect(versusHeuristic.rate - 2 * versusHeuristic.error).toBeGreaterThan(0)
-    expect(versusPsych.rate - 2 * versusPsych.error).toBeGreaterThan(0)
+    // Against the psych bot, only that the solve doesn't measurably lose.
+    expect(versusPsych.rate + 2 * versusPsych.error).toBeGreaterThan(0)
 
     // The translation from a real table into the abstraction is where a
     // solved strategy usually leaks, so it is worth knowing how often it

@@ -1,4 +1,10 @@
+import type { Card } from '../../poker/card'
+import { toCardInts } from '../../poker/fast/cards'
 import type { ActionType, GameState, PokerAction } from '../../poker/game-state'
+import { totalPot } from '../../poker/pot'
+import { DEFAULT_BUCKETS, NO_BUCKET, bucketOf } from '../../gto/holdem/buckets'
+import { positionLabels } from '../../poker/position'
+import { blindsFrom, sizeActions, sizeBucket, type SizeBucket } from './sizing'
 
 /**
  * What every bot at the table has learned about a specific opponent's
@@ -13,19 +19,23 @@ import type { ActionType, GameState, PokerAction } from '../../poker/game-state'
  * twenty hands gets read as likely to keep doing it, but that read does not
  * carry into tomorrow's sitting.
  *
- * Two things are learned, both visible in the action stream alone:
+ * Learned, all of it visible to anyone at the table:
  *
  *   aggression  how often they bet or raise, out of everything they do
  *   fold-to-bet how often they fold when they have a bet to call
  *
- * and each is only a read *relative to what is normal in that spot*. This
- * is the part that was once wrong and cost real chips: a single fixed
- * "balanced" aggression rate, set for a full table, read every heads-up
- * player as a maniac — heads-up, everyone bets far more, the solved
- * strategy included — and a bot acting on that read lost to the plain
- * solve it was built on (docs/combined-bot.md). So every action is recorded
- * with its setting, and compared against the normal *measured* for that
- * setting (`BASELINES`, reproduced by `npm run calibrate:reads`).
+ * and each is only a read *relative to what is normal in that spot*. Two
+ * more come from watching closely: how often they bet big rather than small,
+ * and — only from hands that reach a showdown, where their cards are turned
+ * over — how often their river bets, at each size, were bluffs.
+ *
+ * This is the part that was once wrong and cost real chips: a single fixed
+ * "balanced" aggression rate of 35% was far above what anyone does at a
+ * full table (about 12-15%), so almost everyone read as passive there, and
+ * a bot acting on those reads lost to the plain solve it was built on
+ * (docs/combined-bot.md). So every action is recorded with its setting and
+ * compared against the normal *measured* for that setting (`BASELINES`,
+ * reproduced by `npm run calibrate:reads`).
  *
  * Confidence builds with evidence instead of switching on at a cutoff: a
  * read is the observed difference from normal, shrunk toward zero by how
@@ -43,6 +53,23 @@ export interface ActionContext {
   facingBet: boolean
   /** Whether it came after the flop. Absent counts as preflop, which the postflop rates ignore. */
   postflop?: boolean
+  /** Chips in the middle, the bet to match, and what the one acting already has in this street — for sizing a bet. */
+  pot?: number
+  currentBet?: number
+  committed?: number
+}
+
+/**
+ * A hand that reached a showdown, as everyone at the table saw it: every
+ * action, the board, and the cards turned over.
+ */
+export interface ShowdownRecord {
+  actions: PokerAction[]
+  board: Card[]
+  shown: { playerId: string; cards: Card[] }[]
+  /** Blinds posted before anyone acted, by player — to rebuild the pot each bet went into. */
+  blinds: Map<string, number>
+  bigBlind: number
 }
 
 /**
@@ -57,6 +84,28 @@ export interface PostflopRates {
   fold: number
   call: number
   raise: number
+  /** Of their bets when checked to, the share that were large (see sizing.ts). */
+  large: number
+}
+
+/**
+ * The showdown in a finished hand, as the table saw it — or null if nobody's
+ * cards were turned over (everyone else folded). Read off the engine's own
+ * narration, which logs a reveal for every hand still in at showdown.
+ */
+export function showdownOf(state: GameState): ShowdownRecord | null {
+  const shown = state.handLog
+    .filter((entry) => entry.kind === 'reveal' && entry.playerId && entry.cards?.length === 2)
+    .map((entry) => ({ playerId: entry.playerId!, cards: entry.cards! }))
+  if (shown.length === 0) return null
+  const seats = [...positionLabels(state)].map(([id, position]) => ({ id, position }))
+  return {
+    actions: state.actionHistory,
+    board: state.communityCards,
+    shown,
+    blinds: blindsFrom(seats, state.config.bigBlind),
+    bigBlind: state.config.bigBlind,
+  }
 }
 
 export function settingOf(playersInHand: number): Setting {
@@ -70,6 +119,9 @@ export function actionContext(state: GameState, playerId: string): ActionContext
     playersInHand: state.players.filter((p) => !p.folded).length,
     facingBet: actor ? state.currentBet - actor.betThisStreet > 0 : false,
     postflop: state.street !== 'preflop',
+    pot: totalPot(state.players),
+    currentBet: state.currentBet,
+    committed: actor?.betThisStreet ?? 0,
   }
 }
 
@@ -83,12 +135,14 @@ export function actionContext(state: GameState, playerId: string): ActionContext
 export const BASELINES: Record<Setting, { aggression: number; foldToBet: number; postflop: PostflopRates }> = {
   // 4,000 hands of the solve against itself across all four trained depths:
   // 10,208 actions, 7,854 facing a bet; postflop, 1,865 checked-to spots and
-  // 837 facing a bet (2026-09-25).
-  headsUp: { aggression: 0.38, foldToBet: 0.34, postflop: { bet: 0.37, fold: 0.46, call: 0.36, raise: 0.17 } },
-  // 1,500 six-handed hands of the cast against itself, multiway spots only:
-  // 15,410 actions, 9,719 facing a bet; postflop, 5,052 checked-to spots and
-  // 1,485 facing a bet (2026-09-25).
-  multiway: { aggression: 0.15, foldToBet: 0.43, postflop: { bet: 0.15, fold: 0.56, call: 0.4, raise: 0.04 } },
+  // 837 facing a bet, 692 sized bets (2026-09-27).
+  headsUp: { aggression: 0.38, foldToBet: 0.34, postflop: { bet: 0.37, fold: 0.46, call: 0.36, raise: 0.17, large: 0.41 } },
+  // 1,500 six-handed hands of the cast against itself, multiway spots only,
+  // with the multiway preflop book: 11,186 actions, 8,397 facing a bet;
+  // postflop, 2,420 checked-to spots and 756 facing a bet, 419 sized bets
+  // (2026-09-27). Folding to a bet rose from 0.43 when the book arrived —
+  // it folds much more before the flop than instinct did.
+  multiway: { aggression: 0.14, foldToBet: 0.63, postflop: { bet: 0.17, fold: 0.54, call: 0.43, raise: 0.03, large: 0.3 } },
 }
 
 /**
@@ -100,6 +154,25 @@ const PRIOR_WEIGHT = 20
 
 const AGGRESSIVE: ReadonlySet<ActionType> = new Set(['bet', 'raise', 'all-in'])
 
+/**
+ * How many shown-down bets a showdown read is worth before it counts for
+ * half. Far fewer than for action frequencies: a single shown bluff is a
+ * fact about someone's cards, where a single raise is only a data point
+ * about their tendencies.
+ */
+const SHOWDOWN_PRIOR_WEIGHT = 8
+
+/**
+ * A shown bet counts as a bluff if the hand was in the bottom this share of
+ * all hands on the river board: not a hand that bet to be called by worse.
+ */
+const BLUFF_STRENGTH = 0.4
+
+interface ShownBets {
+  bets: number
+  bluffs: number
+}
+
 interface Tally {
   aggressive: number
   total: number
@@ -110,6 +183,9 @@ interface Tally {
   betWhenCheckedTo: number
   facedPostflop: number
   postflop: { fold: number; call: number; raise: number }
+  /** Bets when checked to whose size is known, and how many of those were large. */
+  sizedBets: number
+  largeBets: number
 }
 
 const emptyTally = (): Tally => ({
@@ -121,10 +197,13 @@ const emptyTally = (): Tally => ({
   betWhenCheckedTo: 0,
   facedPostflop: 0,
   postflop: { fold: 0, call: 0, raise: 0 },
+  sizedBets: 0,
+  largeBets: 0,
 })
 
 export class OpponentModel {
   private tallies = new Map<string, Record<Setting, Tally>>()
+  private shown = new Map<string, Record<SizeBucket, ShownBets>>()
 
   /** Records one action taken at the table, by whoever took it, in the spot they took it in. */
   observe(action: PokerAction, context: ActionContext): void {
@@ -148,8 +227,68 @@ export class OpponentModel {
       else tally.postflop.call++
     } else {
       tally.checkedTo++
-      if (AGGRESSIVE.has(action.type)) tally.betWhenCheckedTo++
+      if (AGGRESSIVE.has(action.type)) {
+        tally.betWhenCheckedTo++
+        if (context.pot !== undefined && context.pot > 0 && action.amount !== undefined) {
+          const fraction = (action.amount - (context.currentBet ?? 0)) / context.pot
+          tally.sizedBets++
+          if (sizeBucket(fraction) === 'large') tally.largeBets++
+        }
+      }
     }
+  }
+
+  /**
+   * Learns from a hand that went to showdown: every river bet or raise made
+   * by someone whose cards were then shown is scored as value or bluff, by
+   * where their hand stood among all hands on that board, and filed under
+   * its size.
+   *
+   * Only river bets, deliberately. A river bet is called or not by someone
+   * who can't see the bettor's cards, so the ones that reach a showdown are
+   * a fair sample of all of them. An earlier bet reaches showdown only if the
+   * bettor kept going — and bluffs are exactly the bets that give up later —
+   * so counting them would read every player as more honest than they are,
+   * and the one mistake this bot has measurably paid for is reading bets as
+   * stronger than they are (docs/combined-bot.md).
+   */
+  observeShowdown(record: ShowdownRecord): void {
+    if (record.board.length < 5) return
+    const board = toCardInts(record.board)
+    const holes = new Map(record.shown.map((s) => [s.playerId, toCardInts(s.cards)]))
+    for (const sized of sizeActions(record.actions, record.blinds, record.bigBlind)) {
+      if (sized.street !== 'river' || sized.fraction === null) continue
+      const hole = holes.get(sized.action.playerId)
+      if (!hole || hole.length !== 2) continue
+      const bucket = bucketOf([hole[0], hole[1]], board, DEFAULT_BUCKETS)
+      if (bucket === NO_BUCKET) continue
+      let byPlayer = this.shown.get(sized.action.playerId)
+      if (!byPlayer) {
+        byPlayer = { small: { bets: 0, bluffs: 0 }, large: { bets: 0, bluffs: 0 } }
+        this.shown.set(sized.action.playerId, byPlayer)
+      }
+      const tally = byPlayer[sizeBucket(sized.fraction)]
+      tally.bets++
+      if ((bucket + 0.5) / DEFAULT_BUCKETS < BLUFF_STRENGTH) tally.bluffs++
+    }
+  }
+
+  /**
+   * The share of this player's bets of this size that are bluffs: `prior`
+   * (what the bot would believe without having seen their cards), moved
+   * toward what their shown river bets actually were, by how many have been
+   * seen. Exactly `prior` for a player never seen at showdown.
+   */
+  showdownBluffShare(playerId: string, size: SizeBucket, prior: number): number {
+    const tally = this.shown.get(playerId)?.[size]
+    if (!tally || tally.bets === 0) return prior
+    return (tally.bluffs + SHOWDOWN_PRIOR_WEIGHT * prior) / (tally.bets + SHOWDOWN_PRIOR_WEIGHT)
+  }
+
+  /** How many of this player's bets have been seen at showdown, of either size. */
+  shownBets(playerId: string): number {
+    const byPlayer = this.shown.get(playerId)
+    return byPlayer ? byPlayer.small.bets + byPlayer.large.bets : 0
   }
 
   /**
@@ -168,6 +307,7 @@ export class OpponentModel {
       fold: blend(tally.postflop.fold, tally.facedPostflop, normal.fold),
       call: blend(tally.postflop.call, tally.facedPostflop, normal.call),
       raise: blend(tally.postflop.raise, tally.facedPostflop, normal.raise),
+      large: blend(tally.largeBets, tally.sizedBets, normal.large),
     }
   }
 

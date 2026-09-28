@@ -26,6 +26,8 @@ strategy for heads-up spots, with a different character in each seat, drawn fres
 - [`human-strategy-gaps.md`](./human-strategy-gaps.md) — poker strategies real players use that no bot does
   yet, basics and advanced, each with a concrete implementation suggestion and a suggested order. Not a
   plan; nothing in it is scoped or committed to.
+- [`multiway-preflop.md`](./multiway-preflop.md) — the solved preflop book for three to six players: the
+  game, how it's trained, and how far from equilibrium it measures.
 
 ## Engine & rules — `src/poker/`
 
@@ -66,15 +68,29 @@ model does, and what the characters vary:
     deep-stacked bot doesn't fold a trivial-relative-size raise as readily as a short-stacked one would
     (`STAKE_REFERENCE_FRACTION`).
   - A shared, per-table `OpponentModel` (`opponent-model.ts`): every bot learns each opponent's aggression
-    and fold-to-a-bet rates from their public actions this session (never their cards). Each read is
-    against what's *normal in that setting*, heads-up or multiway: baselines measured by
+    and fold-to-a-bet rates, and how often their bets are big, from their public actions this session.
+    Each read is against what's *normal in that setting*, heads-up or multiway: baselines measured by
     `npm run calibrate:reads`, since one fixed number once read a whole full table as passive. Confidence
     grows with the number of actions seen.
+  - Showdown memory (`OpponentModel.observeShowdown`): when cards are turned over, every river bet the
+    player made is scored as value or bluff by where the hand stood on that board, filed by size. That
+    moves the bot's belief about how often this player's bets of that size are bluffs. Only river bets
+    count, because bluffs that give up on a later street never reach a showdown. It feeds the air share
+    of a bettor's range; the bettor's range itself is still not read from the hand for calling decisions
+    (switching to that once showdowns were seen measured no better — `combined-bot.md`).
+  - Bet sizes (`sizing.ts`): five sizes priced separately (a third, half, three quarters, pot, 1.5× pot),
+    each for what folds to it, what calls, and what those calling hands are. Facing a bet, its size is
+    read: big bets from the top of a range with the bluffs believed for that size, small ones from just
+    below the top.
+  - The streets still to come (`math/equity.ts`'s `multiwayShowdown`): a showdown is valued with the
+    money that goes in later when both hands turn out good. Implied odds for draws and hidden strong hands,
+    reverse implied odds for top pair against strength. This replaced the old "shrink equity toward a coin
+    flip" discount.
   - Range reading across the whole hand (`range-reading.ts`): every opponent who has acted is read street
     by street by Bayes' rule over all 1,326 combos. Each postflop action is cut relative to what they can
     still hold, at the rate that player is seen taking it; the engine stamps each recorded action with its
     street for this. One measured exception: a bettor's range isn't used for deciding whether to call
-    them, because without showdown information their bluff share can't be read.
+    them (see showdown memory below).
   - Blocker-aware fold equity (`range-reading.ts`'s `splitAgainstBet`): an opponent continues with strong
     hands plus the top share of their *own* range, decided without seeing the hero's cards. The hero's
     cards are then removed from what's possible, so holding a card their calling hands need makes a bluff
@@ -87,11 +103,12 @@ model does, and what the characters vary:
   - Randomized per table: which archetype (`profile.ts`'s `CAST`) sits where, and each instance's own
     level-k depth, confidence and discipline (`randomizeProfile`).
 - **Combined with the solved strategy** (`docs/combined-bot.md`): once the trained CFR strategies download,
-  every bot gets them (`useFundamentals`). Wherever a hand is heads-up at a trained depth, the bot
-  blends the solve's mixed strategy with its own valuation, KL-regularized ("piKL"). How much it
-  trusts the solve is the character's `discipline`, which tilt wears down. `PRO` (discipline 0.85) plays
-  near the solve; the recreational characters (0.1–0.15) mostly play instinct. Multiway, or at an
-  untrained depth, it's pure instinct. Measured heads-up with `npm run benchmark:pro`. A calibrated read on
+  every bot gets them (`useFundamentals`): the multiway preflop book first, then the heads-up blueprints
+  (`firstAnswer`). Wherever one has an answer (before the flop with three or more dealt in, or any street
+  heads-up at a trained depth), the bot blends the solve's mixed strategy with its own valuation,
+  KL-regularized ("piKL"). How much it trusts the solve is the character's `discipline`, which tilt wears
+  down. `PRO` (discipline 0.85) plays near the solve; the recreational characters (0.1–0.15) mostly play
+  instinct. Multiway after the flop, or at an untrained depth, it's pure instinct. Measured heads-up with `npm run benchmark:pro`. A calibrated read on
   the heads-up opponent adjusts the solve's mix directly first (`exploits.ts`): call a bluffer down
   lighter, bluff an over-folder more, stop bluffing a calling station.
 - **Not seated any more:** `heuristic-bot.ts` (pot odds and three thresholds) stays as the cheap engine
@@ -107,8 +124,13 @@ oracle to check against.
 
 - `holdem/abstract-holdem.ts`: the abstracted game CFR actually solves — bucketed hand strength, three bet
   sizes (half-pot/pot/all-in), capped raises. Heads-up only, deliberately: CFR's convergence guarantee is
-  a two-player zero-sum theorem, and there's no equilibrium a multiway solve would even be converging
-  toward.
+  a two-player zero-sum theorem. Past two players equilibria still exist, but nothing promises CFR finds
+  one, so a multiway solve is only honest where its distance from equilibrium can be measured.
+- `holdem/preflop-multiway.ts` / `preflop-multiway-bot.ts`: exactly that case: preflop with three to six
+  players, trained by N-player external-sampling MCCFR at 8/20/40/100bb (`npm run train:preflop`, 16 files,
+  about 1 MB). It reproduces the exact heads-up push/fold solution when given that game, and a sampled best
+  response measures it at ≤ 0.02–0.19 bb/hand from equilibrium where that's affordable to check
+  (`docs/multiway-preflop.md`).
 - `holdem/buckets.ts`: real, card-removal-correct, run-out-sampled percentile hand strength per board,
   cached per canonical board.
 - `holdem/isomorphism.ts`: lossless suit-symmetry board reduction (22,100 flops → 1,755 canonical ones).
@@ -121,7 +143,7 @@ oracle to check against.
 
 ## Verification, as of this writing
 
-440 tests as of the last full run; `npx vitest run`, `npx tsc -b` and `npx oxlint` are all clean. Re-run
+483 tests as of the last full run (2026-09-27); `npx vitest run`, `npx tsc -b` and `npx oxlint` are all clean. Re-run
 them rather than trust this number — it moves.
 
 **Use `npx tsc -b`, not `npx tsc --noEmit -p .`**: `tsconfig.json` only lists project references, so
@@ -132,7 +154,8 @@ claims made with it were hollow, though the code passed `tsc -b` once checked). 
 ## Deliberately not built
 
 - Omaha or other variants.
-- A multiway (3+ player) CFR solve — see the note in `abstract-holdem.ts`'s own top comment for why this
-  isn't just unimplemented, it's out of scope on purpose.
+- A multiway (3+ player) CFR solve *after the flop*. Preflop is solved (above), where the distance from
+  equilibrium can be measured; the full multiway game can't be, which is why `abstract-holdem.ts` stops at
+  heads-up.
 - A UI toggle or settings screen for anything AI-related — there isn't one, by design; the bot mix is
   always on, always randomized, nothing to configure.
