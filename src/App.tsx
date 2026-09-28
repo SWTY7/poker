@@ -15,7 +15,6 @@ import {
   claimDailyStake,
   defaultProfile,
   loadProfile,
-  recordCashSession,
   recordTournamentResult,
   saveProfile,
   type Profile,
@@ -29,10 +28,17 @@ import {
   type Standing,
   type TournamentStructure,
 } from './game/tournament'
+import { loadMode, profileAfterTableExit, saveMode, type GameMode } from './game/mode'
 
 interface CashEntry {
   mode: 'cash'
   buyIn: number
+}
+
+/** Quick Play: nothing was bought in, so there is nothing to settle on the way out. */
+interface QuickEntry {
+  mode: 'quick'
+  buyIn: 0
 }
 
 interface TournamentGameEntry {
@@ -43,11 +49,12 @@ interface TournamentGameEntry {
   prizePool: number
 }
 
-type GameEntry = CashEntry | TournamentGameEntry
+type GameEntry = CashEntry | QuickEntry | TournamentGameEntry
 
 type Screen =
   | { kind: 'lobby' }
   | { kind: 'cash-setup' }
+  | { kind: 'quick-setup' }
   | { kind: 'tournament-setup' }
   | { kind: 'game'; config: GameConfigOptions; entry: GameEntry }
   | { kind: 'results'; outcome: TournamentOutcome }
@@ -65,7 +72,7 @@ interface TournamentExitPayload {
 interface GameScreenProps {
   config: GameConfigOptions
   entry: GameEntry
-  onCashExit: (finalStack: number, handsPlayed: number, biggestPot: number) => void
+  onTableExit: (finalStack: number, handsPlayed: number, biggestPot: number) => void
   onTournamentExit: (payload: TournamentExitPayload) => void
 }
 
@@ -76,7 +83,7 @@ interface GameScreenProps {
  * a tournament's doesn't — a bust or a quit is the only outcome the profile
  * ever sees.
  */
-function GameScreen({ config, entry, onCashExit, onTournamentExit }: GameScreenProps) {
+function GameScreen({ config, entry, onTableExit, onTournamentExit }: GameScreenProps) {
   const game = useHoldemGame(config)
   const reportedRef = useRef(false)
 
@@ -112,8 +119,8 @@ function GameScreen({ config, entry, onCashExit, onTournamentExit }: GameScreenP
     const humanId = game.humanIds[0]
     const finalStack = game.state?.players.find((p) => p.id === humanId)?.stack ?? config.startingStack
 
-    if (entry.mode === 'cash') {
-      onCashExit(finalStack, game.session.handsPlayed, game.session.biggestPot)
+    if (entry.mode !== 'tournament') {
+      onTableExit(finalStack, game.session.handsPlayed, game.session.biggestPot)
       return
     }
 
@@ -164,6 +171,7 @@ function GameScreen({ config, entry, onCashExit, onTournamentExit }: GameScreenP
       startingStack={config.startingStack}
       canStartHand={game.canStartHand()}
       tournament={tournamentHud}
+      practice={entry.mode === 'quick'}
     />
   )
 }
@@ -171,6 +179,7 @@ function GameScreen({ config, entry, onCashExit, onTournamentExit }: GameScreenP
 function App() {
   const [profile, setProfile] = useState<Profile>(() => loadProfile())
   const [screen, setScreen] = useState<Screen>({ kind: 'lobby' })
+  const [mode, setMode] = useState<GameMode>(() => loadMode())
 
   // The bankroll is the one thing in this app that has to survive a closed
   // tab, so every change to it is written straight through rather than only
@@ -181,6 +190,15 @@ function App() {
   }, [profile])
 
   const goLobby = () => setScreen({ kind: 'lobby' })
+
+  const handleModeChange = (next: GameMode) => {
+    setMode(next)
+    saveMode(next)
+  }
+
+  const handleStartQuick = (config: GameConfigOptions) => {
+    setScreen({ kind: 'game', config, entry: { mode: 'quick', buyIn: 0 } })
+  }
 
   const handleStartCash = (config: GameConfigOptions) => {
     if (!canAffordBuyIn(profile.bankroll, config.startingStack)) return
@@ -216,10 +234,10 @@ function App() {
     })
   }
 
-  const handleCashExit = (finalStack: number, handsPlayed: number, biggestPot: number) => {
-    if (screen.kind === 'game' && screen.entry.mode === 'cash') {
-      const buyIn = screen.entry.buyIn
-      setProfile((p) => recordCashSession(p, { buyIn, finalStack, handsPlayed, biggestPot }))
+  const handleTableExit = (finalStack: number, handsPlayed: number, biggestPot: number) => {
+    if (screen.kind === 'game' && screen.entry.mode !== 'tournament') {
+      const entry = screen.entry
+      setProfile((p) => profileAfterTableExit(p, entry, { finalStack, handsPlayed, biggestPot }))
     }
     goLobby()
   }
@@ -266,6 +284,9 @@ function App() {
       return (
         <Lobby
           profile={profile}
+          mode={mode}
+          onModeChange={handleModeChange}
+          onChooseQuick={() => setScreen({ kind: 'quick-setup' })}
           onClaimDailyStake={() => setProfile((p) => claimDailyStake(p))}
           onResetProfile={() => setProfile(defaultProfile())}
           onChooseCash={() => setScreen({ kind: 'cash-setup' })}
@@ -274,11 +295,13 @@ function App() {
       )
     case 'cash-setup':
       return <MenuScreen bankroll={profile.bankroll} onBack={goLobby} onStart={handleStartCash} />
+    case 'quick-setup':
+      return <MenuScreen variant="quick" onBack={goLobby} onStart={handleStartQuick} />
     case 'tournament-setup':
       return <TournamentSetup bankroll={profile.bankroll} onBack={goLobby} onRegister={handleRegisterTournament} />
     case 'game':
       return (
-        <GameScreen config={screen.config} entry={screen.entry} onCashExit={handleCashExit} onTournamentExit={handleTournamentExit} />
+        <GameScreen config={screen.config} entry={screen.entry} onTableExit={handleTableExit} onTournamentExit={handleTournamentExit} />
       )
     case 'results':
       return <TournamentResults outcome={screen.outcome} onBackToLobby={goLobby} />

@@ -44,8 +44,15 @@ this layer hasn't needed rework since the milestones in the v1 plan.
 - `profile.ts`: a versioned, `localStorage`-backed bankroll with lifetime stats and a daily stake (a
   small top-up once per calendar day if the bankroll runs low).
 - `tournament.ts`: blind structures, geometric blind escalation, payout brackets, standings.
+- `mode.ts`: Quick Play or Career, saved under `poker.mode` (Career by default), and
+  `profileAfterTableExit`, which settles a cash game against its buy-in and leaves the profile untouched
+  for Quick Play.
 
 ## The table UI — `src/ui/`
+
+The lobby opens on a Quick Play / Career toggle (`docs/plans/game-modes.md` step 1). Quick Play is a practice
+table: `MenuScreen`'s `variant="quick"` (any stack depth, no bankroll, its own saved setup under
+`poker.quickConfig`), and leaving it records nothing. Career is everything below.
 
 Lobby → cash-game/tournament setup → table → results, all built on a shared `menu-*` visual vocabulary. A
 poker chip + spade favicon, chip-denomination-colored bankroll/buy-in displays, a positional seat legend, a
@@ -152,7 +159,7 @@ oracle to check against.
 
 ## Verification, as of this writing
 
-498 tests as of the last full run (2026-09-28); `npx vitest run`, `npx tsc -b` and `npx oxlint` are all clean. Re-run
+504 tests as of the last full run (2026-09-28); `npx vitest run`, `npx tsc -b` and `npx oxlint` are all clean. Re-run
 them rather than trust this number — it moves.
 
 **Use `npx tsc -b`, not `npx tsc --noEmit -p .`**: `tsconfig.json` only lists project references, so

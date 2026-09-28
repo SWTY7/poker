@@ -467,3 +467,20 @@
   color: var(--warn);
   font-weight: 700;
 }
+
+/* ---------- Quick Play / Career ---------- */
+
+.lobby-mode-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.lobby-mode-toggle .menu-option {
+  font-size: var(--fs-sm);
+  padding: 0.6rem 0.4rem;
+}
+
+.lobby-doors-single {
+  grid-template-columns: 1fr;
+}
