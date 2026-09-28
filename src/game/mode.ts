@@ -3,13 +3,14 @@ import type { Profile } from './profile'
 import { recordCashSession } from './profile'
 
 /**
- * The two ways into the app. Quick Play is a practice table: pick a game and
+ * The ways into the app. Quick Play is a practice table: pick a game and
  * play it, nothing is bought in and nothing is recorded. Career is the lobby
  * with a bankroll, cash games and tournaments, where every session counts.
+ * Home Game is for friends with a real deck: the phones only keep the chips.
  */
-export type GameMode = 'quick' | 'career'
+export type GameMode = 'quick' | 'career' | 'home'
 
-export const GAME_MODES: readonly GameMode[] = ['quick', 'career']
+export const GAME_MODES: readonly GameMode[] = ['quick', 'career', 'home']
 
 export const MODE_STORAGE_KEY = 'poker.mode'
 

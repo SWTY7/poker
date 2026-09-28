@@ -19,6 +19,11 @@ interface LobbyProps {
   onChooseTournament: () => void
   career: CareerData
   onChooseCareer: () => void
+  /** Home Game: a room this phone was hosting, to reopen after a reload. */
+  savedRoom: string | null
+  onHostGame: () => void
+  onResumeRoom: () => void
+  onJoinGame: () => void
 }
 
 /**
@@ -48,6 +53,10 @@ export function Lobby({
   onChooseTournament,
   career,
   onChooseCareer,
+  savedRoom,
+  onHostGame,
+  onResumeRoom,
+  onJoinGame,
 }: LobbyProps) {
   const [confirmingReset, setConfirmingReset] = useState(false)
   const canClaim = canClaimDailyStake(profile)
@@ -75,7 +84,9 @@ export function Lobby({
           <div className="menu-subtitle">
             {mode === 'quick'
               ? 'Pick a table and play. Nothing here touches your bankroll.'
-              : 'Your bankroll, your record, and a table to sit down at.'}
+              : mode === 'home'
+                ? 'Friends, a real deck, and phones instead of chips.'
+                : 'Your bankroll, your record, and a table to sit down at.'}
           </div>
         </div>
 
@@ -85,6 +96,7 @@ export function Lobby({
               [
                 ['quick', 'Quick Play'],
                 ['career', 'Career'],
+                ['home', 'Home Game'],
               ] as const
             ).map(([value, label]) => (
               <button
@@ -100,7 +112,33 @@ export function Lobby({
             ))}
           </div>
 
-          {mode === 'quick' ? (
+          {mode === 'home' ? (
+            <section className="lobby-doors">
+              {savedRoom && (
+                <button type="button" className="lobby-door lobby-door-wide" onClick={onResumeRoom}>
+                  <span className="lobby-door-icon">
+                    <DealIcon />
+                  </span>
+                  <span className="lobby-door-title">Reopen room {savedRoom}</span>
+                  <span className="lobby-door-copy">The game you were hosting, stacks and all. Players reconnect by themselves.</span>
+                </button>
+              )}
+              <button type="button" className="lobby-door" onClick={onHostGame}>
+                <span className="lobby-door-icon">
+                  <TrophyIcon />
+                </span>
+                <span className="lobby-door-title">Host a game</span>
+                <span className="lobby-door-copy">Open a room, deal the real cards, and run the showdowns.</span>
+              </button>
+              <button type="button" className="lobby-door" onClick={onJoinGame}>
+                <span className="lobby-door-icon">
+                  <DealIcon />
+                </span>
+                <span className="lobby-door-title">Join a game</span>
+                <span className="lobby-door-copy">Enter the host’s room number and play from your phone.</span>
+              </button>
+            </section>
+          ) : mode === 'quick' ? (
             <section className="lobby-doors lobby-doors-single">
               <button type="button" className="lobby-door" onClick={onChooseQuick}>
                 <span className="lobby-door-icon">

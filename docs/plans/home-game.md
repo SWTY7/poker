@@ -92,7 +92,22 @@ reload with the joiner reconnecting to the same seat mid-hand.*
 - Tests: the protocol and reducer glue, with a fake in-memory transport. The real connection is checked in
   the browser with two tabs.
 
-### 3. Screens
+### 3. Screens — done 2026-09-28
+
+*Home Game is a third lobby mode (`mode.ts`), with Host / Join doors and "Reopen room N" when this phone
+was hosting. `src/ui/home/`: `HomeEntry` (host setup: stakes and "I'm playing too"; join: room number and
+name), `HomeTable` (shared by host and players; dealer controls, showdown picker, seat and stack editing,
+and blinds only on the host), and `useHomeRoom` (hooks around `peer.ts`). `src/home/saved.ts` keeps the
+host's room (`poker.home.host`) and this phone's player id (`poker.home.me`). A link `…/?room=1234` opens
+straight onto joining. Found and fixed during the browser check:*
+- *the host's own seat read as offline*
+- *"all-in" labels outlived the hand*
+- *a joiner could hang on an attempt that neither opened nor failed, so it now retries after 8 s*
+- *a signalling reconnect could start a second connection*
+
+*Checked with a host and two joiners in three tabs over real PeerJS: join by link, a stack edit, a
+three-way all-in with a side pot, dealing the board out, a split main pot, undo, a host reload with "Reopen
+room" (both joiners back within about 2 s), joiners reloading into their own seats, and phone width.*
 
 - Lobby Home Game mode, Host setup, Join, the shared table view (phone-first), the host's dealer controls,
   and the showdown picker. Built on the existing `menu-*` and table visual vocabulary.

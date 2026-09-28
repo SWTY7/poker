@@ -65,6 +65,16 @@ describe('joining', () => {
     expect(host.state.phase).toBe('betting')
   })
 
+  it('counts the host’s own seat as connected: the room runs on that phone', () => {
+    const host = new HostCore(newTable(CONFIG))
+    host.hostPlayerId = 'hana'
+    host.command({ type: 'join', id: 'hana', name: 'Hana' })
+    const views: string[][] = []
+    host.onView = (view) => views.push(view.connected)
+    host.announce()
+    expect(views).toEqual([['hana']])
+  })
+
   it('ignores anything that isn’t a message it knows', () => {
     const host = new HostCore(newTable(CONFIG))
     const junk = phone(host, 'j')

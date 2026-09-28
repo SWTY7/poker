@@ -69,6 +69,10 @@ export class HostCore {
   private table: HomeState
   private links = new Map<string, Link>()
   private readonly onChange: (state: HomeState) => void
+  /** The host's own seat, if the host plays: always connected, since the room runs on that phone. */
+  hostPlayerId: string | null = null
+  /** Called with what every phone now sees, for the host's own screen: after any change, or a phone connecting or dropping. */
+  onView: (view: TableView) => void = () => {}
 
   constructor(state: HomeState, onChange: (state: HomeState) => void = () => {}) {
     this.table = state
@@ -81,7 +85,9 @@ export class HostCore {
 
   /** Player ids with at least one live connection. */
   connected(): string[] {
-    return [...new Set([...this.links.values()].map((l) => l.playerId).filter((id): id is string => id !== undefined))]
+    const ids = [...this.links.values()].map((l) => l.playerId).filter((id): id is string => id !== undefined)
+    if (this.hostPlayerId) ids.push(this.hostPlayerId)
+    return [...new Set(ids)]
   }
 
   view(): TableView {
@@ -145,13 +151,20 @@ export class HostCore {
     this.broadcast()
   }
 
+  /** Sends the current table to every phone and to `onView`, e.g. once the host's screen starts listening. */
+  announce(): void {
+    this.broadcast()
+  }
+
   private apply(command: Command): void {
     this.table = reduce(this.table, command)
     this.onChange(this.table)
   }
 
   private broadcast(): void {
-    const message: ToJoiner = { v: PROTOCOL, t: 'state', view: this.view() }
+    const view = this.view()
+    this.onView(view)
+    const message: ToJoiner = { v: PROTOCOL, t: 'state', view }
     for (const link of this.links.values()) {
       if (link.playerId) link.send(message)
     }
