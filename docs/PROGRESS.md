@@ -47,12 +47,20 @@ this layer hasn't needed rework since the milestones in the v1 plan.
 - `mode.ts`: Quick Play or Career, saved under `poker.mode` (Career by default), and
   `profileAfterTableExit`, which settles a cash game against its buy-in and leaves the profile untouched
   for Quick Play.
+- `rivals.ts`: twelve rivals who remember you and whom you remember, across sessions, saved under
+  `poker.rivals`. Each rival is a `CAST` character with a fixed seed, so it plays the same every time. A solo
+  Career table (cash or tournament) seats rivals plus about a third walk-ins, who are random and never
+  remembered. `RivalSession` pools the seated rivals' saved reads on you (averaged, faded by 0.7), seats
+  anyone who left steaming already tilted, and after every hand saves each rival's public stats (VPIP, PFR,
+  fold-to-bet, river bluffs seen at showdown), your net against them, their read on you, and how hot
+  they'll arrive next time. Pass-and-play and Quick Play have no rivals.
 
 ## The table UI — `src/ui/`
 
 The lobby opens on a Quick Play / Career toggle (`docs/plans/game-modes.md` step 1). Quick Play is a practice
 table: `MenuScreen`'s `variant="quick"` (any stack depth, no bankroll, its own saved setup under
-`poker.quickConfig`), and leaving it records nothing. Career is everything below.
+`poker.quickConfig`), and leaving it records nothing. Career is everything below. A solo Career game shows
+`TableSeating` (who's at the table, with scouting notes on rivals seen 30+ hands) before the buy-in is taken.
 
 Lobby → cash-game/tournament setup → table → results, all built on a shared `menu-*` visual vocabulary. A
 poker chip + spade favicon, chip-denomination-colored bankroll/buy-in displays, a positional seat legend, a
@@ -159,7 +167,7 @@ oracle to check against.
 
 ## Verification, as of this writing
 
-504 tests as of the last full run (2026-09-28); `npx vitest run`, `npx tsc -b` and `npx oxlint` are all clean. Re-run
+523 tests as of the last full run (2026-09-28); `npx vitest run`, `npx tsc -b` and `npx oxlint` are all clean. Re-run
 them rather than trust this number — it moves.
 
 **Use `npx tsc -b`, not `npx tsc --noEmit -p .`**: `tsconfig.json` only lists project references, so

@@ -34,7 +34,20 @@ The psychology track's hand-review toggle goes in `MenuScreen`'s "Study aids" gr
   with no bankroll entry. `App.tsx`'s game exit must not record anything to the profile in this mode.
 - Tests: Quick Play never changes the profile; the lobby toggle persists.
 
-### 2. Rivals
+### 2. Rivals — done 2026-09-28
+
+*Built in `src/game/rivals.ts` (tests: `tests/game/rivals.test.ts`) with two calls in `useHoldemGame.ts`
+(`rivals.seated` when the table is built, `rivals.handEnded` when a hand ends) and a `TableSeating` screen.
+Decisions made along the way:*
+- *Rivals sit only at **solo** Career tables. Pass-and-play has no single "you" to remember, so it keeps the
+  random table.*
+- *Reads: when several rivals sit together they saw the same hands, so their saved reads are averaged, not
+  added, then faded by `READ_DECAY` (0.7). After every hand each seated rival saves the table's read on you.*
+- *Net against a rival: exact heads-up. Multiway, a winner's gain is split across the losers by what each lost.*
+- *Pre-tilt (`carryTilt`, 0..1): the larger of busted by you (1), the biggest pot lost to you as a share of
+  the starting stack, and their tilt at the last hand divided by their own `kappa`.*
+- *Everything is saved after every hand, so there's no "session end" step to miss if the tab closes.*
+- *Walk-ins: about a third of the bot seats (`walkInCount`), names from a separate pool.*
 
 - `src/game/rivals.ts`: a fixed roster (about 12). Each rival has a stable id, name, avatar, archetype from
   `ai/psychology/profile.ts`'s `CAST`, and a **personality seed**, so `randomizeProfile` gives the same jitter

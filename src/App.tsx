@@ -5,6 +5,7 @@ import { Lobby } from './ui/Lobby'
 import { TournamentSetup } from './ui/TournamentSetup'
 import type { TournamentEntry } from './ui/TournamentSetup'
 import { TournamentResults } from './ui/TournamentResults'
+import { TableSeating } from './ui/TableSeating'
 import type { TournamentOutcome } from './ui/TournamentResults'
 import { Table } from './ui/Table'
 import { useHoldemGame } from './ui/useHoldemGame'
@@ -29,6 +30,8 @@ import {
   type TournamentStructure,
 } from './game/tournament'
 import { loadMode, profileAfterTableExit, saveMode, type GameMode } from './game/mode'
+import { RivalSession, loadRivals, planTable, saveRivals, type SeatPlan } from './game/rivals'
+import { createRng } from './utils/random'
 
 interface CashEntry {
   mode: 'cash'
@@ -56,6 +59,7 @@ type Screen =
   | { kind: 'cash-setup' }
   | { kind: 'quick-setup' }
   | { kind: 'tournament-setup' }
+  | { kind: 'seating'; config: GameConfigOptions; entry: CashEntry | TournamentGameEntry; seats: SeatPlan[]; title: string }
   | { kind: 'game'; config: GameConfigOptions; entry: GameEntry }
   | { kind: 'results'; outcome: TournamentOutcome }
 
@@ -200,16 +204,42 @@ function App() {
     setScreen({ kind: 'game', config, entry: { mode: 'quick', buyIn: 0 } })
   }
 
+  /** Takes the buy-in and deals. The one place a Career game's money leaves the bankroll. */
+  const beginCareerGame = (config: GameConfigOptions, entry: CashEntry | TournamentGameEntry) => {
+    if (!canAffordBuyIn(profile.bankroll, entry.buyIn)) return
+    setProfile((p) => applyBuyIn(p, entry.buyIn))
+    setScreen({ kind: 'game', config, entry })
+  }
+
+  /**
+   * A solo Career table seats rivals and walk-ins, and you see who's there
+   * before the buy-in is taken. Pass-and-play has no single "you" for a rival
+   * to remember, so it deals straight in with a random table as before.
+   */
+  const toTable = (config: GameConfigOptions, entry: CashEntry | TournamentGameEntry, title: string) => {
+    if (!canAffordBuyIn(profile.bankroll, entry.buyIn)) return
+    if (config.humanCount !== 1) {
+      beginCareerGame(config, entry)
+      return
+    }
+    setScreen({ kind: 'seating', config, entry, seats: planTable(config.playerCount - 1, createRng()), title })
+  }
+
+  const handleSit = () => {
+    if (screen.kind !== 'seating') return
+    const rivals = new RivalSession(loadRivals(), screen.seats, screen.config.startingStack, saveRivals)
+    beginCareerGame({ ...screen.config, rivals }, screen.entry)
+  }
+
   const handleStartCash = (config: GameConfigOptions) => {
-    if (!canAffordBuyIn(profile.bankroll, config.startingStack)) return
-    setProfile((p) => applyBuyIn(p, config.startingStack))
-    setScreen({ kind: 'game', config, entry: { mode: 'cash', buyIn: config.startingStack } })
+    toTable(
+      config,
+      { mode: 'cash', buyIn: config.startingStack },
+      `$${config.smallBlind}/$${config.bigBlind} cash game, $${config.startingStack.toLocaleString()} buy-in`,
+    )
   }
 
   const handleRegisterTournament = (registration: TournamentEntry) => {
-    if (!canAffordBuyIn(profile.bankroll, registration.buyIn)) return
-    setProfile((p) => applyBuyIn(p, registration.buyIn))
-
     const opening = blindLevel(registration.structure, 1)
     const config: GameConfigOptions = {
       playerCount: registration.fieldSize,
@@ -221,17 +251,17 @@ function App() {
       showHandOdds: false,
       tournament: { structure: registration.structure },
     }
-    setScreen({
-      kind: 'game',
+    toTable(
       config,
-      entry: {
+      {
         mode: 'tournament',
         buyIn: registration.buyIn,
         fieldSize: registration.fieldSize,
         structure: registration.structure,
         prizePool: registration.buyIn * registration.fieldSize,
       },
-    })
+      `${registration.structure.name} tournament, ${registration.fieldSize} players, $${registration.buyIn.toLocaleString()} buy-in`,
+    )
   }
 
   const handleTableExit = (finalStack: number, handsPlayed: number, biggestPot: number) => {
@@ -299,6 +329,10 @@ function App() {
       return <MenuScreen variant="quick" onBack={goLobby} onStart={handleStartQuick} />
     case 'tournament-setup':
       return <TournamentSetup bankroll={profile.bankroll} onBack={goLobby} onRegister={handleRegisterTournament} />
+    case 'seating':
+      return (
+        <TableSeating seats={screen.seats} rivals={loadRivals()} title={screen.title} onSit={handleSit} onBack={goLobby} />
+      )
     case 'game':
       return (
         <GameScreen config={screen.config} entry={screen.entry} onTableExit={handleTableExit} onTournamentExit={handleTournamentExit} />
