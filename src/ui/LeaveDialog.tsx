@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { ordinal } from '../utils/format'
+import type { ReadLine } from '../review/table-read'
 
 interface LeaveDialogProps {
   handsPlayed: number
@@ -19,6 +20,8 @@ interface LeaveDialogProps {
   tournament?: { playersRemaining: number; fieldSize: number }
   /** Quick Play: the same summary, but worded as a practice table, since nothing was bought in or goes back to the bankroll. */
   practice?: boolean
+  /** What the bots learned about you this sitting, in plain words. Nothing is shown when empty. */
+  read?: ReadLine[]
 }
 
 /**
@@ -45,6 +48,7 @@ export function LeaveDialog({
   onCancel,
   tournament,
   practice = false,
+  read,
 }: LeaveDialogProps) {
   const cancelRef = useRef<HTMLButtonElement>(null)
 
@@ -115,6 +119,19 @@ export function LeaveDialog({
               </div>
             )}
           </div>
+        )}
+
+        {read && read.length > 0 && (
+          <section className="table-read" aria-label="What the table thinks of you">
+            <h3 className="menu-section">What the table thinks of you</h3>
+            <ul className="table-read-list">
+              {read.map((line) => (
+                <li key={line.text}>
+                  {line.text} <span className="table-read-sample">({Math.round(line.sample)} seen)</span>
+                </li>
+              ))}
+            </ul>
+          </section>
         )}
 
         {handInProgress && (

@@ -5,6 +5,7 @@ import { Lobby } from './ui/Lobby'
 import { TournamentSetup } from './ui/TournamentSetup'
 import type { TournamentEntry } from './ui/TournamentSetup'
 import { TournamentResults } from './ui/TournamentResults'
+import { YourPlay } from './ui/YourPlay'
 import { TableSeating } from './ui/TableSeating'
 import { CareerHub } from './ui/CareerHub'
 import { HostEntry, JoinEntry, type HostSetup } from './ui/home/HomeEntry'
@@ -88,6 +89,7 @@ type Screen =
   | { kind: 'home-host-setup' }
   | { kind: 'home-join'; code: string }
   | { kind: 'home-room'; code: string; playerId: string; seatKey: string; name?: string; hostToken?: string }
+  | { kind: 'your-play' }
 
 interface TournamentExitPayload {
   standings: Standing[]
@@ -206,6 +208,7 @@ function GameScreen({ config, entry, onTableExit, onTournamentExit }: GameScreen
       canStartHand={game.canStartHand()}
       tournament={tournamentHud}
       practice={entry.mode === 'quick'}
+      readOnYou={game.isSolo ? game.readOnYou : undefined}
     />
   )
 }
@@ -424,6 +427,7 @@ function App() {
           onHostGame={() => setScreen({ kind: 'home-host-setup' })}
           onResumeRoom={handleResumeRoom}
           onJoinGame={() => setScreen({ kind: 'home-join', code: loadMe().code })}
+          onOpenYourPlay={() => setScreen({ kind: 'your-play' })}
         />
       )
     case 'cash-setup':
@@ -479,6 +483,8 @@ function App() {
           backLabel={screen.backTo === 'career' ? 'Back to the season' : undefined}
         />
       )
+    case 'your-play':
+      return <YourPlay onBack={goLobby} />
   }
 }
 

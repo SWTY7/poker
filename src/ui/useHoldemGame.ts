@@ -4,13 +4,15 @@ import type { PlayerSetup } from '../poker/game-engine'
 import type { ActionType, GameState, PokerAction, Street } from '../poker/game-state'
 import { buildObservation } from '../ai/observation'
 import type { Agent } from '../ai/agent'
-import { PsychBot, firstAnswer } from '../ai/psychology/psych-bot'
+import { PsychBot, firstAnswer, type Fundamentals } from '../ai/psychology/psych-bot'
 import { OpponentModel, actionContext, showdownOf } from '../ai/psychology/opponent-model'
 import { CAST, randomizeProfile } from '../ai/psychology/profile'
 import { blindLevel, levelForHandsCompleted, type TournamentStructure } from '../game/tournament'
 import type { RivalSession } from '../game/rivals'
 import { createRng, shuffle } from '../utils/random'
 import { readEnum, writeString } from '../utils/storage'
+import { HandLogger, appendHand } from '../review/log'
+import { describeRead } from '../review/table-read'
 
 const BOT_NAMES = ['Chip', 'Chris', 'Darla', 'Holly', 'Scarlet', 'Sparky', 'Connie', 'Lars', 'Nova']
 
@@ -161,6 +163,14 @@ export function useHoldemGame(options: GameConfigOptions) {
   const [{ engine, agents, humanIds, opponentModel, bots, botSeats }] = useState(() => buildTable(options))
   /** Solo play never gates — there's only ever one person holding the device. */
   const soloHumanId = humanIds.length === 1 ? humanIds[0] : null
+  /**
+   * The human's own hand history (review/log.ts), solo only — in
+   * pass-and-play one log would mix several people. `solvedRef` holds the
+   * table's solve once it loads, so each of the human's decisions is logged
+   * next to what the solve does in that spot.
+   */
+  const [logger] = useState(() => (soloHumanId ? new HandLogger(soloHumanId) : null))
+  const solvedRef = useRef<Fundamentals | null>(null)
 
   const [state, setState] = useState<GameState | null>(null)
   const [speed, setSpeedState] = useState<Speed>(() => readEnum('poker.speed', ['slow', 'normal', 'fast'] as const, 'normal'))
@@ -229,6 +239,8 @@ export function useHoldemGame(options: GameConfigOptions) {
       // rather than actions: what a bettor actually had (opponent-model.ts).
       const showdown = showdownOf(engine.state)
       if (showdown) opponentModel.observeShowdown(showdown)
+      const record = logger?.endHand(engine.state)
+      if (record) appendHand(record)
       options.rivals?.handEnded(engine.state, { opponentModel, humanIds, botSeats })
       for (const result of engine.state.lastResults) {
         biggestPotRef.current = Math.max(biggestPotRef.current, result.potAmount)
@@ -244,7 +256,7 @@ export function useHoldemGame(options: GameConfigOptions) {
         ),
       })
     }
-  }, [engine, humanIds, options.startingStack, options.rivals, reportResults, opponentModel, botSeats])
+  }, [engine, humanIds, options.startingStack, options.rivals, reportResults, opponentModel, botSeats, logger])
 
   /**
    * Hands every bot the solved strategy once its trained depths download.
@@ -288,6 +300,7 @@ export function useHoldemGame(options: GameConfigOptions) {
       const book = new preflop.MultiwayPreflopBook(preflopBooks.map((f) => f.default as never))
       const solved = firstAnswer(book, headsUp)
       for (const bot of bots) bot.useFundamentals(solved)
+      solvedRef.current = solved
     })
     return () => {
       cancelled = true
@@ -332,8 +345,9 @@ export function useHoldemGame(options: GameConfigOptions) {
       engine.setBlinds({ smallBlind, bigBlind, ante })
     }
     engine.startHand()
+    logger?.startHand(engine.state)
     commit()
-  }, [engine, clearTimer, commit, options.tournament])
+  }, [engine, clearTimer, commit, options.tournament, logger])
 
   /** The human whose action controls are currently live: revealed, and it's their turn. */
   const activeHumanId = soloHumanId ?? revealedFor
@@ -345,9 +359,11 @@ export function useHoldemGame(options: GameConfigOptions) {
       // after — so nothing from this decision lingers on screen for whoever
       // it's passed to next.
       setRevealedFor(null)
-      applyAndPace({ playerId: activeHumanId, type, amount })
+      const action: PokerAction = { playerId: activeHumanId, type, amount }
+      logger?.decision(engine.state, action, solvedRef.current?.strategyFor(buildObservation(engine, activeHumanId)))
+      applyAndPace(action)
     },
-    [activeHumanId, applyAndPace],
+    [activeHumanId, applyAndPace, logger, engine],
   )
 
   /** Called from the "pass the device" gate once the next human confirms it's them. */
@@ -484,9 +500,16 @@ export function useHoldemGame(options: GameConfigOptions) {
     setPaused(false)
   }, [])
 
+  /** What the bots have learned about the solo human so far, in plain words (review/table-read.ts). */
+  const readOnYou = useCallback(
+    () => (soloHumanId ? describeRead(opponentModel, soloHumanId) : []),
+    [opponentModel, soloHumanId],
+  )
+
   return {
     state,
     humanIds,
+    readOnYou,
     /** True for a solo game (one human vs. bots) rather than local pass-and-play. */
     isSolo: soloHumanId !== null,
     activeHumanId,

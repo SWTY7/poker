@@ -24,6 +24,7 @@ interface LobbyProps {
   onHostGame: () => void
   onResumeRoom: () => void
   onJoinGame: () => void
+  onOpenYourPlay: () => void
 }
 
 /**
@@ -57,6 +58,7 @@ export function Lobby({
   onHostGame,
   onResumeRoom,
   onJoinGame,
+  onOpenYourPlay,
 }: LobbyProps) {
   const [confirmingReset, setConfirmingReset] = useState(false)
   const canClaim = canClaimDailyStake(profile)
@@ -146,7 +148,7 @@ export function Lobby({
                 </span>
                 <span className="lobby-door-title">Quick Play</span>
                 <span className="lobby-door-copy">
-                  Choose players, stacks and blinds, and deal. No buy-in, no bankroll, nothing recorded.
+                  Choose players, stacks and blinds, and deal. No buy-in, and nothing touches your bankroll.
                 </span>
               </button>
             </section>
@@ -269,6 +271,14 @@ export function Lobby({
                 )}
               </div>
             </>
+          )}
+
+          {mode !== 'home' && (
+            <div className="lobby-your-play-row">
+              <button type="button" className="btn btn-secondary" onClick={onOpenYourPlay}>
+                Your play — style, leaks, hand history
+              </button>
+            </div>
           )}
         </div>
       </div>
