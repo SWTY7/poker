@@ -35,6 +35,8 @@ interface TableHudProps {
   onExit: () => void
   /** Present for a tournament: replaces the flat blinds readout with the live level, clock and payout ladder. */
   tournament?: TournamentHudInfo
+  /** Quick Play: leaving isn't a cash-out. */
+  practice?: boolean
 }
 
 type TempoProps = Pick<
@@ -140,6 +142,7 @@ export function TableHud({
   net,
   onExit,
   tournament,
+  practice = false,
   ...tempo
 }: TableHudProps) {
   const currentIndex = STREETS.findIndex((s) => s.key === street)
@@ -173,7 +176,7 @@ export function TableHud({
           type="button"
           className="btn hud-btn"
           onClick={onExit}
-          title={tournament ? 'Quit this tournament' : 'Cash out and leave this table'}
+          title={tournament ? 'Quit this tournament' : practice ? 'Leave this table' : 'Cash out and leave this table'}
         >
           Leave
         </button>

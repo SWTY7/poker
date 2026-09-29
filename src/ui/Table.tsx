@@ -51,6 +51,8 @@ interface TableProps {
   canStartHand: boolean
   /** Present for a tournament: the live level, blinds clock and payout ladder for the HUD. */
   tournament?: TournamentHudInfo
+  /** Quick Play: no buy-in was taken, so leaving isn't a cash-out. */
+  practice?: boolean
   /** What the bots have learned about you, for the leave screen. Absent in pass-and-play. */
   readOnYou?: () => ReadLine[]
 }
@@ -141,6 +143,7 @@ export function Table({
   canStartHand,
   readOnYou,
   tournament,
+  practice = false,
 }: TableProps) {
   /**
    * "Compact" is about how much room the dock may take, so it is a question
@@ -293,6 +296,7 @@ export function Table({
         onShowPositions={() => setShowPositions(true)}
         onExit={() => setShowLeave(true)}
         tournament={tournament}
+        practice={practice}
       />
 
       <div className="table-body">
@@ -497,6 +501,7 @@ export function Table({
           stack={activePlayer?.stack ?? startingStack}
           startingStack={startingStack}
           handInProgress={state.handInProgress}
+          practice={practice}
           onConfirm={onExit}
           onCancel={() => setShowLeave(false)}
           read={readOnYou?.()}

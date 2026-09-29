@@ -19,13 +19,15 @@ export interface TournamentOutcome {
 interface TournamentResultsProps {
   outcome: TournamentOutcome
   onBackToLobby: () => void
+  /** Where the button goes, if not the lobby. */
+  backLabel?: string
 }
 
 /**
  * Where a tournament ends up: not a hand result, a whole session's — the
  * screen that answers "was it worth the buy-in" in one look.
  */
-export function TournamentResults({ outcome, onBackToLobby }: TournamentResultsProps) {
+export function TournamentResults({ outcome, onBackToLobby, backLabel = 'Back to the lobby' }: TournamentResultsProps) {
   const { standings, names, humanId, fieldSize, prizePool, buyIn, forfeited } = outcome
   const human = standings.find((s) => s.playerId === humanId)
   const humanPosition = human?.position ?? fieldSize
@@ -98,7 +100,7 @@ export function TournamentResults({ outcome, onBackToLobby }: TournamentResultsP
           </section>
 
           <button type="button" className="btn menu-start" onClick={onBackToLobby}>
-            Back to the lobby
+            {backLabel}
           </button>
         </div>
       </div>

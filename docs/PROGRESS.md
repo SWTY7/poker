@@ -27,7 +27,8 @@ strategy for heads-up spots, with a different character in each seat, drawn fres
   yet, basics and advanced, each with a concrete implementation suggestion and a suggested order. Not a
   plan; nothing in it is scoped or committed to.
 - [`plans/`](./plans/README.md) — the two tracks in progress and how they share the code: game modes /
-  career / rivals (`plans/game-modes.md`) and reading the human → personality lab (`plans/psychology-lab.md`).
+  career / rivals (`plans/game-modes.md`), the home game for real cards (`plans/home-game.md`), and reading
+  the human → personality lab (`plans/psychology-lab.md`).
   Start here if you're picking up either one.
 - [`multiway-preflop.md`](./multiway-preflop.md) — the solved preflop book for three to six players: the
   game, how it's trained, and how far from equilibrium it measures.
@@ -44,8 +45,40 @@ this layer hasn't needed rework since the milestones in the v1 plan.
 - `profile.ts`: a versioned, `localStorage`-backed bankroll with lifetime stats and a daily stake (a
   small top-up once per calendar day if the bankroll runs low).
 - `tournament.ts`: blind structures, geometric blind escalation, payout brackets, standings.
+- `mode.ts`: Quick Play or Career, saved under `poker.mode` (Career by default), and
+  `profileAfterTableExit`, which settles a cash game against its buy-in and leaves the profile untouched
+  for Quick Play.
+- `rivals.ts`: twelve rivals who remember you and whom you remember, across sessions, saved under
+  `poker.rivals`. Each rival is a `CAST` character with a fixed seed, so it plays the same every time. A solo
+  Career table (cash or tournament) seats rivals plus about a third walk-ins, who are random and never
+  remembered. `RivalSession` pools the seated rivals' saved reads on you (averaged, faded by 0.7), seats
+  anyone who left steaming already tilted, and after every hand saves each rival's public stats (VPIP, PFR,
+  fold-to-bet, river bluffs seen at showdown), your net against them, their read on you, and how hot
+  they'll arrive next time. Pass-and-play and Quick Play have no rivals.
+- `career.ts`: Career seasons, saved under `poker.career`. Four tiers (Local → Regional → National →
+  Championship), each a fixed field of four rivals plus a walk-in, seated with more discipline and depth
+  tier by tier. A season is five single-table tournaments (Sit & Go ×2, Standard ×2, a Deep final; the
+  Championship is one Deep final), with points 10/6/4/3/2/1. Top two move up; a Championship win is a
+  title, defended next season. Screens: `CareerHub` (events, standings, next event) and its season summary,
+  reached from a door in the Career lobby.
+
+## Home game — `src/home/`
+
+The home game (`docs/plans/home-game.md`): real cards on a real table, with only the chips in the app.
+`table.ts` is its pure reducer: seating, blinds and the button, the betting rules from `poker/betting.ts`
+(which now take a card-free `BettingState`), streets advanced by the host, side pots, the host's showdown
+award with odd chips by seat, rebuys, and undo. `room.ts` is the room without the network (the host runs
+every command; joiners may only act for themselves), and `peer.ts` connects it over PeerJS, with a 4-digit
+room number and reconnection. Screens in `src/ui/home/`: Home Game is a third lobby mode (Host / Join /
+Reopen room), a share link `?room=1234` opens onto joining, and one table screen serves everyone, with the
+dealer's controls on the host's phone.
 
 ## The table UI — `src/ui/`
+
+The lobby opens on a Quick Play / Career toggle (`docs/plans/game-modes.md` step 1). Quick Play is a practice
+table: `MenuScreen`'s `variant="quick"` (any stack depth, no bankroll, its own saved setup under
+`poker.quickConfig`), and leaving it records nothing. Career is everything below. A solo Career game shows
+`TableSeating` (who's at the table, with scouting notes on rivals seen 30+ hands) before the buy-in is taken.
 
 Lobby → cash-game/tournament setup → table → results, all built on a shared `menu-*` visual vocabulary. A
 poker chip + spade favicon, chip-denomination-colored bankroll/buy-in displays, a positional seat legend, a
@@ -177,7 +210,7 @@ oracle to check against.
 
 ## Verification, as of this writing
 
-523 tests as of the last full run (2026-09-28); `npx vitest run`, `npx tsc -b` and `npx oxlint` are all clean. Re-run
+593 tests as of the last full run (2026-09-29); `npx vitest run`, `npx tsc -b` and `npx oxlint` are all clean. Re-run
 them rather than trust this number — it moves.
 
 **Use `npx tsc -b`, not `npx tsc --noEmit -p .`**: `tsconfig.json` only lists project references, so

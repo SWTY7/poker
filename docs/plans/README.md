@@ -6,6 +6,7 @@ Read `docs/PROGRESS.md` first, then the plan for your track.*
 | track | plan | branch | owns |
 |---|---|---|---|
 | Game elements (modes, career, rivals, timing, achievements) | [`game-modes.md`](./game-modes.md) | its own branch, e.g. `claude/game-modes-*` | `src/game/career*`, `src/game/rivals*`, `src/game/achievements*`, lobby / setup / career screens in `src/ui/` |
+| Home game (real cards, phones as chips; same track, after game-modes step 3) | [`home-game.md`](./home-game.md) | `claude/home-game-*` | `src/home/**`, home game screens in `src/ui/` |
 | Psychology (read-your-play, hand review, personality lab, real players) | [`psychology-lab.md`](./psychology-lab.md) | `claude/poker-bot-psychology-*` | `src/ai/**`, `src/review/**`, `src/gto/**`, research scripts |
 
 ## How to work on both
@@ -47,8 +48,10 @@ The hotspots:
    track moves it.
 
 **Touched by the psychology track outside its own folders** (keep in mind when merging): one button in
-`src/ui/Lobby.tsx` ("Your play", prop `onOpenYourPlay`), a `your-play` screen in `App.tsx`, a `readOnYou`
-prop through `Table.tsx` to `LeaveDialog.tsx`, and the logger's three calls in `useHoldemGame.ts`.
+`src/ui/Lobby.tsx` ("Your play", prop `onOpenYourPlay`, shown in Quick Play and Career, not Home Game), a
+`your-play` screen in `App.tsx`, a `readOnYou` prop through `Table.tsx` to `LeaveDialog.tsx`, and the
+logger's three calls in `useHoldemGame.ts`. Solo hands are logged in every mode, Quick Play included, so the
+Quick Play door's copy now says "nothing touches your bankroll" rather than "nothing recorded".
 
 ## Token-efficiency notes
 

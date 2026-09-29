@@ -20,6 +20,7 @@
     "train:preflop": "node scripts/run.mjs scripts/train-preflop-multiway.ts"
   },
   "dependencies": {
+    "peerjs": "^1.5.5",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
   },

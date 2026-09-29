@@ -8,6 +8,7 @@ import { PsychBot, firstAnswer, type Fundamentals } from '../ai/psychology/psych
 import { OpponentModel, actionContext, showdownOf } from '../ai/psychology/opponent-model'
 import { CAST, randomizeProfile } from '../ai/psychology/profile'
 import { blindLevel, levelForHandsCompleted, type TournamentStructure } from '../game/tournament'
+import type { RivalSession } from '../game/rivals'
 import { createRng, shuffle } from '../utils/random'
 import { readEnum, writeString } from '../utils/storage'
 import { HandLogger, appendHand } from '../review/log'
@@ -59,6 +60,11 @@ export interface GameConfigOptions {
    * above, which still supply the opening level.
    */
   tournament?: { structure: TournamentStructure }
+  /**
+   * Career: who sits in the bot seats and what they remember of you
+   * (game/rivals.ts). Absent, every bot seat is a fresh random character.
+   */
+  rivals?: RivalSession
 }
 
 export interface SessionStats {
@@ -96,14 +102,17 @@ function buildTable(options: GameConfigOptions): {
   opponentModel: OpponentModel
   /** Every bot seat — each one takes the solved strategy once it lands. */
   bots: PsychBot[]
+  botSeats: { id: string; bot: PsychBot }[]
 } {
   const humanCount = Math.min(Math.max(options.humanCount, 1), options.playerCount)
 
+  const cast = options.rivals?.seats
   const players: PlayerSetup[] = Array.from({ length: options.playerCount }, (_, i) => {
     const isHuman = i < humanCount
+    const botName = cast?.[i - humanCount]?.name ?? BOT_NAMES[(i - humanCount) % BOT_NAMES.length]
     return {
       id: `p${i}`,
-      name: isHuman ? (humanCount === 1 ? 'You' : `Player ${i + 1}`) : BOT_NAMES[(i - humanCount) % BOT_NAMES.length],
+      name: isHuman ? (humanCount === 1 ? 'You' : `Player ${i + 1}`) : botName,
       stack: options.startingStack,
     }
   })
@@ -118,22 +127,26 @@ function buildTable(options: GameConfigOptions): {
   const agents: Record<string, Agent> = {}
   const opponentModel = new OpponentModel()
   const tableRng = createRng()
-  const cast = [...CAST]
-  shuffle(cast, tableRng)
+  const archetypes = [...CAST]
+  shuffle(archetypes, tableRng)
   const bots: PsychBot[] = []
+  const botSeats: { id: string; bot: PsychBot }[] = []
 
   players.slice(humanCount).forEach((p, i) => {
     const bot = new PsychBot(
-      randomizeProfile(cast[i % cast.length], tableRng),
+      cast?.[i]?.profile ?? randomizeProfile(archetypes[i % archetypes.length], tableRng),
       options.startingStack,
       createRng(),
       opponentModel,
     )
     agents[p.id] = bot
     bots.push(bot)
+    botSeats.push({ id: p.id, bot })
   })
 
-  return { engine, agents, humanIds, opponentModel, bots }
+  options.rivals?.seated({ opponentModel, humanIds, botSeats })
+
+  return { engine, agents, humanIds, opponentModel, bots, botSeats }
 }
 
 export function useHoldemGame(options: GameConfigOptions) {
@@ -147,7 +160,7 @@ export function useHoldemGame(options: GameConfigOptions) {
    */
   const turboRef = useRef<false | 'hand' | 'turn'>(false)
 
-  const [{ engine, agents, humanIds, opponentModel, bots }] = useState(() => buildTable(options))
+  const [{ engine, agents, humanIds, opponentModel, bots, botSeats }] = useState(() => buildTable(options))
   /** Solo play never gates — there's only ever one person holding the device. */
   const soloHumanId = humanIds.length === 1 ? humanIds[0] : null
   /**
@@ -228,6 +241,7 @@ export function useHoldemGame(options: GameConfigOptions) {
       if (showdown) opponentModel.observeShowdown(showdown)
       const record = logger?.endHand(engine.state)
       if (record) appendHand(record)
+      options.rivals?.handEnded(engine.state, { opponentModel, humanIds, botSeats })
       for (const result of engine.state.lastResults) {
         biggestPotRef.current = Math.max(biggestPotRef.current, result.potAmount)
       }
@@ -242,7 +256,7 @@ export function useHoldemGame(options: GameConfigOptions) {
         ),
       })
     }
-  }, [engine, humanIds, options.startingStack, reportResults, opponentModel, logger])
+  }, [engine, humanIds, options.startingStack, options.rivals, reportResults, opponentModel, botSeats, logger])
 
   /**
    * Hands every bot the solved strategy once its trained depths download.
