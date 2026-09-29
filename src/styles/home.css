@@ -324,3 +324,10 @@
 .home-card-modes {
   grid-template-columns: 1fr 1fr;
 }
+
+.home-self {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}

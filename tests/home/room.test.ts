@@ -141,24 +141,103 @@ describe('the host', () => {
     expect(guess.view().you.isHost).toBe(false)
   })
 
-  it('alone may deal, move seats and change stacks, and may act for anyone', () => {
+  it('runs the game’s flow, and nobody but the host can', () => {
+    const core = room()
+    const host = phone(core, 'h')
+    const ann = phone(core, 'a')
+    host.hello('hana', undefined, TOKEN)
+    ann.hello('ann', 'Ann')
+    phone(core, 'b').hello('ben', 'Ben')
+    ann.command({ type: 'startHand' }, 2)
+    expect(ann.last()).toMatchObject({ t: 'error', message: 'Only the host can do that.', reqId: 2 })
+    ann.command({ type: 'move', id: 'ann', toIndex: 0 })
+    expect(ann.last()).toMatchObject({ t: 'error', message: 'Only the host can do that.' })
+    host.command({ type: 'move', id: 'ben', toIndex: 0 })
+    expect(core.state.players.map((p) => p.id)).toEqual(['ben', 'ann'])
+    host.command({ type: 'startHand' })
+    expect(core.state.phase).toBe('betting')
+  })
+
+  it('can’t act for anyone, or set anyone’s stack, its own seat included', () => {
+    const core = room()
+    const host = phone(core, 'h')
+    const ann = phone(core, 'a')
+    host.hello('hana', 'Hana', TOKEN)
+    ann.hello('ann', 'Ann')
+    host.command({ type: 'startHand' })
+    // Heads-up, Hana has the button and acts first; then it's Ann's turn.
+    host.act('hana', 'call')
+    host.command({ type: 'act', playerId: 'ann', action: 'check' })
+    expect(host.last()).toMatchObject({ t: 'error', message: 'You can only act for your own seat.' })
+    expect(core.state.players[core.state.currentPlayerIndex].id).toBe('ann')
+    for (const id of ['ann', 'hana']) {
+      host.command({ type: 'adjustStack', id, stack: 99999 })
+      expect(host.last()).toMatchObject({ t: 'error', message: 'Stacks only change by playing, or by a rebuy.' })
+    }
+    ann.command({ type: 'adjustStack', id: 'ann', stack: 99999 })
+    expect(core.state.players.map((p) => p.stack)).toEqual([990, 990])
+  })
+})
+
+describe('taking a move back', () => {
+  function started() {
     const core = room()
     const host = phone(core, 'h')
     const ann = phone(core, 'a')
     const ben = phone(core, 'b')
-    host.hello('hana', undefined, TOKEN)
+    host.hello('dealer', undefined, TOKEN)
     ann.hello('ann', 'Ann')
     ben.hello('ben', 'Ben')
-    ben.command({ type: 'startHand' }, 2)
-    expect(ben.last()).toMatchObject({ t: 'error', message: 'Only the host can do that.', reqId: 2 })
-    ben.command({ type: 'adjustStack', id: 'ben', stack: 99999 })
-    expect(core.state.players[1].stack).toBe(1000)
     host.command({ type: 'startHand' })
-    // Heads-up, Ann has the button and acts first; Ben can't act for her, the host can.
-    ben.act('ann', 'fold')
-    expect(ben.last()).toMatchObject({ t: 'error', message: 'Only the host can do that.' })
-    host.command({ type: 'act', playerId: 'ann', action: 'fold' })
-    expect(core.state.phase).toBe('hand-over')
+    return { core, host, ann, ben }
+  }
+
+  it('is for whoever made it: a player their own move, the host its own deal', () => {
+    const { core, host, ann, ben } = started()
+    // The host dealt last: only the host may take the deal back.
+    expect(host.view().canUndo).toBe('dealer')
+    expect(ann.view().canUndo).toBe(null)
+    ann.act('ann', 'call')
+    expect(ann.view().canUndo).toBe('move')
+    expect(ben.view().canUndo).toBe(null)
+    expect(host.view().canUndo).toBe(null)
+    ben.command({ type: 'undo' })
+    expect(ben.last()).toMatchObject({ t: 'error', message: 'Only whoever made the last move can take it back.' })
+    host.command({ type: 'undo' })
+    expect(host.last()).toMatchObject({ t: 'error', message: 'Only whoever made the last move can take it back.' })
+    ann.command({ type: 'undo' })
+    expect(core.state.players[core.state.currentPlayerIndex].id).toBe('ann')
+    expect(core.state.players.find((p) => p.id === 'ann')?.betThisStreet).toBe(5)
+  })
+})
+
+describe('rebuys', () => {
+  it('are a busted player’s own to make, between hands, for the starting stack', () => {
+    const core = room()
+    const host = phone(core, 'h')
+    const ann = phone(core, 'a')
+    const ben = phone(core, 'b')
+    host.hello('dealer', undefined, TOKEN)
+    ann.hello('ann', 'Ann')
+    ben.hello('ben', 'Ben')
+    host.command({ type: 'startHand' })
+    ann.act('ann', 'all-in')
+    ben.act('ben', 'call')
+    host.command({ type: 'advanceStreet' })
+    host.command({ type: 'advanceStreet' })
+    host.command({ type: 'advanceStreet' })
+    host.command({ type: 'advanceStreet' })
+    host.command({ type: 'award', winnersByPot: [['ben']] })
+    expect(core.state.players.find((p) => p.id === 'ann')?.isEliminated).toBe(true)
+    ben.command({ type: 'rebuy', id: 'ann' })
+    expect(ben.last()).toMatchObject({ t: 'error', message: 'You can only rebuy your own seat.' })
+    host.command({ type: 'rebuy', id: 'ann' })
+    expect(host.last()).toMatchObject({ t: 'error', message: 'You can only rebuy your own seat.' })
+    ben.command({ type: 'rebuy', id: 'ben' })
+    expect(ben.last()).toMatchObject({ t: 'error', message: 'You still have chips.' })
+    ann.command({ type: 'rebuy', id: 'ann' })
+    const annNow = core.state.players.find((p) => p.id === 'ann')!
+    expect([annNow.stack, annNow.isEliminated]).toEqual([1000, false])
   })
 })
 
@@ -186,7 +265,7 @@ describe('playing', () => {
     host.command({ type: 'startHand' })
     expect(saves.length).toBe(before + 1)
     expect('undo' in host.view()).toBe(false)
-    expect(host.view().canUndo).toBe(true)
+    expect(host.view().canUndo).toBe('dealer')
   })
 
   it('answers a ping', () => {

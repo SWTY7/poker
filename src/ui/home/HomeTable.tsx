@@ -14,7 +14,7 @@ interface HomeTableProps {
   onClearError: () => void
   /** This phone's own seat, if it has one. */
   myId: string | null
-  /** The host's device: dealer controls, and it can act for anyone. */
+  /** The host's device: the game's flow (dealing, and with real cards the streets and showdown). */
   isHost: boolean
   code: string | null
   send: (command: Command) => void
@@ -32,7 +32,7 @@ function money(amount: number): string {
  * The home game table, the same on every phone: the pot, the street, every
  * seat's stack and bet, and whose turn it is. The player to act gets their
  * buttons. The host's phone also deals (turns the streets), pays out the
- * showdown, and can act for anyone whose phone isn't there.
+ * showdown. Nobody, the host included, can act for anyone else's seat.
  */
 export function HomeTable({ view, status, detail, error, onClearError, myId, isHost, code, send, onLeave }: HomeTableProps) {
   const [confirmLeave, setConfirmLeave] = useState(false)
@@ -88,7 +88,8 @@ export function HomeTable({ view, status, detail, error, onClearError, myId, isH
             <PotBar view={view} />
             {view.cards === 'online' && <OnlineCards view={view} myId={myId} />}
             <Seats view={view} myId={myId} isHost={isHost} send={send} />
-            <ActionPanel key={`${view.handNumber}-${view.actionHistory.length}-${view.street}`} view={view} myId={myId} isHost={isHost} send={send} />
+            <ActionPanel key={`${view.handNumber}-${view.actionHistory.length}-${view.street}`} view={view} myId={myId} send={send} />
+            <SelfControls view={view} myId={myId} send={send} />
             {isHost && <DealerControls view={view} send={send} />}
             {!isHost && betweenHands(view) && (
               <p className="menu-hint home-center">
@@ -158,7 +159,6 @@ function OnlineCards({ view, myId }: { view: TableView; myId: string | null }) {
 
 function Seats({ view, myId, isHost, send }: { view: TableView; myId: string | null; isHost: boolean; send: (c: Command) => void }) {
   const editing = isHost && betweenHands(view)
-  const [draft, setDraft] = useState<Record<string, string>>({})
   const toAct = view.phase === 'betting' ? view.players[view.currentPlayerIndex]?.id : undefined
   const inHand = !betweenHands(view)
 
@@ -200,25 +200,9 @@ function Seats({ view, myId, isHost, send }: { view: TableView; myId: string | n
                 )}
               </span>
             </span>
-            {editing ? (
+            <span className="home-stack">{money(p.stack)}</span>
+            {editing && (
               <span className="home-seat-edit">
-                <input
-                  className="home-stack-input"
-                  inputMode="numeric"
-                  aria-label={`${p.name}'s stack`}
-                  value={draft[p.id] ?? String(p.stack)}
-                  onChange={(e) => setDraft((d) => ({ ...d, [p.id]: e.target.value.replace(/\D/g, '') }))}
-                  onBlur={() => {
-                    const value = draft[p.id]
-                    if (value !== undefined && value !== '' && Number(value) !== p.stack) send({ type: 'adjustStack', id: p.id, stack: Number(value) })
-                    setDraft((d) => {
-                      const rest = { ...d }
-                      delete rest[p.id]
-                      return rest
-                    })
-                  }}
-                  onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
-                />
                 <button type="button" className="home-icon-btn" aria-label={`Move ${p.name} up`} disabled={i === 0} onClick={() => send({ type: 'move', id: p.id, toIndex: i - 1 })}>
                   ▲
                 </button>
@@ -235,8 +219,6 @@ function Seats({ view, myId, isHost, send }: { view: TableView; myId: string | n
                   ✕
                 </button>
               </span>
-            ) : (
-              <span className="home-stack">{money(p.stack)}</span>
             )}
           </li>
         )
@@ -246,11 +228,11 @@ function Seats({ view, myId, isHost, send }: { view: TableView; myId: string | n
   )
 }
 
-function ActionPanel({ view, myId, isHost, send }: { view: TableView; myId: string | null; isHost: boolean; send: (c: Command) => void }) {
+/** The betting buttons, only ever for this phone's own seat. */
+function ActionPanel({ view, myId, send }: { view: TableView; myId: string | null; send: (c: Command) => void }) {
   const actor = view.phase === 'betting' ? view.players[view.currentPlayerIndex] : undefined
   const mine = actor !== undefined && actor.id === myId
-  const canAct = actor !== undefined && (mine || isHost)
-  const choices = actor && canAct ? options(view, actor.id) : null
+  const choices = actor && mine ? options(view, actor.id) : null
   const [amount, setAmount] = useState('')
 
   if (!actor) return null
@@ -270,8 +252,8 @@ function ActionPanel({ view, myId, isHost, send }: { view: TableView; myId: stri
   }
 
   return (
-    <section className={`menu-card home-actions ${mine ? 'home-actions-mine' : ''}`}>
-      <h2 className="menu-section">{mine ? 'Your turn' : `Acting for ${actor.name}`}</h2>
+    <section className="menu-card home-actions home-actions-mine">
+      <h2 className="menu-section">Your turn</h2>
       <div className="home-action-row">
         {choices.actions.includes('fold') && (
           <button type="button" className="btn btn-secondary" onClick={() => act('fold')}>
@@ -347,13 +329,31 @@ function DealerControls({ view, send }: { view: TableView; send: (c: Command) =>
           <BlindsEditor view={view} send={send} />
         </>
       )}
-      {view.phase === 'betting' && <p className="menu-hint">You can act for anyone above, if their phone isn’t with them.</p>}
-      {view.canUndo && (
-        <button type="button" className="lobby-reset-link" onClick={() => send({ type: 'undo' })}>
-          Undo the last step
+    </section>
+  )
+}
+
+/**
+ * What a phone may do for itself beyond betting: take back its own last move
+ * (the server only offers it to whoever made it), and buy back in when busted.
+ */
+function SelfControls({ view, myId, send }: { view: TableView; myId: string | null; send: (c: Command) => void }) {
+  const me = view.players.find((p) => p.id === myId)
+  const busted = me !== undefined && betweenHands(view) && (me.isEliminated || me.stack === 0)
+  if (!view.canUndo && !busted) return null
+  return (
+    <div className="home-self">
+      {busted && (
+        <button type="button" className="btn btn-primary" onClick={() => send({ type: 'rebuy', id: me.id })}>
+          Rebuy for {money(view.config.startingStack)}
         </button>
       )}
-    </section>
+      {view.canUndo && (
+        <button type="button" className="lobby-reset-link" onClick={() => send({ type: 'undo' })}>
+          {view.canUndo === 'dealer' ? 'Undo the last deal' : 'Undo my last move'}
+        </button>
+      )}
+    </div>
   )
 }
 

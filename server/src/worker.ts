@@ -18,6 +18,9 @@ interface Env {
   ROOMS: DurableObjectNamespace<Room>
 }
 
+/** Where the game itself lives, for anyone who opens this server's address in a browser. */
+const GAME_URL = 'https://swty7.github.io/poker/'
+
 /** A room nobody has touched for this long is deleted. */
 const IDLE_MS = 12 * 60 * 60 * 1000
 
@@ -170,6 +173,17 @@ export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     if (request.method === 'OPTIONS') return new Response(null, { headers: CORS })
     const path = new URL(request.url).pathname.split('/').filter(Boolean)
+
+    // Someone opening the server's own address in a browser: say what it is, and where the game is.
+    if (request.method === 'GET' && path.length === 0) {
+      return new Response(
+        '<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Poker rooms</title>' +
+          '<body style="font-family:system-ui;background:#111;color:#eee;display:grid;place-items:center;min-height:90vh;text-align:center">' +
+          '<div><h1>Poker room server</h1><p>It’s running. This address is for the app to talk to, not a page to play on.</p>' +
+          `<p><a style="color:#d9b36c" href="${GAME_URL}">Play at ${GAME_URL}</a></p></div>`,
+        { headers: { 'Content-Type': 'text/html; charset=utf-8' } },
+      )
+    }
 
     if (request.method === 'POST' && path.length === 1 && path[0] === 'rooms') {
       let body: { config?: unknown; cards?: unknown }

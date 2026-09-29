@@ -1,5 +1,5 @@
 import type { Card } from '../poker/card'
-import { HomeTableError, reduce, viewFor, type Command, type HomeState, type TableSnapshot } from './table'
+import { HOST, HomeTableError, canUndo, reduce, viewFor, type Command, type HomeState, type TableSnapshot } from './table'
 
 /**
  * A home game room, without the network: what the room server does with
@@ -12,13 +12,18 @@ import { HomeTableError, reduce, viewFor, type Command, type HomeState, type Tab
  * new table back, each seeing only what its seat may see. Nothing is applied
  * on a phone first, so no two phones can disagree about the pot.
  *
- * Who may do what:
- *   - anyone connected may take a seat, and act for that seat. A seat is
- *     claimed with a private seat key that only that phone holds, so knowing
- *     someone's player id (every phone does) isn't enough to take their seat
- *     or see their cards
- *   - whoever holds the room's host token (the phone that created it) may run
- *     the dealer's commands, and act for anyone whose phone isn't there
+ * Who may do what. Everyone bets from their own phone, and nobody else can
+ * touch their seat, the host included:
+ *   - anyone connected may take a seat, act for it, and rebuy it when busted.
+ *     A seat is claimed with a private seat key that only that phone holds,
+ *     so knowing someone's player id (every phone does) isn't enough to take
+ *     their seat or see their cards
+ *   - whoever holds the room's host token (the phone that created it) runs
+ *     the game's flow: deals each hand, and with real cards turns the streets
+ *     and picks each pot's winner. Between hands it also keeps the table in
+ *     order: seat order, removing someone who left, the blinds
+ *   - only whoever took the last step can undo it
+ *   - nobody may set a stack: chips move only by playing, or by a rebuy
  * With online cards the deck for every hand is shuffled here, whatever the
  * host's phone sends, so nobody can deal themselves a stacked deck.
  */
@@ -27,9 +32,10 @@ export const PROTOCOL = 2
 
 /** The table as one phone sees it. */
 export interface TableView extends TableSnapshot {
-  canUndo: boolean
   /** Player ids with a phone connected right now. */
   connected: string[]
+  /** What this phone may take back, if it took the last step: its own move, or (the host) the last deal or payout. */
+  canUndo: 'move' | 'dealer' | null
   /** This phone's seat (null if it only deals or watches), and whether it's the host. */
   you: { playerId: string | null; isHost: boolean }
 }
@@ -125,8 +131,9 @@ export class RoomCore {
 
   /** What one phone sees. */
   viewFor(playerId: string | null, isHost: boolean): TableView {
-    const { undo, ...table } = this.table
-    return { ...viewFor(table, playerId), canUndo: undo.length > 0, connected: this.connected(), you: { playerId, isHost } }
+    const { undo: _undo, ...table } = this.table
+    const mayUndo = playerId !== null && canUndo(this.table, playerId) ? 'move' : isHost && canUndo(this.table, HOST) ? 'dealer' : null
+    return { ...viewFor(table, playerId), canUndo: mayUndo, connected: this.connected(), you: { playerId, isHost } }
   }
 
   open(linkId: string, send: (message: ToPhone) => void): void {
@@ -178,7 +185,7 @@ export class RoomCore {
             // Rejoining an existing seat keeps its name unless a new one is given.
             const name = message.name ?? this.table.players.find((p) => p.id === message.playerId)!.name
             if (known === undefined) this.keys[message.playerId] = message.seatKey
-            this.apply({ type: 'join', id: message.playerId, name })
+            this.apply({ type: 'join', id: message.playerId, name }, message.playerId)
           } catch (error) {
             if (known === undefined) delete this.keys[message.playerId]
             link.send({ v: PROTOCOL, t: 'error', message: errorText(error) })
@@ -192,13 +199,13 @@ export class RoomCore {
       case 'command': {
         const command = message.command
         if (!command || typeof command !== 'object') return
-        const ownMove = link.playerId !== undefined && command.type === 'act' && command.playerId === link.playerId
-        if (!ownMove && !link.isHost) {
-          link.send({ v: PROTOCOL, t: 'error', message: 'Only the host can do that.', reqId: message.reqId })
+        const by = this.authorise(link, command)
+        if (typeof by !== 'string') {
+          link.send({ v: PROTOCOL, t: 'error', message: by.refused, reqId: message.reqId })
           return
         }
         try {
-          this.apply(command.type === 'startHand' ? { type: 'startHand', deck: this.table.cards === 'online' ? this.shuffle() : undefined } : command)
+          this.apply(command.type === 'startHand' ? { type: 'startHand', deck: this.table.cards === 'online' ? this.shuffle() : undefined } : command, by)
         } catch (error) {
           link.send({ v: PROTOCOL, t: 'error', message: errorText(error), reqId: message.reqId })
           return
@@ -209,8 +216,35 @@ export class RoomCore {
     }
   }
 
-  private apply(command: Command): void {
-    this.table = reduce(this.table, command)
+  /**
+   * Who a command is from, if this phone may send it: its own seat's id, or
+   * the host. Otherwise the reason it can't.
+   */
+  private authorise(link: Link, command: Command): string | { refused: string } {
+    const mine = (id: unknown) => link.playerId !== undefined && id === link.playerId
+    switch (command.type) {
+      case 'act':
+        return mine(command.playerId) ? link.playerId! : { refused: 'You can only act for your own seat.' }
+      case 'rebuy':
+        return mine(command.id) ? link.playerId! : { refused: 'You can only rebuy your own seat.' }
+      case 'undo':
+        if (link.playerId !== undefined && canUndo(this.table, link.playerId)) return link.playerId
+        if (link.isHost && canUndo(this.table, HOST)) return HOST
+        return { refused: 'Only whoever made the last move can take it back.' }
+      case 'startHand':
+      case 'advanceStreet':
+      case 'award':
+      case 'move':
+      case 'remove':
+      case 'configure':
+        return link.isHost ? HOST : { refused: 'Only the host can do that.' }
+      default:
+        return { refused: 'Stacks only change by playing, or by a rebuy.' }
+    }
+  }
+
+  private apply(command: Command, by: string): void {
+    this.table = reduce(this.table, command, by)
     // A seat the host removed can be claimed afresh.
     for (const id of Object.keys(this.keys)) if (!this.table.players.some((p) => p.id === id)) delete this.keys[id]
     this.onChange(this.table, this.keys)

@@ -92,10 +92,19 @@ interface Table extends BettingState {
   handLog: HandLogEntry[]
 }
 
+/** Who a command comes from: a player (by id), or the host running the game. */
+export const HOST = 'host'
+
+/** One step that can be taken back: the table before it, and who took it. */
+export interface UndoStep {
+  before: Table
+  by: string
+}
+
 export interface HomeState extends Table {
   version: 1
   /** Earlier states of this hand, newest last, for undo. Cleared when a hand starts. */
-  undo: Table[]
+  undo: UndoStep[]
 }
 
 /** The table without its undo history: what phones are sent, and all the read-only helpers below need. */
@@ -107,6 +116,8 @@ export type Command =
   | { type: 'move'; id: string; toIndex: number }
   | { type: 'configure'; config: HomeConfig }
   | { type: 'adjustStack'; id: string; stack: number }
+  /** A busted player buying back in, between hands, for the starting stack. */
+  | { type: 'rebuy'; id: string }
   /** `deck` is required with online cards: all 52, shuffled by the server. */
   | { type: 'startHand'; deck?: Card[] }
   | { type: 'act'; playerId: string; action: ActionType; amount?: number }
@@ -154,13 +165,17 @@ export function betweenHands(state: TableSnapshot): boolean {
   return state.phase === 'lobby' || state.phase === 'hand-over'
 }
 
-export function reduce(state: HomeState, command: Command): HomeState {
+/**
+ * `by` is who sent the command (a player id, or `HOST`). It's recorded with
+ * each step so that only whoever took a step can take it back.
+ */
+export function reduce(state: HomeState, command: Command, by: string = HOST): HomeState {
   // Work on a copy: the betting rules mutate in place, and a command that
   // throws halfway must leave the real state untouched.
   const { undo, ...table } = state
   const next: HomeState = { ...structuredClone(table), undo }
   const snapshot = (): void => {
-    next.undo = [...undo, structuredClone(table)].slice(-MAX_UNDO)
+    next.undo = [...undo, { before: structuredClone(table), by }].slice(-MAX_UNDO)
   }
 
   switch (command.type) {
@@ -222,11 +237,21 @@ export function reduce(state: HomeState, command: Command): HomeState {
       return next
     }
 
+    case 'rebuy': {
+      if (!betweenHands(state)) fail('Wait for the hand to finish.')
+      const player = next.players.find((p) => p.id === command.id)
+      if (!player) fail('No such player.')
+      if (!player.isEliminated && player.stack > 0) fail('You still have chips.')
+      player.stack = next.config.startingStack
+      player.isEliminated = false
+      return next
+    }
+
     case 'startHand':
       startHand(next, command.deck)
       // Undo reaches back as far as the deal (a mis-tapped "New hand"), never into the last hand.
       // Not with online cards: everyone has already looked at theirs.
-      next.undo = next.cards === 'online' ? [] : [structuredClone(table)]
+      next.undo = next.cards === 'online' ? [] : [{ before: structuredClone(table), by }]
       return next
 
     case 'act': {
@@ -286,9 +311,10 @@ export function reduce(state: HomeState, command: Command): HomeState {
     }
 
     case 'undo': {
-      const previous = undo.at(-1)
-      if (!previous) fail('Nothing to undo.')
-      return { ...structuredClone(previous), version: 1, undo: undo.slice(0, -1) }
+      const step = undo.at(-1)
+      if (!step) fail('Nothing to undo.')
+      if (step.by !== by) fail('Only whoever made the last move can take it back.')
+      return { ...structuredClone(step.before), version: 1, undo: undo.slice(0, -1) }
     }
   }
 }
@@ -306,6 +332,11 @@ function nextSeat(state: Table, from: number): number {
     if (inHand(state.players[i])) return i
   }
   return fail('Nobody has chips.')
+}
+
+/** Whether `by` (a player id, or `HOST`) may take back the last step. */
+export function canUndo(state: HomeState, by: string): boolean {
+  return state.undo.at(-1)?.by === by
 }
 
 export function canStartHand(state: TableSnapshot): boolean {
