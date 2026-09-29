@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { isRoomCode } from '../../home/room'
-import type { HomeConfig } from '../../home/table'
+import type { CardMode, HomeConfig } from '../../home/table'
 import { DealIcon } from '../icons'
 import { SUIT_PATH } from '../suit-icons'
 
@@ -8,11 +8,13 @@ export interface HostSetup {
   config: HomeConfig
   /** The host's own name, if the host plays too; null to only deal. */
   hostName: string | null
+  cards: CardMode
 }
 
 interface HostEntryProps {
   initialName: string
-  onOpen: (setup: HostSetup) => void
+  /** Opens the room; resolves to a message to show if it couldn't. */
+  onOpen: (setup: HostSetup) => Promise<string | null>
   onBack: () => void
 }
 
@@ -63,7 +65,10 @@ export function HostEntry({ initialName, onOpen, onBack }: HostEntryProps) {
   const [config, setConfig] = useState<HomeConfig>(DEFAULT)
   const [plays, setPlays] = useState(true)
   const [name, setName] = useState(initialName)
-  const valid = config.smallBlind > 0 && config.bigBlind >= config.smallBlind && config.startingStack > config.bigBlind && (!plays || name.trim() !== '')
+  const [cards] = useState<CardMode>('real')
+  const [opening, setOpening] = useState(false)
+  const [problem, setProblem] = useState<string | null>(null)
+  const valid = !opening && config.smallBlind > 0 && config.bigBlind >= config.smallBlind && config.startingStack > config.bigBlind && (!plays || name.trim() !== '')
 
   return (
     <Frame title="Host a game" subtitle="Real cards, real table. The phones keep the chips." onBack={onBack}>
@@ -99,19 +104,20 @@ export function HostEntry({ initialName, onOpen, onBack }: HostEntryProps) {
         )}
       </section>
 
-      <p className="menu-hint">
-        The room lives on this phone: keep this screen open while you play. Everyone should be on the same Wi-Fi; some mobile
-        networks block the direct connection.
-      </p>
+      {problem && <p className="menu-hint home-problem">{problem}</p>}
 
       <button
         type="button"
         className="btn menu-start"
         disabled={!valid}
-        onClick={() => onOpen({ config, hostName: plays ? name.trim() : null })}
+        onClick={async () => {
+          setOpening(true)
+          setProblem(await onOpen({ config, hostName: plays ? name.trim() : null, cards }))
+          setOpening(false)
+        }}
       >
         <DealIcon className="menu-start-icon" />
-        Open the room
+        {opening ? 'Opening…' : 'Open the room'}
       </button>
     </Frame>
   )

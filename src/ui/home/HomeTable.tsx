@@ -2,7 +2,7 @@ import { useState } from 'react'
 import type { ActionType } from '../../poker/game-state'
 import type { TableView } from '../../home/room'
 import { betweenHands, canStartHand, options, potTotal, type Command } from '../../home/table'
-import type { RoomStatus } from '../../home/peer'
+import type { RoomStatus } from '../../home/socket'
 import { avatarInitial, avatarStyle } from '../avatar'
 
 interface HomeTableProps {
