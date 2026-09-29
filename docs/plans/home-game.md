@@ -165,6 +165,19 @@ Steps:
    `npm run server:deploy` publishes the Worker. Its URL goes in the Pages build (`VITE_ROOM_SERVER`).
    Checked on real phones, including the hotspot that failed before.
 
+## The host's role (decided 2026-09-29)
+
+Everyone brings their own phone and bets on it, so **nobody can act for another seat, the host included**.
+The host runs the game's flow and nothing else:
+- **Deals each hand.** With real cards, the host also turns the streets and picks each pot's winner.
+- **Keeps the table in order, between hands:** seat order to match the real table, removing someone who
+  left, and the blinds.
+
+Taken away from the host: acting for other players, and setting stacks. Nobody sets a stack; chips move only
+by playing. A busted player **rebuys** from their own phone, between hands, for the starting stack. **Undo**
+belongs to whoever took the last step: a player can take back their own last move, and the host its own
+last deal or payout. The server enforces all of this (`RoomCore.authorise`), not just the screens.
+
 ## Out of scope for now
 
 - Online multiplayer with strangers (matchmaking, no host). The server room built in phase 2 is the piece it

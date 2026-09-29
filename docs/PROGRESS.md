@@ -73,7 +73,10 @@ showdown with the engine's evaluator, and `viewFor` gives each seat only its own
 
 Rooms live on a server: `server/` is a Cloudflare Worker with one Durable Object per 4-digit room (free
 plan, WebSocket hibernation, deleted after 12 idle hours). `room.ts`'s `RoomCore` runs every command there.
-The host is whoever holds the room's token; seats are claimed with a private per-phone seat key; with
+The host is whoever holds the room's token, and runs only the game's flow: dealing, and with real cards
+the streets and the showdown award, plus seat order and blinds between hands. Nobody acts for another seat
+or sets a stack; busted players rebuy themselves; undo belongs to whoever took the last step. Seats are
+claimed with a private per-phone seat key; with
 online cards the server shuffles every deck (crypto-random). `socket.ts` is the phone's WebSocket, with
 reconnection. `npm run server:dev` runs the server locally; `npm run server:deploy` publishes it, and the
 Pages build reads its address from the `ROOM_SERVER` repository variable (`VITE_ROOM_SERVER`). Screens in
