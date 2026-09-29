@@ -20,6 +20,8 @@ state are the same pieces, and only card dealing is missing.
 ## Decisions already made
 
 - **Transport: PeerJS** (WebRTC, using PeerJS's free public signaling server). No backend and no account.
+  **Replaced 2026-09-29** by a Cloudflare Worker (see "Phase 2" below): direct phone-to-phone connections
+  failed on a phone hotspot, and online cards need a server anyway.
   The host's device holds the real game state, and every joiner connects straight to it.
   - Room number → peer id `swty7-poker-<4 digits>`. Creating a room draws a random code and draws again if
     that id is taken.
@@ -113,13 +115,75 @@ room" (both joiners back within about 2 s), joiners reloading into their own sea
   and the showdown picker. Built on the existing `menu-*` and table visual vocabulary.
 - Browser check: host plus two joiners in separate tabs, through a full hand with a side pot and a split.
 
+## Phase 2: rooms on a server, and online cards (decided 2026-09-29)
+
+*One branch, `claude/home-game-online`, a commit per step, one PR (the user's preference from now on).*
+
+Why: phones couldn't reach each other on a phone hotspot (PeerJS's direct WebRTC connection, with its
+free relay as a best-effort fallback). And the user wants a second card mode where the app deals, with
+**nobody able to peek**, which means the deck can't live on any player's phone, the host's included.
+
+Decisions:
+- **Server: a Cloudflare Worker with a Durable Object per room, on Cloudflare's free plan.** Every phone
+  holds a WebSocket to its room over ordinary HTTPS, so any network that loads a web page works: hotspot,
+  cellular, school Wi-Fi. The free plan allows 100,000 requests a day, with incoming WebSocket messages
+  billed 20:1, which is far more than friends' games use. Firebase was considered, but hiding the deck needs
+  server code, and Firebase only deploys Cloud Functions on its paid Blaze plan.
+- **The room runs on the server, not the host's phone.** The same `src/home/table.ts` reducer, bundled into
+  the Worker. The host is whoever created the room: they get a secret host token (kept in `localStorage`),
+  and dealer commands need it. Their tab no longer has to stay open for the room to live. PeerJS is removed.
+- **Two card modes, picked when the room is created:**
+  - **Real cards** (today's game): the host deals the real deck, advances the streets and picks each pot's
+    winner.
+  - **Online cards:** the server shuffles (crypto-random), deals, and sends each phone **only its own hole
+    cards**. The board is dealt automatically when a street's betting closes, and the showdown is
+    evaluated with the engine's own `hand-evaluator.ts`. Cards still in at showdown are shown to everyone.
+    Folded hands are never revealed. The host keeps seat, stack, blind and pause controls, but has no
+    dealing or award buttons and never sees a card that isn't theirs.
+- **Room numbers** stay 4 digits. The Worker maps a number to its Durable Object, refuses to create a room
+  that already exists, and lets an idle room expire.
+
+Steps:
+1. **Table: card mode.** *Done 2026-09-29.* `table.ts` gains `cards: 'real' | 'online'`. In online mode the reducer keeps a
+   deck and hole cards, advances streets by itself, and settles the showdown itself. There's a per-player
+   `viewFor(state, playerId)` that strips every other player's hole cards and the deck. Tests: no view ever
+   contains another player's cards or the deck; the showdown pays the best hand with side pots; chips are
+   conserved over a long random session in both modes.
+2. **The server.** *Done 2026-09-29. Added along the way: a private per-phone **seat key**. Every phone
+   sees every player id, so an id alone could have taken over someone's seat and seen their cards. Seats
+   are now claimed with the key, and the server refuses anyone else.* `server/` holds a Worker plus a `Room` Durable Object (`wrangler.toml`), running the
+   reducer. It speaks the existing protocol over WebSocket and sends per-player views. Create / join / host
+   token. Tests: the room logic runs on a fake socket under vitest. `wrangler dev` runs it locally with no
+   account.
+3. **Client.** *Done 2026-09-29. Checked in three tabs against `wrangler dev`: each page held only its own
+   two cards, the host had no dealing or award buttons, the board dealt itself, and the showdown paid the
+   right hand (a pair of jacks over eights and sevens) with the hands still in shown.* `src/home/socket.ts` replaces `peer.ts`, connecting to `VITE_ROOM_SERVER` and reconnecting.
+   The host setup gets a Real cards / Online cards toggle. `HomeTable` shows your own cards and the board
+   using the existing `CardView`, and cards turned over at showdown. Browser check in three tabs against
+   `wrangler dev`.
+4. **Deploy.** The user creates a free Cloudflare account and runs `npx wrangler login`, then
+   `npm run server:deploy` publishes the Worker. Its URL goes in the Pages build (`VITE_ROOM_SERVER`).
+   Checked on real phones, including the hotspot that failed before.
+
+## The host's role (decided 2026-09-29)
+
+Everyone brings their own phone and bets on it, so **nobody can act for another seat, the host included**.
+The host runs the game's flow and nothing else:
+- **Deals each hand.** With real cards, the host also turns the streets and picks each pot's winner.
+- **Keeps the table in order, between hands:** seat order to match the real table, removing someone who
+  left, and the blinds.
+
+Taken away from the host: acting for other players, and setting stacks. Nobody sets a stack; chips move only
+by playing. A busted player **rebuys** from their own phone, between hands, for the starting stack. **Undo**
+belongs to whoever took the last step: a player can take back their own last move, and the host its own
+last deal or payout. The server enforces all of this (`RoomCore.authorise`), not just the screens.
+
 ## Out of scope for now
 
-- Online play with dealt cards (the app shuffling and dealing to each phone privately). The pieces above are
-  built so it can follow.
+- Online multiplayer with strangers (matchmaking, no host). The server room built in phase 2 is the piece it
+  needs; what's missing is a lobby for finding a game.
 - Any record in the profile or Career: home game money is play money between friends and never touches
   the bankroll.
-- A self-hosted signaling or TURN server. Revisit only if PeerJS's public server proves unreliable in use.
 
 ## Done means
 

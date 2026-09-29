@@ -67,11 +67,21 @@ this layer hasn't needed rework since the milestones in the v1 plan.
 The home game (`docs/plans/home-game.md`): real cards on a real table, with only the chips in the app.
 `table.ts` is its pure reducer: seating, blinds and the button, the betting rules from `poker/betting.ts`
 (which now take a card-free `BettingState`), streets advanced by the host, side pots, the host's showdown
-award with odd chips by seat, rebuys, and undo. `room.ts` is the room without the network (the host runs
-every command; joiners may only act for themselves), and `peer.ts` connects it over PeerJS, with a 4-digit
-room number and reconnection. Screens in `src/ui/home/`: Home Game is a third lobby mode (Host / Join /
-Reopen room), a share link `?room=1234` opens onto joining, and one table screen serves everyone, with the
-dealer's controls on the host's phone.
+award with odd chips by seat, rebuys, and undo. It has two card modes: **real cards** (the host deals a real
+deck and judges the showdown) and **online cards** (the table deals from a server-shuffled deck, settles the
+showdown with the engine's evaluator, and `viewFor` gives each seat only its own cards).
+
+Rooms live on a server: `server/` is a Cloudflare Worker with one Durable Object per 4-digit room (free
+plan, WebSocket hibernation, deleted after 12 idle hours). `room.ts`'s `RoomCore` runs every command there.
+The host is whoever holds the room's token, and runs only the game's flow: dealing, and with real cards
+the streets and the showdown award, plus seat order and blinds between hands. Nobody acts for another seat
+or sets a stack; busted players rebuy themselves; undo belongs to whoever took the last step. Seats are
+claimed with a private per-phone seat key; with
+online cards the server shuffles every deck (crypto-random). `socket.ts` is the phone's WebSocket, with
+reconnection. `npm run server:dev` runs the server locally; `npm run server:deploy` publishes it, and the
+Pages build reads its address from the `ROOM_SERVER` repository variable (`VITE_ROOM_SERVER`). Screens in
+`src/ui/home/`: Home Game is a third lobby mode (Host / Join / Reopen room), a share link `?room=1234` opens
+onto joining, and one table screen serves everyone, with the dealer's controls on the host's phone.
 
 ## The table UI — `src/ui/`
 

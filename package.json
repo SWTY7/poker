@@ -9,6 +9,8 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "test": "vitest run",
+    "server:dev": "wrangler dev --config server/wrangler.toml",
+    "server:deploy": "wrangler deploy --config server/wrangler.toml",
     "run": "node scripts/run.mjs",
     "generate:preflop-equity": "node scripts/run.mjs scripts/preflop-equity.ts",
     "chart:pushfold": "node scripts/run.mjs scripts/push-fold-chart.ts",
@@ -20,11 +22,11 @@
     "train:preflop": "node scripts/run.mjs scripts/train-preflop-multiway.ts"
   },
   "dependencies": {
-    "peerjs": "^1.5.5",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260929.1",
     "@types/node": "^24.13.3",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",
@@ -32,6 +34,7 @@
     "oxlint": "^1.79.0",
     "typescript": "~6.0.2",
     "vite": "^8.2.2",
-    "vitest": "^4.1.11"
+    "vitest": "^4.1.11",
+    "wrangler": "^4.143.0"
   }
 }

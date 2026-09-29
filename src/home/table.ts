@@ -12,17 +12,28 @@ import {
   type BettingState,
 } from '../poker/betting'
 import { computePots, distributePots, totalPot } from '../poker/pot'
+import { RANKS, SUITS, cardsEqual, type Card } from '../poker/card'
+import { compareHandValues, evaluateBestHand, type HandValue } from '../poker/hand-evaluator'
+import { describeHandValue } from '../poker/hand-name'
 
 /**
- * The home game's table: real cards on a real table, and only the chips in
- * the app. The same betting rules as the dealt game (`poker/betting.ts`) and
- * the same side-pot maths (`poker/pot.ts`), but nothing is dealt or evaluated:
- * the host turns each street after dealing it for real, and picks who won each
- * pot at showdown.
+ * The home game's table, in one of two card modes:
+ *
+ *   real    a real deck on a real table, and only the chips in the app. The
+ *           host turns each street after dealing it for real, and picks who
+ *           won each pot at showdown.
+ *   online  the app deals. The deck and every hand live in this state on the
+ *           room server; each phone is sent `viewFor` its own seat, which has
+ *           nobody else's cards. Streets deal themselves when the betting
+ *           closes, and the showdown is settled by the engine's own evaluator.
+ *
+ * Either way, the same betting rules as the dealt game (`poker/betting.ts`)
+ * and the same side-pot maths (`poker/pot.ts`).
  *
  * A pure reducer: `reduce(state, command)` returns a new state or throws
- * `HomeTableError` with a message fit to show the person who tried it. The
- * room (`room.ts`) runs it on the host's device, the only copy that counts.
+ * `HomeTableError` with a message fit to show the person who tried it. It
+ * draws no random numbers: a new hand's shuffled deck comes in with the
+ * `startHand` command, from the server.
  */
 
 export interface HomeConfig {
@@ -32,6 +43,8 @@ export interface HomeConfig {
   ante: number
 }
 
+export type CardMode = 'real' | 'online'
+
 /**
  * Where the hand stands, from the host's side:
  *   lobby       no hand yet: people join, the host seats them
@@ -39,16 +52,30 @@ export interface HomeConfig {
  *   street-done this street's betting is over; the host deals the next card(s)
  *   showdown    the river is done; the host picks each pot's winner
  *   hand-over   chips are paid; the host deals the next hand when ready
+ *
+ * With online cards the table never rests in street-done or showdown: it deals
+ * and settles those by itself.
  */
 export type Phase = 'lobby' | 'betting' | 'street-done' | 'showdown' | 'hand-over'
 
 export interface HandResult {
   potAmount: number
   winnerIds: string[]
+  /** Online cards: what the winning hand was, e.g. 'two-pair'. */
+  category?: string
+  /** Online cards: the winning hand in words, e.g. 'Pair of jacks'. */
+  hand?: string
 }
 
 interface Table extends BettingState {
   config: HomeConfig
+  cards: CardMode
+  /** Online cards: what's left of this hand's deck, next card last. Never leaves the server. */
+  deck: Card[]
+  /** Online cards: the community cards dealt so far. */
+  board: Card[]
+  /** Online cards: players whose hole cards everyone may see (those still in at a showdown). */
+  revealed: string[]
   players: PlayerState[]
   phase: Phase
   street: Street
@@ -65,10 +92,19 @@ interface Table extends BettingState {
   handLog: HandLogEntry[]
 }
 
+/** Who a command comes from: a player (by id), or the host running the game. */
+export const HOST = 'host'
+
+/** One step that can be taken back: the table before it, and who took it. */
+export interface UndoStep {
+  before: Table
+  by: string
+}
+
 export interface HomeState extends Table {
   version: 1
   /** Earlier states of this hand, newest last, for undo. Cleared when a hand starts. */
-  undo: Table[]
+  undo: UndoStep[]
 }
 
 /** The table without its undo history: what phones are sent, and all the read-only helpers below need. */
@@ -80,7 +116,10 @@ export type Command =
   | { type: 'move'; id: string; toIndex: number }
   | { type: 'configure'; config: HomeConfig }
   | { type: 'adjustStack'; id: string; stack: number }
-  | { type: 'startHand' }
+  /** A busted player buying back in, between hands, for the starting stack. */
+  | { type: 'rebuy'; id: string }
+  /** `deck` is required with online cards: all 52, shuffled by the server. */
+  | { type: 'startHand'; deck?: Card[] }
   | { type: 'act'; playerId: string; action: ActionType; amount?: number }
   | { type: 'advanceStreet' }
   | { type: 'award'; winnersByPot: string[][] }
@@ -91,10 +130,14 @@ export class HomeTableError extends Error {}
 const MAX_UNDO = 40
 const MAX_NAME = 16
 
-export function newTable(config: HomeConfig): HomeState {
+export function newTable(config: HomeConfig, cards: CardMode = 'real'): HomeState {
   return {
     version: 1,
     config,
+    cards,
+    deck: [],
+    board: [],
+    revealed: [],
     players: [],
     phase: 'lobby',
     street: 'preflop',
@@ -122,13 +165,17 @@ export function betweenHands(state: TableSnapshot): boolean {
   return state.phase === 'lobby' || state.phase === 'hand-over'
 }
 
-export function reduce(state: HomeState, command: Command): HomeState {
+/**
+ * `by` is who sent the command (a player id, or `HOST`). It's recorded with
+ * each step so that only whoever took a step can take it back.
+ */
+export function reduce(state: HomeState, command: Command, by: string = HOST): HomeState {
   // Work on a copy: the betting rules mutate in place, and a command that
   // throws halfway must leave the real state untouched.
   const { undo, ...table } = state
   const next: HomeState = { ...structuredClone(table), undo }
   const snapshot = (): void => {
-    next.undo = [...undo, structuredClone(table)].slice(-MAX_UNDO)
+    next.undo = [...undo, { before: structuredClone(table), by }].slice(-MAX_UNDO)
   }
 
   switch (command.type) {
@@ -190,10 +237,21 @@ export function reduce(state: HomeState, command: Command): HomeState {
       return next
     }
 
+    case 'rebuy': {
+      if (!betweenHands(state)) fail('Wait for the hand to finish.')
+      const player = next.players.find((p) => p.id === command.id)
+      if (!player) fail('No such player.')
+      if (!player.isEliminated && player.stack > 0) fail('You still have chips.')
+      player.stack = next.config.startingStack
+      player.isEliminated = false
+      return next
+    }
+
     case 'startHand':
-      startHand(next)
+      startHand(next, command.deck)
       // Undo reaches back as far as the deal (a mis-tapped "New hand"), never into the last hand.
-      next.undo = [structuredClone(table)]
+      // Not with online cards: everyone has already looked at theirs.
+      next.undo = next.cards === 'online' ? [] : [{ before: structuredClone(table), by }]
       return next
 
     case 'act': {
@@ -214,10 +272,13 @@ export function reduce(state: HomeState, command: Command): HomeState {
         fail(error instanceof Error ? error.message : 'Not allowed.')
       }
       afterAction(next)
+      // With online cards, undo never reaches back past a card being shown: nobody replays a decision knowing what came next.
+      if (next.cards === 'online' && (next.board.length !== state.board.length || (next.phase as Phase) === 'hand-over')) next.undo = []
       return next
     }
 
     case 'advanceStreet': {
+      if (next.cards === 'online') fail('The app deals in this game.')
       if (next.phase !== 'street-done') fail('Finish the betting first.')
       snapshot()
       advanceStreet(next)
@@ -225,6 +286,7 @@ export function reduce(state: HomeState, command: Command): HomeState {
     }
 
     case 'award': {
+      if (next.cards === 'online') fail('The app settles the showdown in this game.')
       if (next.phase !== 'showdown') fail('Not at a showdown.')
       if (command.winnersByPot.length !== next.pots.length) fail('Pick a winner for every pot.')
       next.pots.forEach((pot, i) => {
@@ -249,9 +311,10 @@ export function reduce(state: HomeState, command: Command): HomeState {
     }
 
     case 'undo': {
-      const previous = undo.at(-1)
-      if (!previous) fail('Nothing to undo.')
-      return { ...structuredClone(previous), version: 1, undo: undo.slice(0, -1) }
+      const step = undo.at(-1)
+      if (!step) fail('Nothing to undo.')
+      if (step.by !== by) fail('Only whoever made the last move can take it back.')
+      return { ...structuredClone(step.before), version: 1, undo: undo.slice(0, -1) }
     }
   }
 }
@@ -271,15 +334,25 @@ function nextSeat(state: Table, from: number): number {
   return fail('Nobody has chips.')
 }
 
+/** Whether `by` (a player id, or `HOST`) may take back the last step. */
+export function canUndo(state: HomeState, by: string): boolean {
+  return state.undo.at(-1)?.by === by
+}
+
 export function canStartHand(state: TableSnapshot): boolean {
   return betweenHands(state) && state.players.filter(inHand).length >= 2
 }
 
-function startHand(state: Table): void {
+function startHand(state: Table, deck: Card[] | undefined): void {
   if (!(state.phase === 'lobby' || state.phase === 'hand-over')) fail('A hand is already running.')
   if (state.players.filter(inHand).length < 2) fail('Need two players with chips.')
+  if (state.cards === 'online' && !isFullDeck(deck)) fail('The deck didn’t arrive. Try again.')
 
+  state.board = []
+  state.revealed = []
+  state.deck = state.cards === 'online' ? [...deck!] : []
   for (const p of state.players) {
+    p.holeCards = []
     p.folded = !inHand(p)
     p.isAllIn = false
     p.betThisStreet = 0
@@ -314,12 +387,24 @@ function startHand(state: Table): void {
   state.currentBet = bigBlind
   state.minRaise = bigBlind
 
+  if (state.cards === 'online') {
+    // Two rounds, one card at a time, starting left of the button, the way a dealer does.
+    const n = state.players.length
+    for (let round = 0; round < 2; round++) {
+      for (let step = 1; step <= n; step++) {
+        const p = state.players[(state.dealerIndex + step) % n]
+        if (inHand(p)) p.holeCards.push(state.deck.pop()!)
+      }
+    }
+  }
+
   const canAct = state.players.filter((p) => !p.folded && !p.isAllIn)
   if (canAct.length <= 1) {
     // A blind put someone all-in before anyone had a decision: no betting,
-    // the host just deals the board out.
+    // the board is just dealt out.
     state.phase = 'street-done'
     state.currentPlayerIndex = -1
+    if (state.cards === 'online') runOut(state)
     return
   }
   state.phase = 'betting'
@@ -359,6 +444,17 @@ function afterAction(state: Table): void {
   state.currentPlayerIndex = -1
   if (state.street === 'river') toShowdown(state)
   else state.phase = 'street-done'
+  if (state.cards === 'online') runOut(state)
+}
+
+/**
+ * Online cards: deals on from a closed street by itself, straight through
+ * any street nobody can bet on (everyone all-in), to the next betting round
+ * or to a settled showdown.
+ */
+function runOut(state: Table): void {
+  while (state.phase === 'street-done') advanceStreet(state)
+  if (state.phase === 'showdown') settleShowdown(state)
 }
 
 const NEXT_STREET: Partial<Record<Street, Street>> = { preflop: 'flop', flop: 'turn', turn: 'river' }
@@ -376,7 +472,13 @@ function advanceStreet(state: Table): void {
   state.currentBet = 0
   state.minRaise = state.config.bigBlind
   state.street = street
-  logEvent(state, { street, kind: 'deal' })
+  if (state.cards === 'online') {
+    const dealt = Array.from({ length: street === 'flop' ? 3 : 1 }, () => state.deck.pop()!)
+    state.board.push(...dealt)
+    logEvent(state, { street, kind: 'deal', cards: dealt })
+  } else {
+    logEvent(state, { street, kind: 'deal' })
+  }
 
   const canAct = state.players.filter((p) => !p.folded && !p.isAllIn)
   if (canAct.length <= 1) {
@@ -397,6 +499,59 @@ function toShowdown(state: Table): void {
   state.currentPlayerIndex = -1
 }
 
+/**
+ * Online cards: the showdown the host would otherwise judge. Every pot goes
+ * to the best hand among the players in it, ties split, and everyone still
+ * in shows their cards. Folded hands stay face down for good.
+ */
+function settleShowdown(state: Table): void {
+  const value = new Map<string, HandValue>()
+  for (const p of state.players) {
+    if (!p.folded && p.holeCards.length === 2) value.set(p.id, evaluateBestHand([...p.holeCards, ...state.board]))
+  }
+  const winners = state.pots.map((pot) => {
+    let best: HandValue | null = null
+    let ids: string[] = []
+    for (const id of pot.eligiblePlayerIds) {
+      const v = value.get(id)
+      if (!v) continue
+      const order = best ? compareHandValues(v, best) : 1
+      if (order > 0) {
+        best = v
+        ids = [id]
+      } else if (order === 0) ids.push(id)
+    }
+    return { ids, category: best?.category, hand: best ? describeHandValue(best) : undefined }
+  })
+  const payouts = distributePots(
+    state.pots,
+    winners.map((w) => w.ids),
+    seatOrderFromDealer(state),
+  )
+  for (const [id, amount] of payouts) {
+    const player = state.players.find((p) => p.id === id)
+    if (player) player.stack += amount
+  }
+  state.revealed = [...value.keys()]
+  for (const id of state.revealed) {
+    const p = state.players.find((pl) => pl.id === id)!
+    logEvent(state, { street: 'showdown', kind: 'reveal', playerId: id, playerName: p.name, cards: p.holeCards })
+  }
+  state.lastResults = state.pots.map((pot, i) => ({
+    potAmount: pot.amount,
+    winnerIds: winners[i].ids,
+    category: winners[i].category,
+    hand: winners[i].hand,
+  }))
+  state.lastResults.forEach((result, i) => {
+    const names = result.winnerIds.map((id) => state.players.find((p) => p.id === id)?.name ?? id).join(' & ')
+    const potName = state.pots.length > 1 ? (i === 0 ? 'main pot' : `side pot ${i}`) : 'pot'
+    const hand = result.hand ? ` (${result.hand})` : ''
+    logEvent(state, { street: 'showdown', kind: 'result', amount: result.potAmount, message: `${names} wins the ${potName}${hand}` })
+  })
+  endHand(state)
+}
+
 function endHand(state: Table): void {
   for (const p of state.players) {
     p.betThisStreet = 0
@@ -414,7 +569,37 @@ function seatOrderFromDealer(state: Table): string[] {
   return Array.from({ length: n }, (_, step) => state.players[(state.dealerIndex + 1 + step) % n].id)
 }
 
+// ---------- decks ----------
+
+/** All 52 cards, shuffled with `random` (the server passes a crypto-strength one). */
+export function shuffledDeck(random: () => number): Card[] {
+  const deck: Card[] = SUITS.flatMap((suit) => RANKS.map((rank) => ({ rank, suit })))
+  for (let i = deck.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1))
+    ;[deck[i], deck[j]] = [deck[j], deck[i]]
+  }
+  return deck
+}
+
+function isFullDeck(deck: Card[] | undefined): deck is Card[] {
+  if (!Array.isArray(deck) || deck.length !== 52) return false
+  return deck.every((card, i) => RANKS.includes(card?.rank) && SUITS.includes(card?.suit) && deck.findIndex((c) => cardsEqual(c, card)) === i)
+}
+
 // ---------- what a phone needs to show ----------
+
+/**
+ * The table as one seat may see it: no deck, and nobody's hole cards but
+ * their own, unless shown at a showdown. `viewerId` null (the host who only
+ * deals, or a spectator) sees no hole cards at all.
+ */
+export function viewFor<T extends TableSnapshot>(state: T, viewerId: string | null): T {
+  return {
+    ...state,
+    deck: [],
+    players: state.players.map((p) => (p.id === viewerId || state.revealed.includes(p.id) ? p : { ...p, holeCards: [] })),
+  }
+}
 
 /** What the player to act may do, and the bet sizes allowed. */
 export function options(state: TableSnapshot, playerId: string): { actions: ActionType[]; toCall: number; minTo: number; maxTo: number } | null {

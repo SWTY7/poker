@@ -9,10 +9,10 @@ import { YourPlay } from './ui/YourPlay'
 import { TableSeating } from './ui/TableSeating'
 import { CareerHub } from './ui/CareerHub'
 import { HostEntry, JoinEntry, type HostSetup } from './ui/home/HomeEntry'
-import { HostScreen, JoinScreen } from './ui/home/HomeScreens'
-import { newTable, type HomeState } from './home/table'
+import { RoomScreen } from './ui/home/HomeScreens'
 import { isRoomCode } from './home/room'
-import { loadHost, loadMe, saveMe } from './home/saved'
+import { loadHost, loadMe, saveHost, saveMe } from './home/saved'
+import { createRoom } from './home/socket'
 import type { TournamentOutcome } from './ui/TournamentResults'
 import { Table } from './ui/Table'
 import { useHoldemGame } from './ui/useHoldemGame'
@@ -88,8 +88,7 @@ type Screen =
   | { kind: 'career' }
   | { kind: 'home-host-setup' }
   | { kind: 'home-join'; code: string }
-  | { kind: 'home-host'; initial: HomeState; resumeCode: string | null; hostPlayerId: string | null; hostName: string | null }
-  | { kind: 'home-player'; code: string; playerId: string; name: string }
+  | { kind: 'home-room'; code: string; playerId: string; seatKey: string; name?: string; hostToken?: string }
   | { kind: 'your-play' }
 
 interface TournamentExitPayload {
@@ -239,22 +238,32 @@ function App() {
 
   const goLobby = () => setScreen({ kind: 'lobby' })
 
-  const handleOpenRoom = ({ config, hostName }: HostSetup) => {
+  /** Makes the room on the server; returns a message to show if that failed. */
+  const handleOpenRoom = async ({ config, hostName, cards }: HostSetup): Promise<string | null> => {
+    let room: { code: string; hostToken: string }
+    try {
+      room = await createRoom(config, cards)
+    } catch (error) {
+      return error instanceof Error ? error.message : 'Couldn’t open a room.'
+    }
     const me = loadMe()
     if (hostName) saveMe({ ...me, name: hostName })
-    setScreen({ kind: 'home-host', initial: newTable(config), resumeCode: null, hostPlayerId: hostName ? me.playerId : null, hostName })
+    saveHost({ ...room, playerId: me.playerId, seatKey: me.seatKey })
+    setScreen({ kind: 'home-room', code: room.code, playerId: me.playerId, seatKey: me.seatKey, name: hostName ?? undefined, hostToken: room.hostToken })
+    return null
   }
 
+  /** Back to the room this phone is hosting: the seat and dealer's rights come back with the token. */
   const handleResumeRoom = () => {
     const saved = loadHost()
     if (!saved) return
-    setScreen({ kind: 'home-host', initial: saved.state, resumeCode: saved.code, hostPlayerId: saved.hostPlayerId, hostName: null })
+    setScreen({ kind: 'home-room', code: saved.code, playerId: saved.playerId, seatKey: saved.seatKey, hostToken: saved.hostToken })
   }
 
   const handleJoinRoom = (code: string, name: string) => {
     const me = { ...loadMe(), name, code }
     saveMe(me)
-    setScreen({ kind: 'home-player', code, playerId: me.playerId, name })
+    setScreen({ kind: 'home-room', code, playerId: me.playerId, seatKey: me.seatKey, name })
   }
 
   const leaveHome = () => {
@@ -441,18 +450,17 @@ function App() {
       return <HostEntry initialName={loadMe().name} onOpen={handleOpenRoom} onBack={goLobby} />
     case 'home-join':
       return <JoinEntry initialName={loadMe().name} initialCode={screen.code} onJoin={handleJoinRoom} onBack={leaveHome} />
-    case 'home-host':
+    case 'home-room':
       return (
-        <HostScreen
-          initial={screen.initial}
-          resumeCode={screen.resumeCode}
-          hostPlayerId={screen.hostPlayerId}
-          hostName={screen.hostName}
+        <RoomScreen
+          code={screen.code}
+          playerId={screen.playerId}
+          seatKey={screen.seatKey}
+          name={screen.name}
+          hostToken={screen.hostToken}
           onExit={leaveHome}
         />
       )
-    case 'home-player':
-      return <JoinScreen code={screen.code} playerId={screen.playerId} name={screen.name} onExit={leaveHome} />
     case 'career':
       return (
         <CareerHub
