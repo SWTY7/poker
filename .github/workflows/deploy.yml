@@ -26,6 +26,10 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run build
+        env:
+          # The home game's room server (server/, a Cloudflare Worker). Set it as a
+          # repository variable once the Worker is deployed: gh variable set ROOM_SERVER
+          VITE_ROOM_SERVER: ${{ vars.ROOM_SERVER }}
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist

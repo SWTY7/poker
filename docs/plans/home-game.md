@@ -144,16 +144,20 @@ Decisions:
   that already exists, and lets an idle room expire.
 
 Steps:
-1. **Table: card mode.** `table.ts` gains `cards: 'real' | 'online'`. In online mode the reducer keeps a
+1. **Table: card mode.** *Done 2026-09-29.* `table.ts` gains `cards: 'real' | 'online'`. In online mode the reducer keeps a
    deck and hole cards, advances streets by itself, and settles the showdown itself. There's a per-player
    `viewFor(state, playerId)` that strips every other player's hole cards and the deck. Tests: no view ever
    contains another player's cards or the deck; the showdown pays the best hand with side pots; chips are
    conserved over a long random session in both modes.
-2. **The server.** `server/` holds a Worker plus a `Room` Durable Object (`wrangler.toml`), running the
+2. **The server.** *Done 2026-09-29. Added along the way: a private per-phone **seat key**. Every phone
+   sees every player id, so an id alone could have taken over someone's seat and seen their cards. Seats
+   are now claimed with the key, and the server refuses anyone else.* `server/` holds a Worker plus a `Room` Durable Object (`wrangler.toml`), running the
    reducer. It speaks the existing protocol over WebSocket and sends per-player views. Create / join / host
    token. Tests: the room logic runs on a fake socket under vitest. `wrangler dev` runs it locally with no
    account.
-3. **Client.** `src/home/socket.ts` replaces `peer.ts`, connecting to `VITE_ROOM_SERVER` and reconnecting.
+3. **Client.** *Done 2026-09-29. Checked in three tabs against `wrangler dev`: each page held only its own
+   two cards, the host had no dealing or award buttons, the board dealt itself, and the showdown paid the
+   right hand (a pair of jacks over eights and sevens) with the hands still in shown.* `src/home/socket.ts` replaces `peer.ts`, connecting to `VITE_ROOM_SERVER` and reconnecting.
    The host setup gets a Real cards / Online cards toggle. `HomeTable` shows your own cards and the board
    using the existing `CardView`, and cards turned over at showdown. Browser check in three tabs against
    `wrangler dev`.

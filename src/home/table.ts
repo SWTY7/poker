@@ -14,6 +14,7 @@ import {
 import { computePots, distributePots, totalPot } from '../poker/pot'
 import { RANKS, SUITS, cardsEqual, type Card } from '../poker/card'
 import { compareHandValues, evaluateBestHand, type HandValue } from '../poker/hand-evaluator'
+import { describeHandValue } from '../poker/hand-name'
 
 /**
  * The home game's table, in one of two card modes:
@@ -62,6 +63,8 @@ export interface HandResult {
   winnerIds: string[]
   /** Online cards: what the winning hand was, e.g. 'two-pair'. */
   category?: string
+  /** Online cards: the winning hand in words, e.g. 'Pair of jacks'. */
+  hand?: string
 }
 
 interface Table extends BettingState {
@@ -487,7 +490,7 @@ function settleShowdown(state: Table): void {
         ids = [id]
       } else if (order === 0) ids.push(id)
     }
-    return { ids, category: best?.category }
+    return { ids, category: best?.category, hand: best ? describeHandValue(best) : undefined }
   })
   const payouts = distributePots(
     state.pots,
@@ -503,11 +506,16 @@ function settleShowdown(state: Table): void {
     const p = state.players.find((pl) => pl.id === id)!
     logEvent(state, { street: 'showdown', kind: 'reveal', playerId: id, playerName: p.name, cards: p.holeCards })
   }
-  state.lastResults = state.pots.map((pot, i) => ({ potAmount: pot.amount, winnerIds: winners[i].ids, category: winners[i].category }))
+  state.lastResults = state.pots.map((pot, i) => ({
+    potAmount: pot.amount,
+    winnerIds: winners[i].ids,
+    category: winners[i].category,
+    hand: winners[i].hand,
+  }))
   state.lastResults.forEach((result, i) => {
     const names = result.winnerIds.map((id) => state.players.find((p) => p.id === id)?.name ?? id).join(' & ')
     const potName = state.pots.length > 1 ? (i === 0 ? 'main pot' : `side pot ${i}`) : 'pot'
-    const hand = result.category ? ` with ${result.category.replace(/-/g, ' ')}` : ''
+    const hand = result.hand ? ` (${result.hand})` : ''
     logEvent(state, { street: 'showdown', kind: 'result', amount: result.potAmount, message: `${names} wins the ${potName}${hand}` })
   })
   endHand(state)

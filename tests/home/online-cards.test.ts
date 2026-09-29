@@ -99,7 +99,7 @@ describe('the showdown', () => {
     state = run(state, act('ann', 'fold'), act('ben', 'call'), act('cy', 'check'))
     for (let street = 0; street < 3; street++) state = run(state, act('ben', 'check'), act('cy', 'check'))
     expect(state.phase).toBe('hand-over')
-    expect(state.lastResults).toEqual([{ potAmount: 20, winnerIds: ['ben'], category: 'pair' }])
+    expect(state.lastResults).toEqual([{ potAmount: 20, winnerIds: ['ben'], category: 'pair', hand: 'Pair of aces' }])
     expect(state.revealed.sort()).toEqual(['ben', 'cy'])
     expect(viewFor(state, 'cy').players.find((p) => p.id === 'ann')?.holeCards).toEqual([])
     expect(viewFor(state, 'cy').players.find((p) => p.id === 'ben')?.holeCards).toHaveLength(2)

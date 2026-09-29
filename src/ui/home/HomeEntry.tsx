@@ -65,7 +65,7 @@ export function HostEntry({ initialName, onOpen, onBack }: HostEntryProps) {
   const [config, setConfig] = useState<HomeConfig>(DEFAULT)
   const [plays, setPlays] = useState(true)
   const [name, setName] = useState(initialName)
-  const [cards] = useState<CardMode>('real')
+  const [cards, setCards] = useState<CardMode>('real')
   const [opening, setOpening] = useState(false)
   const [problem, setProblem] = useState<string | null>(null)
   const valid = !opening && config.smallBlind > 0 && config.bigBlind >= config.smallBlind && config.startingStack > config.bigBlind && (!plays || name.trim() !== '')
@@ -80,6 +80,35 @@ export function HostEntry({ initialName, onOpen, onBack }: HostEntryProps) {
           <NumberField label="Big blind" value={config.bigBlind} onChange={(bigBlind) => setConfig((c) => ({ ...c, bigBlind }))} />
           <NumberField label="Ante" value={config.ante} onChange={(ante) => setConfig((c) => ({ ...c, ante }))} />
         </div>
+      </section>
+
+      <div className="menu-divider" />
+
+      <section>
+        <h2 className="menu-section">Cards</h2>
+        <div className="menu-options home-card-modes">
+          {(
+            [
+              ['real', 'Real cards'],
+              ['online', 'Online cards'],
+            ] as const
+          ).map(([value, label]) => (
+            <button
+              key={value}
+              type="button"
+              className={`menu-option ${cards === value ? 'menu-option-on' : ''}`}
+              aria-pressed={cards === value}
+              onClick={() => setCards(value)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <p className="menu-hint">
+          {cards === 'real'
+            ? 'You deal a real deck and pick who won each showdown. The phones only keep the chips.'
+            : 'The app shuffles and deals. Each phone shows its own two cards and nobody else’s, not even the host’s, and the app settles the showdown.'}
+        </p>
       </section>
 
       <div className="menu-divider" />
