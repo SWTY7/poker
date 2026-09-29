@@ -1,48 +1,20 @@
-import type { HomeState } from '../../home/table'
 import { HomeTable } from './HomeTable'
-import { useHostRoom, useJoinRoom } from './useHomeRoom'
+import { useRoom } from './useHomeRoom'
 
-interface HostScreenProps {
-  initial: HomeState
-  /** Reopening a saved room: its number. Null opens a new one. */
-  resumeCode: string | null
-  hostPlayerId: string | null
-  hostName: string | null
-  onExit: () => void
-}
-
-/** The host's phone: runs the room and deals. */
-export function HostScreen({ initial, resumeCode, hostPlayerId, hostName, onExit }: HostScreenProps) {
-  const room = useHostRoom(initial, resumeCode, hostPlayerId, hostName)
-  return (
-    <HomeTable
-      view={room.view}
-      status={room.status}
-      detail={room.detail}
-      error={room.error}
-      onClearError={room.clearError}
-      myId={hostPlayerId}
-      isHost
-      code={room.code}
-      send={room.send}
-      onLeave={() => {
-        room.close()
-        onExit()
-      }}
-    />
-  )
-}
-
-interface JoinScreenProps {
+interface RoomScreenProps {
   code: string
   playerId: string
-  name: string
+  seatKey: string
+  /** To sit down under this name; left out to reclaim a seat (or, for the host, to only deal). */
+  name?: string
+  /** Present on the phone that created the room. */
+  hostToken?: string
   onExit: () => void
 }
 
-/** A player's phone: their seat, their buttons, and everyone else's stacks. */
-export function JoinScreen({ code, playerId, name, onExit }: JoinScreenProps) {
-  const room = useJoinRoom(code, playerId, name)
+/** One phone at a home game table, host or player alike. */
+export function RoomScreen({ code, playerId, seatKey, name, hostToken, onExit }: RoomScreenProps) {
+  const room = useRoom(code, playerId, seatKey, name, hostToken)
   return (
     <HomeTable
       view={room.view}
@@ -50,8 +22,8 @@ export function JoinScreen({ code, playerId, name, onExit }: JoinScreenProps) {
       detail={room.detail}
       error={room.error}
       onClearError={room.clearError}
-      myId={playerId}
-      isHost={false}
+      myId={room.view?.you.playerId ?? null}
+      isHost={room.view?.you.isHost ?? false}
       code={code}
       send={room.send}
       onLeave={() => {

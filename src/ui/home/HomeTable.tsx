@@ -2,8 +2,9 @@ import { useState } from 'react'
 import type { ActionType } from '../../poker/game-state'
 import type { TableView } from '../../home/room'
 import { betweenHands, canStartHand, options, potTotal, type Command } from '../../home/table'
-import type { RoomStatus } from '../../home/peer'
+import type { RoomStatus } from '../../home/socket'
 import { avatarInitial, avatarStyle } from '../avatar'
+import { CardView } from '../CardView'
 
 interface HomeTableProps {
   view: TableView | null
@@ -49,7 +50,7 @@ export function HomeTable({ view, status, detail, error, onClearError, myId, isH
             <StatusPill status={status} detail={detail} />
             {confirmLeave ? (
               <span className="home-leave-confirm">
-                {isHost ? 'Close the room for everyone?' : 'Leave the table?'}
+                {isHost ? 'Leave? The room stays open; reopen it from the lobby.' : 'Leave the table?'}
                 <button type="button" className="lobby-reset-link" onClick={onLeave}>
                   Yes
                 </button>
@@ -59,7 +60,7 @@ export function HomeTable({ view, status, detail, error, onClearError, myId, isH
               </span>
             ) : (
               <button type="button" className="menu-back-link" onClick={() => setConfirmLeave(true)}>
-                {isHost ? 'Close room' : 'Leave'}
+                Leave
               </button>
             )}
           </div>
@@ -67,8 +68,10 @@ export function HomeTable({ view, status, detail, error, onClearError, myId, isH
 
         {isHost && shareLink && view?.phase === 'lobby' && (
           <p className="menu-hint home-share">
-            Friends open <strong>{shareLink}</strong>, or the app’s Home Game → Join with room <strong>{code}</strong>. Keep this
-            screen open: the room lives on this phone.
+            Friends open <strong>{shareLink}</strong>, or the app’s Home Game → Join with room <strong>{code}</strong>.
+            {view.cards === 'online'
+              ? ' The app deals: everyone sees their own two cards on their phone, and nobody else’s.'
+              : ' Deal the real cards; the phones keep the chips.'}
           </p>
         )}
 
@@ -83,6 +86,7 @@ export function HomeTable({ view, status, detail, error, onClearError, myId, isH
         ) : (
           <>
             <PotBar view={view} />
+            {view.cards === 'online' && <OnlineCards view={view} myId={myId} />}
             <Seats view={view} myId={myId} isHost={isHost} send={send} />
             <ActionPanel key={`${view.handNumber}-${view.actionHistory.length}-${view.street}`} view={view} myId={myId} isHost={isHost} send={send} />
             {isHost && <DealerControls view={view} send={send} />}
@@ -117,9 +121,36 @@ function PotBar({ view }: { view: TableView }) {
           {last.map((r, i) => (
             <li key={i}>
               {r.winnerIds.map(name).join(' & ')} {r.winnerIds.length > 1 ? 'split' : 'won'} {money(r.potAmount)}
+              {r.hand ? ` · ${r.hand}` : ''}
             </li>
           ))}
         </ul>
+      )}
+    </section>
+  )
+}
+
+/** Online cards: the board, and this phone's own two cards. */
+function OnlineCards({ view, myId }: { view: TableView; myId: string | null }) {
+  const mine = view.players.find((p) => p.id === myId)?.holeCards ?? []
+  if (view.handNumber === 0) return null
+  return (
+    <section className="menu-card home-cards">
+      <div className="home-board" aria-label="Board">
+        {Array.from({ length: 5 }, (_, i) =>
+          view.board[i] ? (
+            <CardView key={`${view.handNumber}-b${i}`} card={view.board[i]} size="md" index={i} />
+          ) : (
+            <CardView key={`slot-${i}`} size="md" slot />
+          ),
+        )}
+      </div>
+      {mine.length === 2 && (
+        <div className="home-hand" aria-label="Your cards">
+          {mine.map((card, i) => (
+            <CardView key={`${view.handNumber}-h${i}`} card={card} size="lg" index={i} />
+          ))}
+        </div>
       )}
     </section>
   )
@@ -160,6 +191,13 @@ function Seats({ view, myId, isHost, send }: { view: TableView; myId: string | n
                 ))}
                 {state && <span className="home-state">{state}</span>}
                 {p.betThisStreet > 0 && <span className="home-bet">bet {money(p.betThisStreet)}</span>}
+                {p.id !== myId && view.revealed.includes(p.id) && p.holeCards.length === 2 && (
+                  <span className="home-shown" aria-label={`${p.name} showed`}>
+                    {p.holeCards.map((card, c) => (
+                      <CardView key={c} card={card} size="sm" animate={false} />
+                    ))}
+                  </span>
+                )}
               </span>
             </span>
             {editing ? (
