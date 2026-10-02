@@ -61,6 +61,17 @@ this layer hasn't needed rework since the milestones in the v1 plan.
   Championship is one Deep final), with points 10/6/4/3/2/1. Top two move up; a Championship win is a
   title, defended next season. Screens: `CareerHub` (events, standings, next event) and its season summary,
   reached from a door in the Career lobby.
+- `tempo.ts`: timing tells, at Career tables only. A bot's pause is its action's base time × its own pace
+  × how close the decision was (`PsychBot.lastDecision.margin`): close calls tank (up to ~3×), obvious ones
+  snap. Nothing random, so each character's pattern can be learned; a rival keeps theirs across sessions
+  (keyed on their id). Studied players (high discipline) give away less; deeper thinkers are slower.
+- `achievements.ts`: ten Career achievements, saved under `poker.achievements` with the date each was
+  earned. Detected after the fact: `handAchievements` from a finished hand (first pot, a win with 7-2, a
+  hero call with one pair or less against a river bet, busting a rival), `tournamentAchievements` from a
+  finish, `seasonAchievements` from the career after an event (top of the standings, each promotion, the
+  title). Only solo Career tables earn them. `App` shows a toast (`ui/Achievements.tsx`) and the Career
+  lobby has an Achievements screen.
+- `blinds.ts`: rising blinds for the home game's house rule (about half again a level, on round amounts).
 
 ## Home game — `src/home/`
 
@@ -74,7 +85,9 @@ showdown with the engine's evaluator, and `viewFor` gives each seat only its own
 Rooms live on a server: `server/` is a Cloudflare Worker with one Durable Object per 4-digit room (free
 plan, WebSocket hibernation, deleted after 12 idle hours). `room.ts`'s `RoomCore` runs every command there.
 The host is whoever holds the room's token, and runs only the game's flow: dealing, and with real cards
-the streets and the showdown award, plus seat order and blinds between hands. Nobody acts for another seat
+the streets and the showdown award, plus seat order and blinds between hands. Rising blinds are a house
+rule the host can turn on (`config.levelMinutes`): a level clock on the server's time, each level about half
+again the last (`game/blinds.ts`), applied from the next deal. Nobody acts for another seat
 or sets a stack; busted players rebuy themselves; undo belongs to whoever took the last step. Seats are
 claimed with a private per-phone seat key; with
 online cards the server shuffles every deck (crypto-random). `socket.ts` is the phone's WebSocket, with

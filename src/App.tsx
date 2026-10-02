@@ -1,11 +1,23 @@
 import './App.css'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { MenuScreen } from './ui/MenuScreen'
 import { Lobby } from './ui/Lobby'
 import { TournamentSetup } from './ui/TournamentSetup'
 import type { TournamentEntry } from './ui/TournamentSetup'
 import { TournamentResults } from './ui/TournamentResults'
 import { YourPlay } from './ui/YourPlay'
+import { AchievementsScreen, AchievementToast } from './ui/Achievements'
+import {
+  ACHIEVEMENTS,
+  earn,
+  handAchievements,
+  loadAchievements,
+  saveAchievements,
+  seasonAchievements,
+  tournamentAchievements,
+  type Achievement,
+  type AchievementId,
+} from './game/achievements'
 import { TableSeating } from './ui/TableSeating'
 import { CareerHub } from './ui/CareerHub'
 import { HostEntry, JoinEntry, type HostSetup } from './ui/home/HomeEntry'
@@ -90,6 +102,7 @@ type Screen =
   | { kind: 'home-join'; code: string }
   | { kind: 'home-room'; code: string; playerId: string; seatKey: string; name?: string; hostToken?: string }
   | { kind: 'your-play' }
+  | { kind: 'achievements' }
 
 interface TournamentExitPayload {
   standings: Standing[]
@@ -108,6 +121,8 @@ interface GameScreenProps {
   entry: GameEntry
   onTableExit: (finalStack: number, handsPlayed: number, biggestPot: number) => void
   onTournamentExit: (payload: TournamentExitPayload) => void
+  /** Career: whatever a finished hand earned. */
+  onAchievements: (ids: AchievementId[]) => void
 }
 
 /**
@@ -117,9 +132,20 @@ interface GameScreenProps {
  * a tournament's doesn't — a bust or a quit is the only outcome the profile
  * ever sees.
  */
-function GameScreen({ config, entry, onTableExit, onTournamentExit }: GameScreenProps) {
+function GameScreen({ config, entry, onTableExit, onTournamentExit, onAchievements }: GameScreenProps) {
   const game = useHoldemGame(config)
   const reportedRef = useRef(false)
+  const checkedHandRef = useRef(0)
+
+  // Achievements are Career's, and need one "you": a solo table with rivals.
+  useEffect(() => {
+    const state = game.state
+    if (!config.rivals || !game.isSolo || !state || state.handInProgress) return
+    if (state.handNumber === 0 || checkedHandRef.current === state.handNumber) return
+    checkedHandRef.current = state.handNumber
+    const ids = handAchievements(state, game.humanIds[0], config.rivals.rivalSeatIds)
+    if (ids.length > 0) onAchievements(ids)
+  }, [game.state, game.isSolo, game.humanIds, config.rivals, onAchievements])
 
   // A tournament ending on its own (down to one seat) has no button press to
   // hang the profile update on, so it's caught here instead: once a hand
@@ -225,6 +251,21 @@ function App() {
   const [screen, setScreen] = useState<Screen>(() => (linkedRoom ? { kind: 'home-join', code: linkedRoom } : { kind: 'lobby' }))
   const [mode, setMode] = useState<GameMode>(() => (linkedRoom ? 'home' : loadMode()))
   const [career, setCareer] = useState<CareerData>(() => loadCareer())
+  const [achievements, setAchievements] = useState(() => loadAchievements())
+  const achievementsRef = useRef(achievements)
+  const [toasts, setToasts] = useState<Achievement[]>([])
+
+  useEffect(() => {
+    saveAchievements(achievements)
+  }, [achievements])
+
+  const earnAchievements = useCallback((ids: AchievementId[]) => {
+    const { data, fresh } = earn(achievementsRef.current, ids)
+    if (fresh.length === 0) return
+    achievementsRef.current = data
+    setAchievements(data)
+    setToasts((t) => [...t, ...fresh])
+  }, [])
 
   useEffect(() => {
     saveCareer(career)
@@ -377,9 +418,13 @@ function App() {
     const entry = screen.entry
     const finish = payload.standings.find((s) => s.playerId === payload.humanId)?.position ?? entry.fieldSize
     const careerEntrants = entry.career?.entrants
+    const earned = tournamentAchievements(finish)
     if (careerEntrants) {
-      setCareer((c) => recordEvent(c, payload.order.map((id) => careerEntrants[id] ?? null)))
+      const after = recordEvent(career, payload.order.map((id) => careerEntrants[id] ?? null))
+      setCareer(after)
+      earned.push(...seasonAchievements(after))
     }
+    earnAchievements(earned)
     // A quit pays exactly what that finish is worth, same as busting there
     // naturally would — real tournaments don't confiscate money you'd
     // already locked up just because you stopped playing it out. `forfeited`
@@ -411,6 +456,14 @@ function App() {
     })
   }
 
+  return (
+    <>
+      {renderScreen()}
+      <AchievementToast toasts={toasts} onDone={() => setToasts((t) => t.slice(1))} />
+    </>
+  )
+
+  function renderScreen() {
   switch (screen.kind) {
     case 'lobby':
       return (
@@ -430,6 +483,9 @@ function App() {
           onResumeRoom={handleResumeRoom}
           onJoinGame={() => setScreen({ kind: 'home-join', code: loadMe().code })}
           onOpenYourPlay={() => setScreen({ kind: 'your-play' })}
+          achievementCount={Object.keys(achievements.earned).length}
+          achievementTotal={ACHIEVEMENTS.length}
+          onOpenAchievements={() => setScreen({ kind: 'achievements' })}
         />
       )
     case 'cash-setup':
@@ -475,7 +531,13 @@ function App() {
       )
     case 'game':
       return (
-        <GameScreen config={screen.config} entry={screen.entry} onTableExit={handleTableExit} onTournamentExit={handleTournamentExit} />
+        <GameScreen
+          config={screen.config}
+          entry={screen.entry}
+          onTableExit={handleTableExit}
+          onTournamentExit={handleTournamentExit}
+          onAchievements={earnAchievements}
+        />
       )
     case 'results':
       return (
@@ -487,6 +549,9 @@ function App() {
       )
     case 'your-play':
       return <YourPlay onBack={goLobby} />
+    case 'achievements':
+      return <AchievementsScreen data={achievements} onBack={goLobby} />
+  }
   }
 }
 
