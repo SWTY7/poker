@@ -401,6 +401,41 @@
   color: var(--text-faint);
 }
 
+/* ---------- hand review (study aid) ----------
+
+   A list of the hand's decisions, each a small card: street and board on
+   one line, then four short facts. Taller than the hand-potential sheet,
+   since it is read top to bottom rather than glanced at. */
+
+.sheet-review {
+  max-height: 85dvh;
+}
+
+.review-hand {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+}
+
+.review-cards,
+.review-board {
+  display: inline-flex;
+  gap: 0.2rem;
+}
+
+.review-hand-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  font-size: var(--fs-xs);
+  color: var(--text-dim);
+}
+
+.review-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
 /* ---------- achievements ---------- */
 
 .achievements {
@@ -410,6 +445,85 @@
   flex-direction: column;
   gap: var(--sp-3);
 }
+
+.review-step {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  padding: var(--sp-3);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-md);
+  background: var(--surface);
+}
+
+.review-step-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+
+.review-street {
+  font-weight: 700;
+  font-size: var(--fs-sm);
+}
+
+.review-verdict {
+  margin-left: auto;
+  padding: 0.1rem var(--sp-2);
+  border-radius: var(--r-pill);
+  border: 1px solid var(--line);
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
+  font-weight: 700;
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.review-verdict-book {
+  color: var(--green);
+  border-color: rgba(111, 174, 127, 0.5);
+}
+
+.review-verdict-mixed {
+  color: var(--accent);
+  border-color: var(--accent-deep);
+}
+
+.review-verdict-off {
+  color: var(--red);
+  border-color: var(--red-deep);
+}
+
+.review-spot {
+  margin: 0;
+  font-size: var(--fs-xs);
+  color: var(--text-dim);
+}
+
+.review-facts {
+  margin: 0;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.15rem var(--sp-3);
+  font-size: var(--fs-xs);
+}
+
+.review-facts dt {
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
+  color: var(--text-faint);
+  align-self: center;
+}
+
+.review-facts dd {
+  margin: 0;
+  color: var(--text);
+}
+
+.review-dim {
+  color: var(--text-faint);
 
 .achievement {
   display: flex;

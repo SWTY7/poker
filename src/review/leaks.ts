@@ -76,7 +76,8 @@ function countAggressive(actions: LoggedAction[], opening: number): number {
   return count
 }
 
-function levelBefore(hand: HandRecord, index: number): number {
+/** The bet to match when the action at `index` was taken. */
+export function levelBefore(hand: HandRecord, index: number): number {
   const street = hand.actions[index]?.street ?? 'preflop'
   let level = street === 'preflop' ? hand.bigBlind : 0
   for (const a of hand.actions.slice(0, index)) {

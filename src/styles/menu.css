@@ -673,3 +673,9 @@
 /* Between the phone sheet (<=820px) and the two-column desktop card there is a
    band where the single column is simply centred and comfortable. Nothing to
    do there but let it be. */
+
+.menu-field-note {
+  margin: 0;
+  font-size: var(--fs-xs);
+  color: var(--text-faint);
+}

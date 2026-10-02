@@ -2,7 +2,7 @@ import { useState } from 'react'
 import type { GameConfigOptions } from './useHoldemGame'
 import { readJSON, writeJSON } from '../utils/storage'
 import { SUIT_PATH } from './suit-icons'
-import { CoinIcon, DealIcon, PeopleIcon, PercentIcon, PersonIcon } from './icons'
+import { CheckIcon, CoinIcon, DealIcon, PeopleIcon, PercentIcon, PersonIcon, RaiseIcon } from './icons'
 import { ChipIcon } from './ChipIcon'
 import { InfoTip } from './InfoTip'
 
@@ -47,6 +47,8 @@ const DEFAULT_CONFIG: GameConfigOptions = {
   bigBlind: 10,
   ante: 0,
   showHandOdds: false,
+  handReview: true,
+  hints: false,
 }
 
 const STORAGE_KEY = { cash: 'poker.lastConfig', quick: 'poker.quickConfig' } as const
@@ -93,7 +95,10 @@ export function MenuScreen({ onStart, bankroll, onBack, variant = 'cash' }: Menu
   const handleStart = () => {
     if (!canAffordBuyIn) return
     writeJSON(storageKey, config)
-    onStart(config)
+    // Hand review and hints are Quick Play's, and solo only: in pass-and-play
+    // nobody's history is kept, and a hint would show on everyone's turn.
+    const studyAids = quick && config.humanCount === 1
+    onStart(studyAids ? config : { ...config, handReview: false, hints: false })
   }
 
   return (
@@ -333,6 +338,57 @@ export function MenuScreen({ onStart, bankroll, onBack, variant = 'cash' }: Menu
               {config.showHandOdds ? 'On' : 'Off'}
             </button>
           </div>
+
+          {quick && (
+            <>
+              <div className="menu-field-row">
+                <div className="menu-field-heading" style={{ marginBottom: 0 }}>
+                  <span className="menu-field-icon menu-field-icon-accent">
+                    <CheckIcon />
+                  </span>
+                  <span className="menu-field-label">Hand review</span>
+                  <InfoTip label="Hand review">
+                    After each hand, a Review button goes back over your decisions in it: what the solved strategy
+                    does in each spot, your equity at the time, and what the table’s professional would have done.
+                  </InfoTip>
+                </div>
+                <button
+                  type="button"
+                  className={`menu-option menu-toggle ${config.handReview ? 'menu-option-on' : ''}`}
+                  onClick={() => setConfig((c) => ({ ...c, handReview: !c.handReview }))}
+                  aria-pressed={Boolean(config.handReview)}
+                  disabled={config.humanCount > 1}
+                >
+                  {config.handReview && config.humanCount === 1 ? 'On' : 'Off'}
+                </button>
+              </div>
+
+              <div className="menu-field-row">
+                <div className="menu-field-heading" style={{ marginBottom: 0 }}>
+                  <span className="menu-field-icon menu-field-icon-accent">
+                    <RaiseIcon />
+                  </span>
+                  <span className="menu-field-label">Hints</span>
+                  <InfoTip label="Hints">
+                    On your turn, a line above the buttons shows what the solved strategy does here and what the
+                    table’s professional would do. Useful for learning, but it plays the hand for you if you let it.
+                  </InfoTip>
+                </div>
+                <button
+                  type="button"
+                  className={`menu-option menu-toggle ${config.hints ? 'menu-option-on' : ''}`}
+                  onClick={() => setConfig((c) => ({ ...c, hints: !c.hints }))}
+                  aria-pressed={Boolean(config.hints)}
+                  disabled={config.humanCount > 1}
+                >
+                  {config.hints && config.humanCount === 1 ? 'On' : 'Off'}
+                </button>
+              </div>
+              {config.humanCount > 1 && (
+                <p className="menu-field-note">Review and hints are for solo play.</p>
+              )}
+            </>
+          )}
 
           </section>
 

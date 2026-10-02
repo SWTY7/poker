@@ -204,6 +204,18 @@ on purpose, so it lives outside `src/ai/`, and nothing in `src/ai/` or `src/gto/
 - UI: the read is on the leave screen ("What the table thinks of you"). A **Your play** screen, from a
   button in the lobby, shows the style profile (all hands or last session), the leaks, the tilt
   signature, and a download and delete of the history.
+- **`hand-review.ts`** (Phase 2): one hand gone back over, decision by decision: what you did, the solve's
+  mix in words ("raise 85%, call 15%"), a verdict (book play / in the mix / off the book / no solve here),
+  your equity against random hands for each opponent still in, and what the `PRO` character (Iris) would
+  have done. The pro is asked at the table, at the moment of the decision: a fresh `PsychBot(PRO)` with the
+  same observation and the table's shared read, which never acts and never writes back (tested). Its move is
+  stored on the decision (`LoggedDecision.pro`, optional, so no schema bump). Only asked while a study aid is
+  on, since it's a whole bot decision.
+- UI (Phase 2): Quick Play setup → Study aids has **Hand review** (on by default) and **Hints** (off),
+  solo only. With review on, the result dock says "N decisions · K off the book" and a **Review** button
+  (or R) opens the sheet (`src/ui/HandReview.tsx`). With hints on, a line above the controls shows the
+  book's mix and what Iris would do; it is worked out a beat after the turn arrives and again once the solve
+  finishes downloading.
 
 ## The GTO solver — `src/gto/`
 

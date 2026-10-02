@@ -17,7 +17,11 @@ import type { TournamentHudInfo } from '../game/tournament'
 import { PositionLegend } from './PositionLegend'
 import { LeaveDialog } from './LeaveDialog'
 import { useMediaQuery } from './useMediaQuery'
-import type { SessionStats, Speed } from './useHoldemGame'
+import type { Hint, SessionStats, Speed } from './useHoldemGame'
+import type { HandRecord } from '../review/log'
+import { reviewHand } from '../review/hand-review'
+import { HandReview } from './HandReview'
+import { PRO } from '../ai/psychology/profile'
 import type { ReadLine } from '../review/table-read'
 
 interface TableProps {
@@ -55,6 +59,10 @@ interface TableProps {
   practice?: boolean
   /** What the bots have learned about you, for the leave screen. Absent in pass-and-play. */
   readOnYou?: () => ReadLine[]
+  /** Hand review on: the hand just finished, to go back over from the result dock. */
+  reviewHand?: HandRecord | null
+  /** Hints on: the solve's mix and a professional's choice, shown above the controls on your turn. */
+  hint?: Hint | null
 }
 
 const STREET_BANNER: Record<string, string> = {
@@ -144,6 +152,8 @@ export function Table({
   readOnYou,
   tournament,
   practice = false,
+  reviewHand: reviewable = null,
+  hint = null,
 }: TableProps) {
   /**
    * "Compact" is about how much room the dock may take, so it is a question
@@ -173,6 +183,21 @@ export function Table({
   const [showPositions, setShowPositions] = useState(false)
   const [showLeave, setShowLeave] = useState(false)
   const [showPotential, setShowPotential] = useState(false)
+  // Which hand's review is open, by id, so dealing the next hand closes it.
+  const [reviewOpenFor, setReviewOpenFor] = useState<string | null>(null)
+  const showReview = reviewable !== null && reviewOpenFor === reviewable.id
+  const setShowReview = (open: boolean) => setReviewOpenFor(open && reviewable ? reviewable.id : null)
+
+  // One line under the result: how the hand went against the solve. The
+  // full review (equity and all) is only worked out when it is opened.
+  const reviewSummary = useMemo(() => {
+    if (!reviewable) return null
+    const { decisions, covered, offBook } = reviewHand(reviewable, { equity: false })
+    if (decisions.length === 0) return 'No decision to review'
+    const count = `${decisions.length} decision${decisions.length === 1 ? '' : 's'}`
+    if (covered === 0) return `${count} · no solve covered them`
+    return offBook === 0 ? `${count} · none off the book` : `${count} · ${offBook} off the book`
+  }, [reviewable])
 
   // Keyed by the actual cards rather than object identity — the GameState
   // reference changes on every action (including opponents' actions that
@@ -243,7 +268,9 @@ export function Table({
       const target = event.target as HTMLElement | null
       if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) return
 
-      if (event.key === ' ') {
+      if (event.key.toLowerCase() === 'r' && lastResult && reviewable) {
+        setReviewOpenFor(showReview ? null : reviewable.id)
+      } else if (event.key === ' ') {
         if (lastResult && canStartHand) {
           event.preventDefault()
           onNextHand()
@@ -273,6 +300,8 @@ export function Table({
     onSetPaused,
     onStep,
     paused,
+    reviewable,
+    showReview,
   ])
 
   return (
@@ -363,11 +392,11 @@ export function Table({
           {activePlayer && (
             <HeroZone
               name={activePlayer.name}
-              stack={activePlayer.stack}
+                stack={activePlayer.stack}
               cards={activePlayer.holeCards}
               position={positions.get(activePlayer.id)}
               isDealer={activePlayer.id === dealerId}
-              toCall={heroToCall}
+                toCall={heroToCall}
               potOdds={heroToCall > 0 ? heroToCall / (potForSizing + heroToCall) : null}
               folded={activePlayer.folded}
               isAllIn={activePlayer.isAllIn}
@@ -414,22 +443,43 @@ export function Table({
                     )}
                   </div>
                 ))}
+                {reviewSummary && <span className="result-review-summary">{reviewSummary}</span>}
               </div>
-              <button type="button" className="btn btn-lg btn-primary" onClick={onNextHand}>
-                Next hand <kbd>Space</kbd>
-              </button>
+              <div className="result-actions">
+                {reviewable && (
+                  <button type="button" className="btn btn-secondary" onClick={() => setShowReview(true)}>
+                    Review <kbd>R</kbd>
+                  </button>
+                )}
+                <button type="button" className="btn btn-lg btn-primary" onClick={onNextHand}>
+                  Next hand <kbd>Space</kbd>
+                </button>
+              </div>
             </div>
           ) : isHumanTurn && activePlayer ? (
-            <Controls
-              legalActions={heroLegalActions}
+            <div className={hint ? 'dock dock-hinted' : 'dock-plain'}>
+              {hint && (
+                <p className="hint-line" role="note">
+                  <span className="hint-label">Hint</span>
+                  {hint.book && <span>Book: {hint.book}</span>}
+                  {hint.pro && (
+                    <span>
+                      {PRO.name} {hint.pro}
+                    </span>
+                  )}
+                </p>
+              )}
+              <Controls
+                legalActions={heroLegalActions}
               toCall={heroToCall}
-              minRaiseTo={minRaiseTargetAmount(state)}
-              maxRaiseTo={maxRaiseTargetAmount(state, activePlayer.id)}
-              potSize={potForSizing}
+                minRaiseTo={minRaiseTargetAmount(state)}
+                maxRaiseTo={maxRaiseTargetAmount(state, activePlayer.id)}
+                potSize={potForSizing}
               stack={activePlayer.stack}
-              compact={compact}
-              onAction={onAction}
-            />
+                compact={compact}
+                onAction={onAction}
+              />
+            </div>
           ) : needsReveal && currentPlayer ? (
             <RevealGate playerName={currentPlayer.name} onReveal={onRevealCurrentPlayer} />
           ) : isSpectating ? (
@@ -493,6 +543,8 @@ export function Table({
       {showPotential && handOdds && (
         <HandPotential odds={handOdds} madeHand={madeHand} onClose={() => setShowPotential(false)} />
       )}
+
+      {showReview && <HandReview hand={reviewable} onClose={() => setShowReview(false)} />}
 
       {showLeave && (
         <LeaveDialog

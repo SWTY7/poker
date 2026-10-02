@@ -66,7 +66,22 @@ Original plan, for reference:
 4. **Leak finder:** wherever a solve applies (heads-up at a trained depth, or multiway preflop), compare the
    human's action with the solve's mixed strategy. Report the most frequent and most costly deviations.
 
-## Phase 2: teaching mode (hand review)
+## Phase 2: teaching mode (hand review) — done (2026-10-02)
+
+Built as planned; details in `docs/PROGRESS.md` ("Reading the human"). Decisions made along the way:
+
+- Review and hints are Quick Play only and solo only. Review is on by default (it's one button on the
+  result dock), hints off.
+- "What a pro would do" is a fresh `PsychBot(PRO)` asked at the moment of each decision, with the table's
+  shared read. Fresh each time, so it carries no tilt or sunk cost from earlier in the hand. It's only
+  asked while review or hints are on, and the answer is stored on the decision, so the history keeps it.
+- Equity is against random hands for each opponent still in, and the sheet says so. The bots' ranges
+  aren't logged, so a range-based equity would need the log to carry more.
+- The verdict is per kind of action (fold / check-call / bet-raise), like the leak finder: off the book
+  is under `RARE` (10%), the book play is the solve's most frequent kind, anything between is "in the mix".
+
+Original plan, for reference:
+
 
 - **Hand review**, a toggle in Quick Play (see README for the order with the game track). After each hand,
   show at each of the human's decisions the solve's mix ("book: raise 85%, you called"), the equity at the
