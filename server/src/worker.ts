@@ -1,6 +1,6 @@
 import { DurableObject } from 'cloudflare:workers'
 import { RoomCore, isRoomCode, roomCode, type SeatKeys, type ToPhone } from '../../src/home/room'
-import { newTable, shuffledDeck, type CardMode, type HomeConfig, type HomeState } from '../../src/home/table'
+import { MAX_LEVEL_MINUTES, newTable, shuffledDeck, type CardMode, type HomeConfig, type HomeState } from '../../src/home/table'
 
 /**
  * The home game's room server. One Durable Object per room number holds that
@@ -162,11 +162,12 @@ function sender(ws: WebSocket): (message: ToPhone) => void {
 
 function validConfig(raw: unknown): HomeConfig | null {
   if (!raw || typeof raw !== 'object') return null
-  const { startingStack, smallBlind, bigBlind, ante } = raw as Record<string, unknown>
+  const { startingStack, smallBlind, bigBlind, ante, levelMinutes = 0 } = raw as Record<string, unknown>
   const whole = (n: unknown): n is number => typeof n === 'number' && Number.isInteger(n) && n >= 0 && n <= 1e9
   if (!whole(startingStack) || !whole(smallBlind) || !whole(bigBlind) || !whole(ante)) return null
   if (smallBlind < 1 || bigBlind < smallBlind || startingStack <= bigBlind) return null
-  return { startingStack, smallBlind, bigBlind, ante }
+  if (!whole(levelMinutes) || levelMinutes > MAX_LEVEL_MINUTES) return null
+  return { startingStack, smallBlind, bigBlind, ante, levelMinutes }
 }
 
 export default {

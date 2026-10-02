@@ -328,3 +328,24 @@ describe('online cards', () => {
     expect(JSON.stringify(host.inbox)).not.toContain('"deck":[{')
   })
 })
+
+describe('the blind clock', () => {
+  it('runs on the server’s clock, whatever time a phone claims', () => {
+    let clock = 1_000
+    const core = new RoomCore(newTable({ ...CONFIG, levelMinutes: 15 }), TOKEN, () => shuffledDeck(createRng(2)), undefined, {}, () => clock)
+    const host = phone(core, 'h')
+    host.hello('hana', 'Hana', TOKEN)
+    phone(core, 'a').hello('ann', 'Ann')
+    host.command({ type: 'startHand', now: 999_999_999 })
+    expect(core.state.clock).toEqual({ level: 1, startedAt: 1_000 })
+    expect(host.view().now).toBe(1_000)
+
+    clock += 16 * 60_000
+    const first = core.state.players[core.state.currentPlayerIndex].id
+    core.receive(first === 'ann' ? 'a' : 'h', { v: PROTOCOL, t: 'command', reqId: 2, command: { type: 'act', playerId: first, action: 'fold' } })
+    expect(core.state.phase).toBe('hand-over')
+    host.command({ type: 'startHand' })
+    expect(core.state.clock?.level).toBe(2)
+    expect(core.state.currentBet).toBe(16)
+  })
+})

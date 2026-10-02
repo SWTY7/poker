@@ -74,7 +74,9 @@ showdown with the engine's evaluator, and `viewFor` gives each seat only its own
 Rooms live on a server: `server/` is a Cloudflare Worker with one Durable Object per 4-digit room (free
 plan, WebSocket hibernation, deleted after 12 idle hours). `room.ts`'s `RoomCore` runs every command there.
 The host is whoever holds the room's token, and runs only the game's flow: dealing, and with real cards
-the streets and the showdown award, plus seat order and blinds between hands. Nobody acts for another seat
+the streets and the showdown award, plus seat order and blinds between hands. Rising blinds are a house
+rule the host can turn on (`config.levelMinutes`): a level clock on the server's time, each level about half
+again the last (`game/blinds.ts`), applied from the next deal. Nobody acts for another seat
 or sets a stack; busted players rebuy themselves; undo belongs to whoever took the last step. Seats are
 claimed with a private per-phone seat key; with
 online cards the server shuffles every deck (crypto-random). `socket.ts` is the phone's WebSocket, with

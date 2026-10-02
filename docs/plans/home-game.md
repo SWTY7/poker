@@ -178,6 +178,18 @@ by playing. A busted player **rebuys** from their own phone, between hands, for 
 belongs to whoever took the last step: a player can take back their own last move, and the host its own
 last deal or payout. The server enforces all of this (`RoomCore.authorise`), not just the screens.
 
+## Rising blinds, a house rule (decided 2026-10-02)
+
+A cash game's blinds never move, and that's the default here too. But a home game is usually played until
+one player has everything, and with fixed blinds a careful table never gets there. So the host can turn on
+**rising blinds** (off by default, set when hosting or between hands): a live-style clock of 15, 20 or 30
+minutes a level, started by the first deal. Each level's small blind is about half again the last, on
+round amounts (5/10, 8/16, 15/30, 25/50, 40/80...: `game/blinds.ts`), and the big blind and ante keep
+their proportion. A level that runs out mid-hand applies from the next deal. The clock is the server's
+(`RoomCore` stamps `now` on every deal and every view), so no phone's clock matters, and every phone shows
+the same countdown. Tournaments and Career seasons already rise on their own structures; cash games and
+Quick Play stay fixed.
+
 ## Out of scope for now
 
 - Online multiplayer with strangers (matchmaking, no host). The server room built in phase 2 is the piece it

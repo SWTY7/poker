@@ -3,6 +3,8 @@ import {
   HomeTableError,
   canStartHand,
   chipsInPlay,
+  currentBlinds,
+  levelEndsAt,
   newTable,
   options,
   potTotal,
@@ -246,5 +248,57 @@ describe('a long session', () => {
       expect(chipsInPlay(state)).toBe(total)
     }
     expect(state.handNumber).toBeGreaterThan(20)
+  })
+})
+
+describe('the blind clock', () => {
+  const MIN = 60_000
+  const clocked = { ...CONFIG, levelMinutes: 20 }
+  const deal = (state: HomeState, now: number) => reduce(state, { type: 'startHand', now })
+  const foldToBlind = (state: HomeState) => {
+    while (state.phase === 'betting') state = reduce(state, act(toAct(state)!, 'fold'))
+    return state
+  }
+
+  it('starts on the first deal, and raises the blinds once a level’s time is up', () => {
+    let state = deal(table(['Ann', 'Ben', 'Cy'], clocked), 1_000)
+    expect(state.clock).toEqual({ level: 1, startedAt: 1_000 })
+    expect(levelEndsAt(state)).toBe(1_000 + 20 * MIN)
+    expect(state.currentBet).toBe(10)
+
+    state = deal(foldToBlind(state), 1_000 + 19 * MIN)
+    expect(state.clock?.level).toBe(1)
+
+    // Past 20 minutes, the next deal is level 2; a long break skips the levels it covered.
+    state = deal(foldToBlind(state), 1_000 + 21 * MIN)
+    expect(state.clock).toEqual({ level: 2, startedAt: 1_000 + 20 * MIN })
+    expect(currentBlinds(state)).toEqual({ smallBlind: 8, bigBlind: 16, ante: 0 })
+    expect(state.currentBet).toBe(16)
+    expect(state.players.map((p) => p.betThisStreet).sort((a, b) => a - b)).toEqual([0, 8, 16])
+
+    state = deal(foldToBlind(state), 1_000 + 65 * MIN)
+    expect(state.clock?.level).toBe(4)
+  })
+
+  it('keeps the min raise at the level’s big blind on later streets', () => {
+    let state = deal(table(['Ann', 'Ben'], clocked), 0)
+    state = deal(foldToBlind(state), 25 * MIN)
+    state = run(state, act(toAct(state)!, 'call'), act(toAct(state) === 'ann' ? 'ben' : 'ann', 'check'))
+    expect(state.phase).toBe('street-done')
+    state = reduce(state, { type: 'advanceStreet' })
+    expect(state.minRaise).toBe(16)
+  })
+
+  it('stays fixed without a clock, and the host can turn it off between hands', () => {
+    let state = deal(table(['Ann', 'Ben']), 0)
+    state = deal(foldToBlind(state), 999 * MIN)
+    expect(state.clock).toBeNull()
+    expect(state.currentBet).toBe(10)
+
+    state = deal(table(['Ann', 'Ben'], clocked), 0)
+    state = foldToBlind(state)
+    state = reduce(state, { type: 'configure', config: { ...clocked, levelMinutes: 0 } })
+    expect(state.clock).toBeNull()
+    expect(() => reduce(state, { type: 'configure', config: { ...clocked, levelMinutes: 999 } })).toThrow(HomeTableError)
   })
 })
