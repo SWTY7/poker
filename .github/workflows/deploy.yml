@@ -1,8 +1,11 @@
 name: Deploy to GitHub Pages
 
+# Deploys only when asked, not on every merge (CI checks those, see ci.yml):
+#   - push a version tag:  git tag v1.4.0 && git push origin v1.4.0
+#   - or Actions -> Deploy to GitHub Pages -> Run workflow (choose main or a tag)
 on:
   push:
-    branches: [main]
+    tags: ['v*']
   workflow_dispatch:
 
 permissions:

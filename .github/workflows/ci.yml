@@ -1,0 +1,32 @@
+name: CI
+
+# Checks every pull request, and main after each merge, without deploying
+# anything. The build step matters as much as the tests: only the Vite build
+# parses the CSS, so a broken stylesheet passes tsc, lint and vitest.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx oxlint
+      - run: npm test
+      - run: npm run build
+        env:
+          VITE_ROOM_SERVER: ${{ vars.ROOM_SERVER }}
