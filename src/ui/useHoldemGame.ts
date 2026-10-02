@@ -7,7 +7,6 @@ import type { Agent, WeightedAction } from '../ai/agent'
 import { PsychBot, firstAnswer, type Fundamentals } from '../ai/psychology/psych-bot'
 import { OpponentModel, actionContext, showdownOf } from '../ai/psychology/opponent-model'
 import { CAST, PRO, randomizeProfile } from '../ai/psychology/profile'
-import { fixedThinkTime, tempoFor, thinkTime, type Tempo } from '../game/tempo'
 import { blindLevel, levelForHandsCompleted, type TournamentStructure } from '../game/tournament'
 import type { RivalSession } from '../game/rivals'
 import { createRng, shuffle } from '../utils/random'
@@ -23,6 +22,20 @@ export type Speed = 'slow' | 'normal' | 'fast'
 /** Wall-clock multiplier applied to every scripted pause. */
 const SPEED_FACTOR: Record<Speed, number> = { slow: 1.7, normal: 1, fast: 0.4 }
 
+
+/**
+ * How long an opponent appears to think, by what they decided. A snap-fold
+ * and a big raise landing at the same tempo is what makes a table feel like a
+ * conveyor belt rather than a game with other people at it.
+ */
+const THINK_TIME: Record<ActionType, number> = {
+  fold: 340,
+  check: 420,
+  call: 620,
+  bet: 900,
+  raise: 950,
+  'all-in': 1200,
+}
 
 /** Beat held after cards hit the board, before anyone may act on them. */
 const DEAL_PAUSE = 950
@@ -114,11 +127,6 @@ function buildTable(options: GameConfigOptions): {
   /** Every bot seat — each one takes the solved strategy once it lands. */
   bots: PsychBot[]
   botSeats: { id: string; bot: PsychBot }[]
-  /**
-   * Career: each bot seat's timing (game/tempo.ts), so how long they take
-   * gives away how hard the decision was. Empty elsewhere: fixed pacing.
-   */
-  tempos: Record<string, Tempo>
 } {
   const humanCount = Math.min(Math.max(options.humanCount, 1), options.playerCount)
 
@@ -147,7 +155,6 @@ function buildTable(options: GameConfigOptions): {
   shuffle(archetypes, tableRng)
   const bots: PsychBot[] = []
   const botSeats: { id: string; bot: PsychBot }[] = []
-  const tempos: Record<string, Tempo> = {}
 
   players.slice(humanCount).forEach((p, i) => {
     const bot = new PsychBot(
@@ -157,14 +164,13 @@ function buildTable(options: GameConfigOptions): {
       opponentModel,
     )
     agents[p.id] = bot
-    if (cast?.[i]) tempos[p.id] = tempoFor(bot.profile, cast[i].key)
     bots.push(bot)
     botSeats.push({ id: p.id, bot })
   })
 
   options.rivals?.seated({ opponentModel, humanIds, botSeats })
 
-  return { engine, agents, humanIds, opponentModel, bots, botSeats, tempos }
+  return { engine, agents, humanIds, opponentModel, bots, botSeats }
 }
 
 export function useHoldemGame(options: GameConfigOptions) {
@@ -178,7 +184,7 @@ export function useHoldemGame(options: GameConfigOptions) {
    */
   const turboRef = useRef<false | 'hand' | 'turn'>(false)
 
-  const [{ engine, agents, humanIds, opponentModel, bots, botSeats, tempos }] = useState(() => buildTable(options))
+  const [{ engine, agents, humanIds, opponentModel, bots, botSeats }] = useState(() => buildTable(options))
   /** Solo play never gates — there's only ever one person holding the device. */
   const soloHumanId = humanIds.length === 1 ? humanIds[0] : null
   /**
@@ -483,16 +489,8 @@ export function useHoldemGame(options: GameConfigOptions) {
 
     // Decide first, then pause for as long as that decision deserves. Nothing
     // else can touch the engine in between — this timer is the only driver.
-    // In Career, how long that takes is a tell: a close decision tanks, an
-    // obvious one snaps, in each character's own rhythm. Elsewhere, a fixed
-    // pause by what they did: a snap-fold and a big raise landing at the same
-    // tempo is what makes a table feel like a conveyor belt.
-    const agent = agents[current.id]
-    const action = agent.decideAction(buildObservation(engine, current.id))
-    const tempo = tempos[current.id]
-    const think =
-      tempo && agent instanceof PsychBot ? thinkTime(action.type, agent.lastDecision?.margin ?? null, tempo) : fixedThinkTime(action.type)
-    timerRef.current = setTimeout(() => applyAndPace(action), pace(think))
+    const action = agents[current.id].decideAction(buildObservation(engine, current.id))
+    timerRef.current = setTimeout(() => applyAndPace(action), pace(THINK_TIME[action.type]))
     return () => clearTimer()
   }, [
     state,
@@ -501,7 +499,6 @@ export function useHoldemGame(options: GameConfigOptions) {
     autoNextHand,
     engine,
     agents,
-    tempos,
     humanIds,
     soloHumanId,
     activeHumanId,

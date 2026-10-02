@@ -97,18 +97,10 @@ routing. Decisions made along the way:*
 showdown winners, joiners use a 4-digit room code). Its own plan: [`home-game.md`](./home-game.md). Built
 after step 3, before step 4.*
 
-### 4. Timing tells — done 2026-10-02
+### 4. Timing tells — built, then removed 2026-10-03
 
-*Built in `src/game/tempo.ts` (tests: `tests/game/tempo.test.ts`), used by `useHoldemGame.ts` when the table
-has rivals (a solo Career table). Decisions made along the way: a margin of 0.25 pots or more counts as easy;
-the pause runs from about 0.55× (a snap) to 3.2× (a tank) for a fully readable player; discipline shrinks
-the tell (a full-discipline pro keeps a quarter of it); level 2–3 thinkers are a little slower overall;
-each character gets a fixed pace quirk from their id. Nothing is random.*
-
-- Replace `useHoldemGame.ts`'s fixed `THINK_TIME` per action type with a function of the decision's
-  **margin** (`PsychBot.lastDecision.margin`, built by the psychology track; small = close) and a
-  per-character tempo. Close decisions take longer, obvious ones snap. Each character's pattern must be **consistent**, so it can be learned.
-- Career only. Quick Play keeps today's fixed pacing.
+*Built (a pause from how close each decision was, plus a per-character rhythm) and then taken out at the
+user's request. Bots are back on the fixed pause per action type in `useHoldemGame.ts`.*
 
 ### 5. Basic achievements — done 2026-10-02
 
