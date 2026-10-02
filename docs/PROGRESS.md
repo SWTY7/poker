@@ -243,6 +243,14 @@ oracle to check against.
   real cards, checked against published charts) — the one corner of hold'em small enough to solve without
   any abstraction at all.
 
+## Deploying
+
+Merging to `main` no longer deploys. `ci.yml` runs lint, tests and the production build on every pull
+request and on `main`. `deploy.yml` publishes to GitHub Pages only for a version tag
+(`git tag v1.1.0 && git push origin v1.1.0`) or from Actions → Deploy to GitHub Pages → Run workflow. The
+`github-pages` environment allows `main` and tags matching `v*`. Run `npm run build` before pushing: it is
+the only check that parses the CSS.
+
 ## Verification, as of this writing
 
 593 tests as of the last full run (2026-09-29); `npx vitest run`, `npx tsc -b` and `npx oxlint` are all clean. Re-run
