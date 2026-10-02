@@ -26,3 +26,7 @@ dist-ssr
 # Seeded Claude Design canvas payloads (generated, ~MB-scale — the .dc.html
 # source under design/ is what's tracked)
 poker-ui-directions.html
+
+# Wrangler (Cloudflare) local state and build output
+.wrangler
+.dev.vars

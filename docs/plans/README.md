@@ -6,6 +6,7 @@ Read `docs/PROGRESS.md` first, then the plan for your track.*
 | track | plan | branch | owns |
 |---|---|---|---|
 | Game elements (modes, career, rivals, timing, achievements) | [`game-modes.md`](./game-modes.md) | its own branch, e.g. `claude/game-modes-*` | `src/game/career*`, `src/game/rivals*`, `src/game/achievements*`, lobby / setup / career screens in `src/ui/` |
+| Home game (real cards, phones as chips; same track, after game-modes step 3) | [`home-game.md`](./home-game.md) | `claude/home-game-*` | `src/home/**`, home game screens in `src/ui/` |
 | Psychology (read-your-play, hand review, personality lab, real players) | [`psychology-lab.md`](./psychology-lab.md) | `claude/poker-bot-psychology-*` | `src/ai/**`, `src/review/**`, `src/gto/**`, research scripts |
 
 ## How to work on both
@@ -33,18 +34,24 @@ The hotspots:
    saved data, and the existing profile needs no migration.
 3. **`src/ai/psychology/*`**. The game track needs three small things from the bots. They're built in the
    **psychology** track first and merged, so the game track only calls them:
-   - `OpponentModel` serialize/restore (`toJSON` / `fromJSON`) with evidence decay between sessions,
-     so a rival's read on you persists without freezing.
-   - A way to start a bot tilted (`PsychBot.startTilted(level)` or a constructor option), for "a rival you
-     busted comes back steaming".
-   - A per-decision **closeness** number (the gap between the best and second-best action's value, in pots)
-     returned alongside the action, for timing tells.
-   These are the first item in `psychology-lab.md`.
+   - `OpponentModel` serialize/restore (`toJSON` / `restore` / `fromJSON`) with evidence decay between
+     sessions, so a rival's read on you persists without freezing.
+   - A way to start a bot tilted (`PsychBot.startTilted(strength)`), for "a rival you busted comes back
+     steaming".
+   - A per-decision **margin** (`PsychBot.lastDecision.margin`: the gap between the best action and the best
+     action of another kind, in pots; small = close call), for timing tells.
+   All three are built: step 0 in `psychology-lab.md` has the exact API.
 4. **Hand review** belongs to the psychology track (it uses the same engine as the leak finder). Its on/off
    toggle goes in Quick Play, which the game track creates. Order it this way: the game track lands the mode
    toggle and the Quick Play screen early, then the psychology track adds the review toggle there. If the
    psychology track gets there first, it adds the toggle to the existing cash setup screen, and the game
    track moves it.
+
+**Touched by the psychology track outside its own folders** (keep in mind when merging): one button in
+`src/ui/Lobby.tsx` ("Your play", prop `onOpenYourPlay`, shown in Quick Play and Career, not Home Game), a
+`your-play` screen in `App.tsx`, a `readOnYou` prop through `Table.tsx` to `LeaveDialog.tsx`, and the
+logger's three calls in `useHoldemGame.ts`. Solo hands are logged in every mode, Quick Play included, so the
+Quick Play door's copy now says "nothing touches your bankroll" rather than "nothing recorded".
 
 ## Token-efficiency notes
 

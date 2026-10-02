@@ -22,14 +22,32 @@
 
 ## Steps, in order (each its own small PR)
 
-### 1. Mode toggle + Quick Play
+### 1. Mode toggle + Quick Play — done 2026-09-28
+
+*Built as planned. The mode and the exit rule live in `src/game/mode.ts` (tested in `tests/game/mode.test.ts`);
+Quick Play's setup is `MenuScreen variant="quick"`. Speed stays the table's own control, not a setup field.
+The psychology track's hand-review toggle goes in `MenuScreen`'s "Study aids" group, shown only when
+`variant === 'quick'`.*
 
 - `src/ui/Lobby.tsx`: Quick / Career toggle, saved under a `localStorage` key (`poker.mode`).
 - A Quick Play setup screen, built from `MenuScreen.tsx`'s settings minus buy-in and bankroll. It starts a game
   with no bankroll entry. `App.tsx`'s game exit must not record anything to the profile in this mode.
 - Tests: Quick Play never changes the profile; the lobby toggle persists.
 
-### 2. Rivals
+### 2. Rivals — done 2026-09-28
+
+*Built in `src/game/rivals.ts` (tests: `tests/game/rivals.test.ts`) with two calls in `useHoldemGame.ts`
+(`rivals.seated` when the table is built, `rivals.handEnded` when a hand ends) and a `TableSeating` screen.
+Decisions made along the way:*
+- *Rivals sit only at **solo** Career tables. Pass-and-play has no single "you" to remember, so it keeps the
+  random table.*
+- *Reads: when several rivals sit together they saw the same hands, so their saved reads are averaged, not
+  added, then faded by `READ_DECAY` (0.7). After every hand each seated rival saves the table's read on you.*
+- *Net against a rival: exact heads-up. Multiway, a winner's gain is split across the losers by what each lost.*
+- *Pre-tilt (`carryTilt`, 0..1): the larger of busted by you (1), the biggest pot lost to you as a share of
+  the starting stack, and their tilt at the last hand divided by their own `kappa`.*
+- *Everything is saved after every hand, so there's no "session end" step to miss if the tab closes.*
+- *Walk-ins: about a third of the bot seats (`walkInCount`), names from a separate pool.*
 
 - `src/game/rivals.ts`: a fixed roster (about 12). Each rival has a stable id, name, avatar, archetype from
   `ai/psychology/profile.ts`'s `CAST`, and a **personality seed**, so `randomizeProfile` gives the same jitter
@@ -49,7 +67,19 @@
   seed, random names from a separate pool). No memory, no notes.
 - Hook: one `onHandEnd` call in `useHoldemGame.ts` updates rival stats. The logic lives in `rivals.ts`.
 
-### 3. Career seasons
+### 3. Career seasons — done 2026-09-28
+
+*Built in `src/game/career.ts` (tests: `tests/game/career.test.ts`), `src/ui/CareerHub.tsx`, and `App.tsx`
+routing. Decisions made along the way:*
+- *Fields: Local pia/tomas/hal/wes, Regional lina/jax/mona/eli, National rosa/gus/jax/eli, Championship
+  nadia/otto/rosa/gus (some rivals follow you up). Tier boosts: discipline +0/0.1/0.2/0.3, level +0/0/1/1.*
+- *Buy-ins $50/$100/$250/$500; prizes use the normal 6-player payout (65/35).*
+- *The standings are you plus the tier's four rivals; walk-ins score nothing. Ties go to the better finish in
+  the final, then against you.*
+- *Promotion: top two. Everyone else repeats the tier. The "bottom finisher repeats" line needed no separate
+  rule, since rivals don't change tier.*
+- *Championship: win it for a title and defend it next season; lose it and you drop to National.*
+- *A quit event: players still in are placed by chips, with you behind them (the same place a quit is paid).*
 
 - `src/game/career.ts`, storage `poker.career`: tier, season number, event index, points table, titles.
 - **Tiers:** Local → Regional → National → Championship. Each tier's field is a fixed group of rivals plus a
@@ -61,11 +91,17 @@
   final, and winning it is a title.
 - Screens: a career hub (current tier, standings, next event, scouting notes) and a season summary.
 
+### Then: the home game
+
+*Added 2026-09-28: an offline multiplayer mode (real cards, the app keeps the chips, a host deals and picks
+showdown winners, joiners use a 4-digit room code). Its own plan: [`home-game.md`](./home-game.md). Built
+after step 3, before step 4.*
+
 ### 4. Timing tells
 
 - Replace `useHoldemGame.ts`'s fixed `THINK_TIME` per action type with a function of the decision's
-  **closeness** (psychology track exposes it) and a per-character tempo. Close decisions take longer, obvious
-  ones snap. Each character's pattern must be **consistent**, so it can be learned.
+  **margin** (`PsychBot.lastDecision.margin`, built by the psychology track; small = close) and a
+  per-character tempo. Close decisions take longer, obvious ones snap. Each character's pattern must be **consistent**, so it can be learned.
 - Career only. Quick Play keeps today's fixed pacing.
 
 ### 5. Basic achievements

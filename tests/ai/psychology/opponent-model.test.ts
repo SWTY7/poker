@@ -161,3 +161,115 @@ describe('what they showed down', () => {
     expect(model.shownBets('villain')).toBe(0)
   })
 })
+
+describe('a read carried between sittings', () => {
+  /** A villain seen raising a lot heads-up and bluffing big rivers, and folding a lot multiway. */
+  function wellKnown(): OpponentModel {
+    const model = new OpponentModel()
+    for (let i = 0; i < 30; i++) model.observe(action('villain', i % 3 === 0 ? 'call' : 'raise'), headsUp())
+    for (let i = 0; i < 25; i++) model.observe(action('villain', i % 4 === 0 ? 'call' : 'fold'), sixWay(true))
+    for (let i = 0; i < 10; i++)
+      model.observe({ playerId: 'villain', type: 'bet', amount: 80 }, { playersInHand: 2, facingBet: false, postflop: true, pot: 100, currentBet: 0 })
+    model.observe(action('someone-else', 'raise'), headsUp())
+    return model
+  }
+
+  it('comes back exactly as it was, through JSON, with no fading', () => {
+    const before = wellKnown()
+    const after = OpponentModel.fromJSON(JSON.parse(JSON.stringify(before.toJSON())))
+    for (const setting of ['headsUp', 'multiway'] as const) {
+      expect(after.aggressionBias('villain', setting)).toBe(before.aggressionBias('villain', setting))
+      expect(after.foldBias('villain', setting)).toBe(before.foldBias('villain', setting))
+      expect(after.postflopRates('villain', setting)).toEqual(before.postflopRates('villain', setting))
+    }
+    expect(after.aggressionBias('someone-else', 'headsUp')).toBe(before.aggressionBias('someone-else', 'headsUp'))
+  })
+
+  it('saves only the players asked for', () => {
+    const data = wellKnown().toJSON(['villain', 'never-seen'])
+    expect(Object.keys(data.players)).toEqual(['villain'])
+    expect(OpponentModel.fromJSON(data).aggressionBias('someone-else', 'headsUp')).toBe(0)
+  })
+
+  it('fades with decay: the same tendency, held with less confidence', () => {
+    const data = wellKnown().toJSON()
+    const fresh = OpponentModel.fromJSON(data, 1)
+    const faded = OpponentModel.fromJSON(data, 0.5)
+    const gone = OpponentModel.fromJSON(data, 0)
+    // Still read as aggressive and as a multiway folder, just less surely.
+    expect(faded.aggressionBias('villain', 'headsUp')).toBeGreaterThan(0)
+    expect(faded.aggressionBias('villain', 'headsUp')).toBeLessThan(fresh.aggressionBias('villain', 'headsUp'))
+    expect(faded.foldBias('villain', 'multiway')).toBeGreaterThan(0)
+    expect(faded.foldBias('villain', 'multiway')).toBeLessThan(fresh.foldBias('villain', 'multiway'))
+    expect(gone.aggressionBias('villain', 'headsUp')).toBe(0)
+    const rates = gone.postflopRates('villain', 'headsUp')
+    for (const [key, normal] of Object.entries(BASELINES.headsUp.postflop)) {
+      expect(rates[key as keyof typeof rates]).toBeCloseTo(normal, 9)
+    }
+  })
+
+  it('never freezes: restored every sitting, old evidence stays bounded', () => {
+    // Twenty sittings of the same saved read, faded by 0.7 each time, weigh
+    // at most 1 / (1 - 0.7) — a bit over three sittings' worth.
+    let model = wellKnown()
+    for (let i = 0; i < 20; i++) model = OpponentModel.fromJSON(model.toJSON(), 0.7)
+    const once = wellKnown().aggressionBias('villain', 'headsUp')
+    const settled = model.aggressionBias('villain', 'headsUp')
+    expect(settled).toBeGreaterThan(0)
+    expect(settled).toBeLessThan(once * 1.5)
+  })
+
+  it('pools reads from two sources on the same player', () => {
+    const data = wellKnown().toJSON(['villain'])
+    const pooled = new OpponentModel()
+    pooled.restore(data)
+    pooled.restore(data)
+    // Twice the evidence of the same tendency: a surer read.
+    expect(pooled.aggressionBias('villain', 'headsUp')).toBeGreaterThan(OpponentModel.fromJSON(data).aggressionBias('villain', 'headsUp'))
+  })
+
+  it('carries showdown memory too', () => {
+    const card = (spec: string): Card => ({
+      rank: spec.slice(0, -1) as Card['rank'],
+      suit: { c: 'clubs', d: 'diamonds', h: 'hearts', s: 'spades' }[spec.slice(-1)] as Card['suit'],
+    })
+    // Checked to the river, where the villain bets the pot with air and is called.
+    const record: ShowdownRecord = {
+      actions: [
+        { playerId: 'villain', type: 'call', street: 'preflop' },
+        { playerId: 'hero', type: 'check', street: 'preflop' },
+        ...(['flop', 'turn'] as const).flatMap((street) => [
+          { playerId: 'hero', type: 'check' as const, street },
+          { playerId: 'villain', type: 'check' as const, street },
+        ]),
+        { playerId: 'hero', type: 'check', street: 'river' },
+        { playerId: 'villain', type: 'bet', amount: 20, street: 'river' },
+        { playerId: 'hero', type: 'call', street: 'river' },
+      ],
+      board: ['Ah', 'Kd', '7s', '4c', '2h'].map(card),
+      shown: [
+        { playerId: 'villain', cards: [card('6c'), card('3d')] },
+        { playerId: 'hero', cards: [card('9d'), card('9c')] },
+      ],
+      blinds: new Map([
+        ['villain', 5],
+        ['hero', 10],
+      ]),
+      bigBlind: 10,
+    }
+    const model = new OpponentModel()
+    model.observeShowdown(record)
+    expect(model.shownBets('villain')).toBe(1)
+    const restored = OpponentModel.fromJSON(JSON.parse(JSON.stringify(model.toJSON())), 0.5)
+    expect(restored.shownBets('villain')).toBe(0.5)
+    expect(restored.showdownBluffShare('villain', 'large', 0.2)).toBeGreaterThan(0.2)
+    expect(restored.showdownBluffShare('villain', 'large', 0.2)).toBeLessThan(model.showdownBluffShare('villain', 'large', 0.2))
+  })
+
+  it('ignores anything that is not saved data', () => {
+    for (const junk of [null, 42, 'x', {}, { version: 2, players: {} }, { version: 1, players: { v: { tallies: { headsUp: { total: 'lots' } } } } }]) {
+      const model = OpponentModel.fromJSON(junk)
+      expect(model.aggressionBias('v', 'headsUp')).toBe(0)
+    }
+  })
+})

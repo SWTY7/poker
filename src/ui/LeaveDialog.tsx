@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { ordinal } from '../utils/format'
+import type { ReadLine } from '../review/table-read'
 
 interface LeaveDialogProps {
   handsPlayed: number
@@ -17,6 +18,10 @@ interface LeaveDialogProps {
    * the whole cash-out summary with the one number that actually applies.
    */
   tournament?: { playersRemaining: number; fieldSize: number }
+  /** Quick Play: the same summary, but worded as a practice table, since nothing was bought in or goes back to the bankroll. */
+  practice?: boolean
+  /** What the bots learned about you this sitting, in plain words. Nothing is shown when empty. */
+  read?: ReadLine[]
 }
 
 /**
@@ -42,6 +47,8 @@ export function LeaveDialog({
   onConfirm,
   onCancel,
   tournament,
+  practice = false,
+  read,
 }: LeaveDialogProps) {
   const cancelRef = useRef<HTMLButtonElement>(null)
 
@@ -66,7 +73,7 @@ export function LeaveDialog({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="dialog-head">
-          <h2 className="dialog-title">{tournament ? 'Quit the tournament?' : 'Cash out?'}</h2>
+          <h2 className="dialog-title">{tournament ? 'Quit the tournament?' : practice ? 'Leave the table?' : 'Cash out?'}</h2>
         </div>
 
         {tournament ? (
@@ -96,7 +103,7 @@ export function LeaveDialog({
               <span className="cashout-value">{handsPlayed}</span>
             </div>
             <div className="cashout-cell">
-              <span className="cashout-label">Bought in for</span>
+              <span className="cashout-label">{practice ? 'Started with' : 'Bought in for'}</span>
               <span className="cashout-value">${startingStack.toLocaleString()}</span>
             </div>
             <div className="cashout-cell">
@@ -112,6 +119,19 @@ export function LeaveDialog({
               </div>
             )}
           </div>
+        )}
+
+        {read && read.length > 0 && (
+          <section className="table-read" aria-label="What the table thinks of you">
+            <h3 className="menu-section">What the table thinks of you</h3>
+            <ul className="table-read-list">
+              {read.map((line) => (
+                <li key={line.text}>
+                  {line.text} <span className="table-read-sample">({Math.round(line.sample)} seen)</span>
+                </li>
+              ))}
+            </ul>
+          </section>
         )}
 
         {handInProgress && (

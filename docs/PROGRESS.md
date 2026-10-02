@@ -27,7 +27,8 @@ strategy for heads-up spots, with a different character in each seat, drawn fres
   yet, basics and advanced, each with a concrete implementation suggestion and a suggested order. Not a
   plan; nothing in it is scoped or committed to.
 - [`plans/`](./plans/README.md) — the two tracks in progress and how they share the code: game modes /
-  career / rivals (`plans/game-modes.md`) and reading the human → personality lab (`plans/psychology-lab.md`).
+  career / rivals (`plans/game-modes.md`), the home game for real cards (`plans/home-game.md`), and reading
+  the human → personality lab (`plans/psychology-lab.md`).
   Start here if you're picking up either one.
 - [`multiway-preflop.md`](./multiway-preflop.md) — the solved preflop book for three to six players: the
   game, how it's trained, and how far from equilibrium it measures.
@@ -44,8 +45,50 @@ this layer hasn't needed rework since the milestones in the v1 plan.
 - `profile.ts`: a versioned, `localStorage`-backed bankroll with lifetime stats and a daily stake (a
   small top-up once per calendar day if the bankroll runs low).
 - `tournament.ts`: blind structures, geometric blind escalation, payout brackets, standings.
+- `mode.ts`: Quick Play or Career, saved under `poker.mode` (Career by default), and
+  `profileAfterTableExit`, which settles a cash game against its buy-in and leaves the profile untouched
+  for Quick Play.
+- `rivals.ts`: twelve rivals who remember you and whom you remember, across sessions, saved under
+  `poker.rivals`. Each rival is a `CAST` character with a fixed seed, so it plays the same every time. A solo
+  Career table (cash or tournament) seats rivals plus about a third walk-ins, who are random and never
+  remembered. `RivalSession` pools the seated rivals' saved reads on you (averaged, faded by 0.7), seats
+  anyone who left steaming already tilted, and after every hand saves each rival's public stats (VPIP, PFR,
+  fold-to-bet, river bluffs seen at showdown), your net against them, their read on you, and how hot
+  they'll arrive next time. Pass-and-play and Quick Play have no rivals.
+- `career.ts`: Career seasons, saved under `poker.career`. Four tiers (Local → Regional → National →
+  Championship), each a fixed field of four rivals plus a walk-in, seated with more discipline and depth
+  tier by tier. A season is five single-table tournaments (Sit & Go ×2, Standard ×2, a Deep final; the
+  Championship is one Deep final), with points 10/6/4/3/2/1. Top two move up; a Championship win is a
+  title, defended next season. Screens: `CareerHub` (events, standings, next event) and its season summary,
+  reached from a door in the Career lobby.
+
+## Home game — `src/home/`
+
+The home game (`docs/plans/home-game.md`): real cards on a real table, with only the chips in the app.
+`table.ts` is its pure reducer: seating, blinds and the button, the betting rules from `poker/betting.ts`
+(which now take a card-free `BettingState`), streets advanced by the host, side pots, the host's showdown
+award with odd chips by seat, rebuys, and undo. It has two card modes: **real cards** (the host deals a real
+deck and judges the showdown) and **online cards** (the table deals from a server-shuffled deck, settles the
+showdown with the engine's evaluator, and `viewFor` gives each seat only its own cards).
+
+Rooms live on a server: `server/` is a Cloudflare Worker with one Durable Object per 4-digit room (free
+plan, WebSocket hibernation, deleted after 12 idle hours). `room.ts`'s `RoomCore` runs every command there.
+The host is whoever holds the room's token, and runs only the game's flow: dealing, and with real cards
+the streets and the showdown award, plus seat order and blinds between hands. Nobody acts for another seat
+or sets a stack; busted players rebuy themselves; undo belongs to whoever took the last step. Seats are
+claimed with a private per-phone seat key; with
+online cards the server shuffles every deck (crypto-random). `socket.ts` is the phone's WebSocket, with
+reconnection. `npm run server:dev` runs the server locally; `npm run server:deploy` publishes it, and the
+Pages build reads its address from the `ROOM_SERVER` repository variable (`VITE_ROOM_SERVER`). Screens in
+`src/ui/home/`: Home Game is a third lobby mode (Host / Join / Reopen room), a share link `?room=1234` opens
+onto joining, and one table screen serves everyone, with the dealer's controls on the host's phone.
 
 ## The table UI — `src/ui/`
+
+The lobby opens on a Quick Play / Career toggle (`docs/plans/game-modes.md` step 1). Quick Play is a practice
+table: `MenuScreen`'s `variant="quick"` (any stack depth, no bankroll, its own saved setup under
+`poker.quickConfig`), and leaving it records nothing. Career is everything below. A solo Career game shows
+`TableSeating` (who's at the table, with scouting notes on rivals seen 30+ hands) before the buy-in is taken.
 
 Lobby → cash-game/tournament setup → table → results, all built on a shared `menu-*` visual vocabulary. A
 poker chip + spade favicon, chip-denomination-colored bankroll/buy-in displays, a positional seat legend, a
@@ -103,6 +146,12 @@ model does, and what the characters vary:
     reads tighter than a still-to-act button.
   - Board-texture-aware ranges postflop, reusing the GTO solver's own hand-bucketing machinery
     (`gto/holdem/buckets.ts`'s `bucketOf`) instead of a flat, board-blind percentile cutoff.
+  - Hooks for the game-modes track (step 0 of `docs/plans/psychology-lab.md`, none of which changes a
+    decision): `OpponentModel.toJSON` / `restore` / `fromJSON` save a read and bring it back faded by a
+    `decay` factor, and can pool several saved reads on one player; `PsychBot.startTilted(strength)` seats
+    a bot already steaming, scaled by its own tilt sensitivity; `PsychBot.lastDecision.margin` says how
+    clear the last choice was, in pots, between kinds of action (fold / check-call / bet-raise), for
+    timing tells.
   - Randomized per table: which archetype (`profile.ts`'s `CAST`) sits where, and each instance's own
     level-k depth, confidence and discipline (`randomizeProfile`).
 - **Combined with the solved strategy** (`docs/combined-bot.md`): once the trained CFR strategies download,
@@ -117,6 +166,31 @@ model does, and what the characters vary:
 - **Not seated any more:** `heuristic-bot.ts` (pot odds and three thresholds) stays as the cheap engine
   test driver and the benchmark floor. The old personality-dial bot was deleted, since a `PsychBot` with
   the right profile covers everything it did.
+
+## Reading the human — `src/review/`
+
+Phase 1 of `docs/plans/psychology-lab.md`. The one part of the app that looks at the human's own hole cards
+on purpose, so it lives outside `src/ai/`, and nothing in `src/ai/` or `src/gto/` imports it.
+
+- **`log.ts`**: `HandLogger` follows the solo human through a sitting. `useHoldemGame.ts` makes three
+  calls: when a hand is dealt, before each human action (with the table's solve's mix for that spot, where
+  one applies), and when the hand ends. Each finished hand is a `HandRecord`: position, players, blinds,
+  cards, board, every public action, the human's decisions with pot / to-call / stack, net chips, showdown
+  and win. Stored under `localStorage` `poker.review` (versioned, newest 2,000 hands), downloadable as
+  JSON. Pass-and-play isn't logged, since one log would mix several people.
+- **`style.ts`**: VPIP, PFR, 3-bet, aggression factor, c-bet, fold to c-bet, WTSD, W$SD, bb/100, and a
+  tilt signature (VPIP/PFR in the 10 hands after losing 25+ big blinds, same sitting, against every
+  other hand). Every stat carries its count and its number of chances.
+- **`leaks.ts`**: compares each covered decision's *kind* (fold / check-call / bet-raise) with the solve's
+  mix. A kind the solve plays under 10% of the time in that spot is off the book. It's listed only once it
+  repeats (2+) in the same spot the same way, ranked by a stand-in cost: (1 − the solve's share) × pot in
+  bb. The trained files store frequencies, not values, so this isn't chips lost.
+- **`table-read.ts`**: the shared `OpponentModel`'s read on the human in plain words (aggression and
+  folding against the measured normal, bet sizing, river bets seen at showdown), with what the bots do
+  about it. Only reads with 10+ actions behind them are said.
+- UI: the read is on the leave screen ("What the table thinks of you"). A **Your play** screen, from a
+  button in the lobby, shows the style profile (all hands or last session), the leaks, the tilt
+  signature, and a download and delete of the history.
 
 ## The GTO solver — `src/gto/`
 
@@ -146,7 +220,7 @@ oracle to check against.
 
 ## Verification, as of this writing
 
-483 tests as of the last full run (2026-09-27); `npx vitest run`, `npx tsc -b` and `npx oxlint` are all clean. Re-run
+593 tests as of the last full run (2026-09-29); `npx vitest run`, `npx tsc -b` and `npx oxlint` are all clean. Re-run
 them rather than trust this number — it moves.
 
 **Use `npx tsc -b`, not `npx tsc --noEmit -p .`**: `tsconfig.json` only lists project references, so

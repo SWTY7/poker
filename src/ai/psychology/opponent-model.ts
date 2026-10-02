@@ -17,7 +17,9 @@ import { blindsFrom, sizeActions, sizeBucket, type SizeBucket } from './sizing'
  * Resets when the table does — a new game is a new `OpponentModel` — the
  * same scope as tilt. A player who has been raising every pot for the last
  * twenty hands gets read as likely to keep doing it, but that read does not
- * carry into tomorrow's sitting.
+ * carry into tomorrow's sitting — unless something saves it (`toJSON`) and
+ * hands it back (`restore`), faded, which is how a recurring rival remembers
+ * you.
  *
  * Learned, all of it visible to anyone at the table:
  *
@@ -168,12 +170,12 @@ const SHOWDOWN_PRIOR_WEIGHT = 8
  */
 const BLUFF_STRENGTH = 0.4
 
-interface ShownBets {
+export interface ShownBets {
   bets: number
   bluffs: number
 }
 
-interface Tally {
+export interface Tally {
   aggressive: number
   total: number
   facingBet: number
@@ -201,9 +203,76 @@ const emptyTally = (): Tally => ({
   largeBets: 0,
 })
 
+/**
+ * Everything learned about some players, as plain JSON for saving between
+ * sittings. Keyed by player id, which is whatever the table called them — a
+ * caller that seats the same person under a different id renames the keys.
+ */
+export interface OpponentModelData {
+  version: 1
+  players: Record<string, { tallies: Record<Setting, Tally>; shown?: Record<SizeBucket, ShownBets> }>
+}
+
 export class OpponentModel {
   private tallies = new Map<string, Record<Setting, Tally>>()
   private shown = new Map<string, Record<SizeBucket, ShownBets>>()
+
+  /** What has been learned about these players (everyone, if not given), to save. */
+  toJSON(players?: readonly string[]): OpponentModelData {
+    const ids = players ?? [...new Set([...this.tallies.keys(), ...this.shown.keys()])]
+    const data: OpponentModelData = { version: 1, players: {} }
+    for (const id of ids) {
+      const tallies = this.tallies.get(id)
+      const shown = this.shown.get(id)
+      if (!tallies && !shown) continue
+      data.players[id] = {
+        tallies: structuredClone(tallies ?? { headsUp: emptyTally(), multiway: emptyTally() }),
+        ...(shown ? { shown: structuredClone(shown) } : {}),
+      }
+    }
+    return data
+  }
+
+  /**
+   * Adds saved evidence back in, every count multiplied by `decay` (0..1) —
+   * the older a read, the less it weighs, so one that is restored session
+   * after session fades unless it keeps being confirmed, and never freezes.
+   * Adds to what is already here rather than replacing it, so several saved
+   * reads on the same player (two rivals who both know you) can be pooled.
+   * Anything that isn't recognisable saved data is ignored.
+   */
+  restore(data: unknown, decay = 1): void {
+    if (!isModelData(data)) return
+    const keep = clamp01(decay)
+    for (const [id, saved] of Object.entries(data.players)) {
+      let byPlayer = this.tallies.get(id)
+      if (!byPlayer) {
+        byPlayer = { headsUp: emptyTally(), multiway: emptyTally() }
+        this.tallies.set(id, byPlayer)
+      }
+      for (const setting of ['headsUp', 'multiway'] as const) {
+        const from = saved.tallies?.[setting]
+        if (from) addTally(byPlayer[setting], from, keep)
+      }
+      if (!saved.shown) continue
+      let shown = this.shown.get(id)
+      if (!shown) {
+        shown = { small: { bets: 0, bluffs: 0 }, large: { bets: 0, bluffs: 0 } }
+        this.shown.set(id, shown)
+      }
+      for (const size of ['small', 'large'] as const) {
+        shown[size].bets += num(saved.shown[size]?.bets) * keep
+        shown[size].bluffs += num(saved.shown[size]?.bluffs) * keep
+      }
+    }
+  }
+
+  /** A model that starts from saved evidence, faded by `decay`. */
+  static fromJSON(data: unknown, decay = 1): OpponentModel {
+    const model = new OpponentModel()
+    model.restore(data, decay)
+    return model
+  }
 
   /** Records one action taken at the table, by whoever took it, in the spot they took it in. */
   observe(action: PokerAction, context: ActionContext): void {
@@ -336,4 +405,39 @@ export class OpponentModel {
 
 function shrink(difference: number, observations: number): number {
   return difference * (observations / (observations + PRIOR_WEIGHT))
+}
+
+function addTally(into: Tally, from: Partial<Tally>, weight: number): void {
+  const counts = [
+    'aggressive',
+    'total',
+    'facingBet',
+    'foldedToBet',
+    'checkedTo',
+    'betWhenCheckedTo',
+    'facedPostflop',
+    'sizedBets',
+    'largeBets',
+  ] as const
+  for (const key of counts) {
+    into[key] += num(from[key]) * weight
+  }
+  for (const key of ['fold', 'call', 'raise'] as const) {
+    into.postflop[key] += num(from.postflop?.[key]) * weight
+  }
+}
+
+/** A saved count, or 0 for anything missing or not a sane count. */
+function num(x: unknown): number {
+  return typeof x === 'number' && Number.isFinite(x) && x > 0 ? x : 0
+}
+
+function clamp01(x: number): number {
+  return Number.isFinite(x) ? Math.min(Math.max(x, 0), 1) : 0
+}
+
+function isModelData(data: unknown): data is OpponentModelData {
+  if (typeof data !== 'object' || data === null) return false
+  const candidate = data as { version?: unknown; players?: unknown }
+  return candidate.version === 1 && typeof candidate.players === 'object' && candidate.players !== null
 }

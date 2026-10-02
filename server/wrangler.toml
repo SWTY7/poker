@@ -1,0 +1,15 @@
+# The home game's room server: one Worker, and one Durable Object per room.
+# Runs on Cloudflare's free plan (SQLite-backed Durable Objects).
+#   npm run server:dev      local, no account needed (http://localhost:8787)
+#   npm run server:deploy   publish (after `npx wrangler login`)
+name = "poker-rooms"
+main = "src/worker.ts"
+compatibility_date = "2026-09-01"
+
+[[durable_objects.bindings]]
+name = "ROOMS"
+class_name = "Room"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Room"]
