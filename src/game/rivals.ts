@@ -391,6 +391,11 @@ export class RivalSession {
     return this.plan.map((seat) => ({ name: seat.name, profile: seat.profile, key: seat.kind === 'rival' ? seat.rival.id : seat.name }))
   }
 
+  /** The table seats a rival sits in (not the walk-ins'). Known once `seated` has run. */
+  get rivalSeatIds(): ReadonlySet<string> {
+    return new Set(this.seatToRival.keys())
+  }
+
   get snapshot(): RivalsData {
     return this.data
   }

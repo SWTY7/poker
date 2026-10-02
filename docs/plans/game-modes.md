@@ -110,7 +110,13 @@ each character gets a fixed pace quirk from their id. Nothing is random.*
   per-character tempo. Close decisions take longer, obvious ones snap. Each character's pattern must be **consistent**, so it can be learned.
 - Career only. Quick Play keeps today's fixed pacing.
 
-### 5. Basic achievements
+### 5. Basic achievements — done 2026-10-02
+
+*Built in `src/game/achievements.ts` (tests: `tests/game/achievements.test.ts`) and `src/ui/Achievements.tsx`.
+Decisions made along the way: "first win" became two, the first pot and the first tournament win; "win a
+showdown with a bluff-catcher" is calling a river bet or raise with one pair or less and winning at
+showdown; "bust a rival" is winning a pot in a hand where a rival (not a walk-in) put chips in and ended
+with none. The list lives behind a button in the Career lobby.*
 
 - `src/game/achievements.ts`, storage `poker.achievements`: detected at hand end / event end from the hand
   log. First win, first title, win a hand with 7-2, win a showdown with a bluff-catcher, bust a rival, win
