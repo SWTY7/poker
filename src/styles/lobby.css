@@ -547,7 +547,9 @@
 
 .lobby-your-play-row {
   display: flex;
+  flex-wrap: wrap;
   justify-content: center;
+  gap: var(--sp-2);
 }
 
 /* ---------- Quick Play / Career ---------- */

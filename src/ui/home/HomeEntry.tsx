@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { isRoomCode } from '../../home/room'
-import type { CardMode, HomeConfig } from '../../home/table'
+import { DEFAULT_LEVEL_MINUTES, LEVEL_MINUTE_OPTIONS, type CardMode, type HomeConfig } from '../../home/table'
 import { DealIcon } from '../icons'
 import { SUIT_PATH } from '../suit-icons'
 
@@ -25,7 +25,7 @@ interface JoinEntryProps {
   onBack: () => void
 }
 
-const DEFAULT: HomeConfig = { startingStack: 1000, smallBlind: 5, bigBlind: 10, ante: 0 }
+const DEFAULT: HomeConfig = { startingStack: 1000, smallBlind: 5, bigBlind: 10, ante: 0, levelMinutes: 0 }
 
 function Frame({ title, subtitle, onBack, children }: { title: string; subtitle: string; onBack: () => void; children: React.ReactNode }) {
   return (
@@ -80,6 +80,37 @@ export function HostEntry({ initialName, onOpen, onBack }: HostEntryProps) {
           <NumberField label="Big blind" value={config.bigBlind} onChange={(bigBlind) => setConfig((c) => ({ ...c, bigBlind }))} />
           <NumberField label="Ante" value={config.ante} onChange={(ante) => setConfig((c) => ({ ...c, ante }))} />
         </div>
+        <div className="menu-field-row">
+          <span className="menu-field-label">Rising blinds</span>
+          <button
+            type="button"
+            className={`menu-option menu-toggle ${config.levelMinutes ? 'menu-option-on' : ''}`}
+            aria-pressed={!!config.levelMinutes}
+            onClick={() => setConfig((c) => ({ ...c, levelMinutes: c.levelMinutes ? 0 : DEFAULT_LEVEL_MINUTES }))}
+          >
+            {config.levelMinutes ? 'On' : 'Off'}
+          </button>
+        </div>
+        {!!config.levelMinutes && (
+          <div className="menu-options">
+            {LEVEL_MINUTE_OPTIONS.map((m) => (
+              <button
+                key={m}
+                type="button"
+                className={`menu-option ${config.levelMinutes === m ? 'menu-option-on' : ''}`}
+                aria-pressed={config.levelMinutes === m}
+                onClick={() => setConfig((c) => ({ ...c, levelMinutes: m }))}
+              >
+                Every {m} min
+              </button>
+            ))}
+          </div>
+        )}
+        <p className="menu-hint">
+          {config.levelMinutes
+            ? 'A house rule: on a clock, each level about half again the last, so the stacks get shorter and the game ends with a winner.'
+            : 'A house rule: off, the blinds stay put, like a cash game, and it goes on until you stop.'}
+        </p>
       </section>
 
       <div className="menu-divider" />

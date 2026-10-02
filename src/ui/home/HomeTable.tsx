@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { ActionType } from '../../poker/game-state'
 import type { TableView } from '../../home/room'
-import { betweenHands, canStartHand, options, potTotal, type Command } from '../../home/table'
+import { betweenHands, canStartHand, currentBlinds, DEFAULT_LEVEL_MINUTES, levelEndsAt, LEVEL_MINUTE_OPTIONS, options, potTotal, type Command } from '../../home/table'
+import { risingBlinds } from '../../game/blinds'
 import type { RoomStatus } from '../../home/socket'
 import { avatarInitial, avatarStyle } from '../avatar'
 import { CardView } from '../CardView'
@@ -26,6 +27,45 @@ const NEXT_DEAL: Record<string, string> = { preflop: 'Deal the flop', flop: 'Dea
 
 function money(amount: number): string {
   return amount.toLocaleString()
+}
+
+/**
+ * The blinds now, and with a blind clock, the level and the time left in it.
+ * Counted by the server's clock (each view carries it), not this phone's,
+ * so every phone at the table shows the same countdown.
+ */
+function BlindsLine({ view }: { view: TableView }) {
+  const endsAt = levelEndsAt(view)
+  const [left, setLeft] = useState<number | null>(null)
+  useEffect(() => {
+    if (endsAt === null) return
+    const skew = view.now - Date.now()
+    const update = () => setLeft(endsAt - (Date.now() + skew))
+    const first = window.setTimeout(update, 0)
+    const timer = window.setInterval(update, 1000)
+    return () => {
+      window.clearTimeout(first)
+      window.clearInterval(timer)
+    }
+  }, [endsAt, view.now])
+
+  const blinds = currentBlinds(view)
+  const text = `Blinds ${money(blinds.smallBlind)}/${money(blinds.bigBlind)}${blinds.ante > 0 ? `, ante ${money(blinds.ante)}` : ''}`
+  if (!view.config.levelMinutes) return <span className="home-blinds-line">{text}</span>
+  if (endsAt === null || !view.clock) return <span className="home-blinds-line">{text} · up every {view.config.levelMinutes} min, from the first deal</span>
+  const next = risingBlinds(view.config, view.clock.level + 1)
+  return (
+    <span className="home-blinds-line">
+      Level {view.clock.level} · {text} ·{' '}
+      {left === null ? '' : left > 0 ? `${clock(left)} to ${money(next.smallBlind)}/${money(next.bigBlind)}` : `${money(next.smallBlind)}/${money(next.bigBlind)} from the next hand`}
+    </span>
+  )
+}
+
+/** 12:04 */
+function clock(ms: number): string {
+  const seconds = Math.ceil(ms / 1000)
+  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`
 }
 
 /**
@@ -117,6 +157,7 @@ function PotBar({ view }: { view: TableView }) {
         <span className="home-street">{view.handNumber === 0 ? 'No hand yet' : `Hand ${view.handNumber} · ${STREET_NAME[view.street]}`}</span>
         <span className="home-pot-amount">Pot {money(potTotal(view))}</span>
       </div>
+      <BlindsLine view={view} />
       {last.length > 0 && (
         <ul className="home-results">
           {last.map((r, i) => (
@@ -396,12 +437,11 @@ function ShowdownPicker({ view, send }: { view: TableView; send: (c: Command) =>
 
 function BlindsEditor({ view, send }: { view: TableView; send: (c: Command) => void }) {
   const [open, setOpen] = useState(false)
-  const [draft, setDraft] = useState(() => ({ ...view.config }))
+  const [draft, setDraft] = useState(() => ({ ...view.config, levelMinutes: view.config.levelMinutes ?? 0 }))
   if (!open) {
     return (
       <button type="button" className="lobby-reset-link" onClick={() => setOpen(true)}>
-        Blinds {view.config.smallBlind}/{view.config.bigBlind}
-        {view.config.ante > 0 ? `, ante ${view.config.ante}` : ''} · change
+        Change the blinds
       </button>
     )
   }
@@ -421,6 +461,33 @@ function BlindsEditor({ view, send }: { view: TableView; send: (c: Command) => v
       {field('bigBlind', 'Big blind')}
       {field('ante', 'Ante')}
       {field('startingStack', 'New players start with')}
+<div className="menu-field-row">
+          <span className="menu-field-label">Rising blinds</span>
+          <button
+            type="button"
+            className={`menu-option menu-toggle ${draft.levelMinutes ? 'menu-option-on' : ''}`}
+            aria-pressed={!!draft.levelMinutes}
+            onClick={() => setDraft((c) => ({ ...c, levelMinutes: c.levelMinutes ? 0 : DEFAULT_LEVEL_MINUTES }))}
+          >
+            {draft.levelMinutes ? 'On' : 'Off'}
+          </button>
+        </div>
+        {!!draft.levelMinutes && (
+          <div className="menu-options">
+            {LEVEL_MINUTE_OPTIONS.map((m) => (
+              <button
+                key={m}
+                type="button"
+                className={`menu-option ${draft.levelMinutes === m ? 'menu-option-on' : ''}`}
+                aria-pressed={draft.levelMinutes === m}
+                onClick={() => setDraft((c) => ({ ...c, levelMinutes: m }))}
+              >
+                Every {m} min
+              </button>
+            ))}
+          </div>
+        )}
+      {view.clock && <p className="menu-hint">The blinds above are level 1; the clock stays on level {view.clock.level}.</p>}
       <div className="home-action-row">
         <button type="button" className="btn btn-secondary" onClick={() => setOpen(false)}>
           Cancel

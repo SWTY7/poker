@@ -15,6 +15,7 @@ import { computePots, distributePots, totalPot } from '../poker/pot'
 import { RANKS, SUITS, cardsEqual, type Card } from '../poker/card'
 import { compareHandValues, evaluateBestHand, type HandValue } from '../poker/hand-evaluator'
 import { describeHandValue } from '../poker/hand-name'
+import { risingBlinds, type Blinds } from '../game/blinds'
 
 /**
  * The home game's table, in one of two card modes:
@@ -38,10 +39,34 @@ import { describeHandValue } from '../poker/hand-name'
 
 export interface HomeConfig {
   startingStack: number
+  /** The starting blinds: level 1. */
   smallBlind: number
   bigBlind: number
   ante: number
+  /**
+   * Minutes per blind level, the way a live game's clock runs: when a level's
+   * time is up, the next hand dealt is at the next level (about half again).
+   * 0, or absent in a room made before the clock existed, keeps them fixed.
+   */
+  levelMinutes?: number
 }
+
+/** The blind clock, once the first hand is dealt. */
+export interface LevelClock {
+  level: number
+  /** When this level began (ms since the epoch, the server's clock). */
+  startedAt: number
+}
+
+/** The longest blind level the host can pick. */
+export const MAX_LEVEL_MINUTES = 120
+
+/**
+ * Rising blinds are a house rule, off unless the host turns them on. These
+ * are the level lengths to pick from, in minutes, and the one picked first.
+ */
+export const LEVEL_MINUTE_OPTIONS = [15, 20, 30]
+export const DEFAULT_LEVEL_MINUTES = 20
 
 export type CardMode = 'real' | 'online'
 
@@ -76,6 +101,8 @@ interface Table extends BettingState {
   board: Card[]
   /** Online cards: players whose hole cards everyone may see (those still in at a showdown). */
   revealed: string[]
+  /** Rising blinds: the level the last hand was dealt at, and since when. Null with fixed blinds. */
+  clock?: LevelClock | null
   players: PlayerState[]
   phase: Phase
   street: Street
@@ -118,8 +145,11 @@ export type Command =
   | { type: 'adjustStack'; id: string; stack: number }
   /** A busted player buying back in, between hands, for the starting stack. */
   | { type: 'rebuy'; id: string }
-  /** `deck` is required with online cards: all 52, shuffled by the server. */
-  | { type: 'startHand'; deck?: Card[] }
+  /**
+   * `deck` is required with online cards: all 52, shuffled by the server.
+   * `now` is the server's clock, for rising blinds.
+   */
+  | { type: 'startHand'; deck?: Card[]; now?: number }
   | { type: 'act'; playerId: string; action: ActionType; amount?: number }
   | { type: 'advanceStreet' }
   | { type: 'award'; winnersByPot: string[][] }
@@ -138,6 +168,7 @@ export function newTable(config: HomeConfig, cards: CardMode = 'real'): HomeStat
     deck: [],
     board: [],
     revealed: [],
+    clock: null,
     players: [],
     phase: 'lobby',
     street: 'preflop',
@@ -221,8 +252,12 @@ export function reduce(state: HomeState, command: Command, by: string = HOST): H
     case 'configure': {
       if (!betweenHands(state)) fail('Wait for the hand to finish.')
       const { startingStack, smallBlind, bigBlind, ante } = command.config
+      const levelMinutes = command.config.levelMinutes ?? 0
       if (!(smallBlind > 0 && bigBlind >= smallBlind && ante >= 0 && startingStack > 0)) fail('Those blinds don’t add up.')
-      next.config = { startingStack, smallBlind, bigBlind, ante }
+      if (!(Number.isInteger(levelMinutes) && levelMinutes >= 0 && levelMinutes <= MAX_LEVEL_MINUTES)) fail(`A blind level is 0 to ${MAX_LEVEL_MINUTES} minutes.`)
+      next.config = { startingStack, smallBlind, bigBlind, ante, levelMinutes }
+      // Turning the clock off ends it; changing its length or the starting blinds keeps the level reached.
+      if (levelMinutes === 0) next.clock = null
       return next
     }
 
@@ -248,7 +283,7 @@ export function reduce(state: HomeState, command: Command, by: string = HOST): H
     }
 
     case 'startHand':
-      startHand(next, command.deck)
+      startHand(next, command.deck, command.now)
       // Undo reaches back as far as the deal (a mis-tapped "New hand"), never into the last hand.
       // Not with online cards: everyone has already looked at theirs.
       next.undo = next.cards === 'online' ? [] : [{ before: structuredClone(table), by }]
@@ -343,7 +378,42 @@ export function canStartHand(state: TableSnapshot): boolean {
   return betweenHands(state) && state.players.filter(inHand).length >= 2
 }
 
-function startHand(state: Table, deck: Card[] | undefined): void {
+/** The blinds the current (or next) hand is played at: the starting ones, raised to the clock's level. */
+export function currentBlinds(state: Pick<TableSnapshot, 'config' | 'clock'>): Blinds {
+  const { smallBlind, bigBlind, ante } = state.config
+  return risingBlinds({ smallBlind, bigBlind, ante }, state.clock?.level ?? 1)
+}
+
+/** When the blinds go up (ms since the epoch), or null if they're fixed or the first hand hasn't been dealt. */
+export function levelEndsAt(state: Pick<TableSnapshot, 'config' | 'clock'>): number | null {
+  const minutes = state.config.levelMinutes ?? 0
+  return minutes > 0 && state.clock ? state.clock.startedAt + minutes * 60_000 : null
+}
+
+/**
+ * Moves the blind clock up to `now`: started by the first hand dealt, and a
+ * level up for each level's worth of time since. A level that runs out
+ * mid-hand takes effect from the next deal, as it does at a live table.
+ */
+function runClock(state: Table, now: number | undefined): void {
+  const minutes = state.config.levelMinutes ?? 0
+  if (minutes <= 0) {
+    state.clock = null
+    return
+  }
+  if (now === undefined) return
+  if (!state.clock) {
+    state.clock = { level: 1, startedAt: now }
+    return
+  }
+  const length = minutes * 60_000
+  while (now - state.clock.startedAt >= length) {
+    state.clock.level++
+    state.clock.startedAt += length
+  }
+}
+
+function startHand(state: Table, deck: Card[] | undefined, now: number | undefined): void {
   if (!(state.phase === 'lobby' || state.phase === 'hand-over')) fail('A hand is already running.')
   if (state.players.filter(inHand).length < 2) fail('Need two players with chips.')
   if (state.cards === 'online' && !isFullDeck(deck)) fail('The deck didn’t arrive. Try again.')
@@ -367,7 +437,8 @@ function startHand(state: Table, deck: Card[] | undefined): void {
   state.handNumber++
   state.dealerIndex = nextSeat(state, state.dealerIndex)
 
-  const { smallBlind, bigBlind, ante } = state.config
+  runClock(state, now)
+  const { smallBlind, bigBlind, ante } = currentBlinds(state)
   if (ante > 0) {
     for (const p of state.players) {
       if (!inHand(p)) continue
@@ -470,7 +541,7 @@ function advanceStreet(state: Table): void {
     if (!p.folded && !p.isAllIn) p.hasActed = false
   }
   state.currentBet = 0
-  state.minRaise = state.config.bigBlind
+  state.minRaise = currentBlinds(state).bigBlind
   state.street = street
   if (state.cards === 'online') {
     const dealt = Array.from({ length: street === 'flop' ? 3 : 1 }, () => state.deck.pop()!)

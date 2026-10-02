@@ -34,6 +34,8 @@ export const PROTOCOL = 2
 export interface TableView extends TableSnapshot {
   /** Player ids with a phone connected right now. */
   connected: string[]
+  /** The server's clock when this was sent, so a phone can count down to the next blind level by it. */
+  now: number
   /** What this phone may take back, if it took the last step: its own move, or (the host) the last deal or payout. */
   canUndo: 'move' | 'dealer' | null
   /** This phone's seat (null if it only deals or watches), and whether it's the host. */
@@ -97,6 +99,7 @@ export class RoomCore {
   private readonly hostToken: string
   private readonly shuffle: () => Card[]
   private readonly onChange: (state: HomeState, keys: SeatKeys) => void
+  private readonly now: () => number
 
   /**
    * `shuffle` hands back a freshly shuffled 52-card deck (crypto-random on
@@ -108,7 +111,9 @@ export class RoomCore {
     shuffle: () => Card[],
     onChange: (state: HomeState, keys: SeatKeys) => void = () => {},
     keys: SeatKeys = {},
+    now: () => number = Date.now,
   ) {
+    this.now = now
     this.table = state
     this.hostToken = hostToken
     this.shuffle = shuffle
@@ -133,7 +138,7 @@ export class RoomCore {
   viewFor(playerId: string | null, isHost: boolean): TableView {
     const { undo: _undo, ...table } = this.table
     const mayUndo = playerId !== null && canUndo(this.table, playerId) ? 'move' : isHost && canUndo(this.table, HOST) ? 'dealer' : null
-    return { ...viewFor(table, playerId), canUndo: mayUndo, connected: this.connected(), you: { playerId, isHost } }
+    return { ...viewFor(table, playerId), canUndo: mayUndo, connected: this.connected(), now: this.now(), you: { playerId, isHost } }
   }
 
   open(linkId: string, send: (message: ToPhone) => void): void {
@@ -205,7 +210,7 @@ export class RoomCore {
           return
         }
         try {
-          this.apply(command.type === 'startHand' ? { type: 'startHand', deck: this.table.cards === 'online' ? this.shuffle() : undefined } : command, by)
+          this.apply(command.type === 'startHand' ? { type: 'startHand', deck: this.table.cards === 'online' ? this.shuffle() : undefined, now: this.now() } : command, by)
         } catch (error) {
           link.send({ v: PROTOCOL, t: 'error', message: errorText(error), reqId: message.reqId })
           return
