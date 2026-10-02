@@ -59,7 +59,7 @@
   }
 
   .btn-danger:hover:not(:disabled) {
-    --btn-bg: rgba(238, 125, 153, 0.18);
+    --btn-bg: rgb(var(--lose-rgb) / 0.18);
     --btn-border: var(--red);
   }
 }
@@ -88,7 +88,7 @@
 }
 
 .btn-danger {
-  --btn-bg: rgba(238, 125, 153, 0.1);
+  --btn-bg: rgb(var(--lose-rgb) / 0.1);
   --btn-border: var(--red-deep);
   --btn-fg: var(--red);
 }
@@ -165,23 +165,21 @@
 }
 
 .card-face {
-  background: linear-gradient(170deg, #fffdf8, #ece7f3);
+  background: var(--card-face);
   box-shadow: var(--sh-1);
 }
 
 .card-red {
-  color: #a5333f;
+  color: var(--card-red);
 }
 
 .card-black {
-  color: #241a0c;
+  color: var(--card-black);
 }
 
 .card-back {
-  background:
-    repeating-linear-gradient(45deg, rgba(205, 174, 112, 0.16) 0 3px, transparent 3px 6px),
-    linear-gradient(165deg, #2e2418, #1c160e);
-  border: 1px solid #4a3c26;
+  background: var(--card-back);
+  border: 1px solid var(--card-back-edge);
   box-shadow: var(--sh-1);
 }
 

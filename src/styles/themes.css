@@ -1,0 +1,293 @@
+/* ==========================================================================
+   Themes
+   --------------------------------------------------------------------------
+   Classic is the look in tokens.css and needs nothing here. Every other theme
+   is a block of token overrides, picked by `data-theme` on <html>, plus a few
+   rules for what tokens can't carry (texture, glow, letter case). Screens
+   never know which theme is on.
+   ========================================================================== */
+
+/* ---------- Card room: worn felt under a lamp, a leather rail, brass ---------- */
+
+:root[data-theme='cardroom'] {
+  --bg: #16100b;
+  --panel: #1d1610;
+  --hud-bg: #140e09;
+  --scrim: rgba(10, 6, 3, 0.75);
+  --line: #3d2c1a;
+  --line-soft: #33261a;
+  --text: #f3e9d6;
+  --text-dim: #b3a58c;
+  --text-faint: #8d806a;
+
+  --accent: #d9a24a;
+  --accent-mid: #bd8a36;
+  --accent-deep: #8a5f22;
+  --accent-rgb: 217 162 74;
+  --accent-tint: rgb(217 162 74 / 0.14);
+  --gold: #e6b556;
+  --focus: #f0cf8e;
+
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-wordmark: 'Fraunces', Georgia, serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+
+  --r-sm: 0.3rem;
+  --r-md: 0.5rem;
+  --r-lg: 0.8rem;
+  --r-xl: 1.6rem;
+
+  --felt-rim: #3a2412;
+  --felt-bg:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .32 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"),
+    radial-gradient(75% 60% at 50% 38%, #2f7048 0%, #1f5236 45%, #12301f 85%, #0b1d13 100%);
+  /* A leather rail: a thick brown border, lit from above. */
+  --felt-border: 0.7rem solid #3a2412;
+  --felt-shadow:
+    inset 0 0 0 1px rgba(0, 0, 0, 0.7),
+    inset 0 0 3.5rem rgba(0, 0, 0, 0.6),
+    0 0 0 1px #6b4524,
+    0 1.2rem 2.6rem rgba(0, 0, 0, 0.65);
+  --felt-ring: rgb(243 233 214 / 0.1);
+
+  --table-bg:
+    radial-gradient(70% 55% at 50% 30%, rgb(217 162 74 / 0.16) 0%, transparent 70%),
+    linear-gradient(180deg, #1a120b 0%, #0d0805 100%);
+
+  --card-face: linear-gradient(170deg, #fcf4e2, #eadcc0);
+  --card-red: #b3261e;
+  --card-black: #1d1a17;
+  --card-back:
+    repeating-linear-gradient(45deg, rgb(255 255 255 / 0.09) 0 2px, transparent 2px 5px),
+    linear-gradient(160deg, #8f2a22, #5a1511);
+  --card-back-edge: #3a0d0a;
+}
+
+/* ---------- Broadcast: TV poker, condensed type, hot colour ---------- */
+
+:root[data-theme='broadcast'] {
+  --bg: #090c13;
+  --panel: #0f141f;
+  --hud-bg: #0b0f18;
+  --scrim: rgba(4, 6, 12, 0.78);
+  --surface: rgba(255, 255, 255, 0.045);
+  --surface-strong: rgba(255, 255, 255, 0.09);
+  --line: #243049;
+  --line-soft: #1b2438;
+  --text: #f5f7fb;
+  --text-dim: #a3adc2;
+  --text-faint: #7b869c;
+
+  --accent: #ff4a3a;
+  --accent-mid: #e03a2b;
+  --accent-deep: #a82418;
+  --accent-rgb: 255 74 58;
+  --accent-tint: rgb(255 74 58 / 0.16);
+  --gold: #ffc83d;
+  --gold-rgb: 255 200 61;
+  --green: #2ee59d;
+  --win-rgb: 46 229 157;
+  --red: #ff5c7a;
+  --lose-rgb: 255 92 122;
+  --focus: #ffd0ca;
+
+  --font-display: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+  --font-wordmark: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --track: 0.14em;
+
+  --r-sm: 0.15rem;
+  --r-md: 0.25rem;
+  --r-lg: 0.4rem;
+  --r-xl: 0.6rem;
+
+  --felt-rim: #1f5666;
+  --felt-bg:
+    radial-gradient(70% 70% at 50% 40%, rgb(38 170 200 / 0.28) 0%, transparent 72%),
+    linear-gradient(180deg, #123845 0%, #0a1d27 100%);
+  --felt-border: 1px solid #1f5666;
+  --felt-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.04),
+    0 0 0 1px #000,
+    0 0.6rem 1.6rem rgba(0, 0, 0, 0.5);
+  --felt-ring: rgb(255 74 58 / 0.22);
+
+  --table-bg:
+    linear-gradient(135deg, rgb(255 74 58 / 0.07) 0%, transparent 35%),
+    linear-gradient(180deg, #0c111c 0%, #070a10 100%);
+
+  --card-face: #ffffff;
+  --card-red: #e0182d;
+  --card-black: #0b0d12;
+  --card-back: repeating-linear-gradient(-45deg, #ff4a3a 0 4px, #c93022 4px 8px);
+  --card-back-edge: #0b0d12;
+}
+
+:root[data-theme='broadcast'] .btn,
+:root[data-theme='broadcast'] .hud-btn,
+:root[data-theme='broadcast'] .menu-section {
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+:root[data-theme='broadcast'] .btn-primary {
+  --btn-fg: #fff;
+}
+
+/* ---------- Poster: light paper, flat colour, hard shadows ---------- */
+
+:root[data-theme='poster'] {
+  color-scheme: light;
+
+  --bg: #efe6d2;
+  --panel: #f7f0df;
+  --hud-bg: #efe6d2;
+  --scrim: rgba(26, 23, 20, 0.55);
+  --surface: rgba(26, 23, 20, 0.05);
+  --surface-strong: rgba(26, 23, 20, 0.1);
+  --line: #1a1714;
+  --line-soft: #cfc4a9;
+  --text: #1a1714;
+  --text-dim: #5b5347;
+  --text-faint: #7d7566;
+
+  --accent: #e8452c;
+  --accent-mid: #cf3a22;
+  --accent-deep: #a62d19;
+  --accent-rgb: 232 69 44;
+  --accent-tint: rgb(232 69 44 / 0.12);
+  --gold: #c98f00;
+  --gold-rgb: 201 143 0;
+  --green: #1f7a4c;
+  --win-rgb: 31 122 76;
+  --red: #c22f2f;
+  --lose-rgb: 194 47 47;
+  --red-deep: #f1c9c4;
+  --warn: #b86e00;
+  --focus: #1a1714;
+
+  --font-display: 'Bricolage Grotesque', system-ui, sans-serif;
+  --font-wordmark: 'Bricolage Grotesque', system-ui, sans-serif;
+  --font-mono: 'DM Mono', ui-monospace, monospace;
+
+  --r-sm: 0.1rem;
+  --r-md: 0.15rem;
+  --r-lg: 0.2rem;
+  --r-xl: 0.25rem;
+
+  --sh-1: 2px 2px 0 #1a1714;
+  --sh-2: 4px 4px 0 #1a1714;
+  --sh-3: 8px 8px 0 #1a1714;
+
+  --felt-rim: #1a1714;
+  --felt-bg: #1f5a3d;
+  --felt-border: 3px solid #1a1714;
+  --felt-shadow: 6px 6px 0 #1a1714;
+  --felt-ring: rgb(239 230 210 / 0.28);
+
+  --table-bg: #efe6d2;
+
+  --card-face: #fffaf0;
+  --card-red: #d23a24;
+  --card-black: #1a1714;
+  --card-back: repeating-linear-gradient(90deg, #1a1714 0 2px, transparent 2px 7px), #e8452c;
+  --card-back-edge: #1a1714;
+}
+
+/* Inside the felt the ground is dark green, so text goes light there. */
+:root[data-theme='poster'] .felt {
+  --text: #f4ecd8;
+  --text-dim: #cfdccb;
+  --text-faint: #a6bba9;
+  --line: rgb(255 255 255 / 0.28);
+  --surface: rgb(255 255 255 / 0.08);
+  --surface-strong: rgb(255 255 255 / 0.14);
+  --accent: #ff6a50;
+  /* `color` is inherited as a resolved value, so it has to be set again here. */
+  color: var(--text);
+}
+
+:root[data-theme='poster'] .btn-primary {
+  --btn-fg: #fff;
+}
+
+:root[data-theme='poster'] .menu-wordmark-text {
+  color: var(--text);
+}
+
+:root[data-theme='poster'] .menu-wordmark-text,
+:root[data-theme='poster'] .menu-section {
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+/* ---------- Neon: retro casino sign, purple night, glowing pink ---------- */
+
+:root[data-theme='neon'] {
+  --bg: #170a1f;
+  --panel: #1f0f2a;
+  --hud-bg: #140819;
+  --scrim: rgba(10, 3, 16, 0.78);
+  --line: #4a2a63;
+  --line-soft: #351d49;
+  --text: #fdf1ff;
+  --text-dim: #c3a6d6;
+  --text-faint: #967bab;
+
+  --accent: #ff4fa3;
+  --accent-mid: #e63d8f;
+  --accent-deep: #a62a69;
+  --accent-rgb: 255 79 163;
+  --accent-tint: rgb(255 79 163 / 0.16);
+  --gold: #ffc233;
+  --gold-rgb: 255 194 51;
+  --green: #3dffb0;
+  --win-rgb: 61 255 176;
+  --red: #ff5d6c;
+  --lose-rgb: 255 93 108;
+  --focus: #ffd1ea;
+
+  --font-display: 'Fredoka', system-ui, sans-serif;
+  --font-wordmark: 'Shrikhand', 'Fredoka', cursive;
+  --font-mono: 'DM Mono', ui-monospace, monospace;
+
+  --r-sm: 0.55rem;
+  --r-md: 0.9rem;
+  --r-lg: 1.3rem;
+  --r-xl: 2rem;
+
+  --sh-1: 0 0 0.4rem rgb(255 79 163 / 0.25);
+  --sh-2: 0 0 1rem rgb(255 79 163 / 0.3);
+  --sh-3: 0 0 2rem rgb(255 79 163 / 0.35);
+
+  --felt-rim: #ff4fa3;
+  --felt-bg: radial-gradient(70% 65% at 50% 40%, #16867a 0%, #0d4a50 55%, #08262f 100%);
+  --felt-border: 2px solid #ff4fa3;
+  --felt-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.5),
+    0 0 1.4rem rgb(255 79 163 / 0.55),
+    inset 0 0 2.2rem rgb(255 79 163 / 0.2);
+  --felt-ring: rgb(255 194 51 / 0.35);
+
+  --table-bg:
+    radial-gradient(90% 55% at 50% 0%, #43155a 0%, transparent 70%),
+    linear-gradient(180deg, #1d0c28 0%, #0e0515 100%);
+
+  --card-face: #fff6ff;
+  --card-red: #e0245e;
+  --card-black: #1a0b24;
+  --card-back:
+    repeating-linear-gradient(60deg, rgb(255 79 163 / 0.5) 0 3px, transparent 3px 8px),
+    linear-gradient(160deg, #4a1a6e, #2a0d44);
+  --card-back-edge: #ff4fa3;
+}
+
+:root[data-theme='neon'] .pot-amount,
+:root[data-theme='neon'] .menu-wordmark-text {
+  text-shadow: 0 0 0.6rem rgb(255 79 163 / 0.75);
+}
+
+:root[data-theme='neon'] .btn-primary {
+  box-shadow: 0 0 1rem rgb(255 79 163 / 0.55);
+  --btn-fg: #1a0b24;
+}

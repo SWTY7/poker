@@ -92,6 +92,17 @@ Pages build reads its address from the `ROOM_SERVER` repository variable (`VITE_
 `src/ui/home/`: Home Game is a third lobby mode (Host / Join / Reopen room), a share link `?room=1234` opens
 onto joining, and one table screen serves everyone, with the dealer's controls on the host's phone.
 
+## Themes and settings
+
+`game/settings.ts` holds the device's settings, saved under `poker.theme`. A theme is a block of design-token
+overrides in `styles/themes.css`, chosen by `data-theme` on `<html>` (set before the first paint in `main.tsx`),
+so no screen knows which theme is on. **Classic** is the original look, in `tokens.css`, untouched. Four
+concepts sit beside it for comparison: **Card room** (felt texture, leather rail, brass), **Broadcast**
+(condensed type, hot colour), **Poster** (light paper, flat colour, hard shadows) and **Neon**. To make that
+possible the felt, playing cards and translucent tints now come from tokens (`--felt-bg`, `--card-face`,
+`--accent-rgb`...) with Classic's old values as defaults. The Settings screen (a button in the lobby) picks
+the theme and the default table speed. The four concepts are rough: tokens only, no layout changes.
+
 ## The table UI — `src/ui/`
 
 The lobby opens on a Quick Play / Career toggle (`docs/plans/game-modes.md` step 1). Quick Play is a practice

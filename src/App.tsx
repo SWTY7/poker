@@ -7,6 +7,7 @@ import type { TournamentEntry } from './ui/TournamentSetup'
 import { TournamentResults } from './ui/TournamentResults'
 import { YourPlay } from './ui/YourPlay'
 import { AchievementsScreen, AchievementToast } from './ui/Achievements'
+import { SettingsScreen } from './ui/Settings'
 import {
   ACHIEVEMENTS,
   earn,
@@ -103,6 +104,7 @@ type Screen =
   | { kind: 'home-room'; code: string; playerId: string; seatKey: string; name?: string; hostToken?: string }
   | { kind: 'your-play' }
   | { kind: 'achievements' }
+  | { kind: 'settings' }
 
 interface TournamentExitPayload {
   standings: Standing[]
@@ -486,6 +488,7 @@ function App() {
           achievementCount={Object.keys(achievements.earned).length}
           achievementTotal={ACHIEVEMENTS.length}
           onOpenAchievements={() => setScreen({ kind: 'achievements' })}
+          onOpenSettings={() => setScreen({ kind: 'settings' })}
         />
       )
     case 'cash-setup':
@@ -551,6 +554,8 @@ function App() {
       return <YourPlay onBack={goLobby} />
     case 'achievements':
       return <AchievementsScreen data={achievements} onBack={goLobby} />
+    case 'settings':
+      return <SettingsScreen onBack={goLobby} />
   }
   }
 }
