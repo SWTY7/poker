@@ -401,6 +401,83 @@
   color: var(--text-faint);
 }
 
+/* ---------- achievements ---------- */
+
+.achievements {
+  list-style: none;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+
+.achievement {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  opacity: 0.55;
+}
+
+.achievement-earned {
+  opacity: 1;
+}
+
+.achievement-mark {
+  color: var(--gold);
+  font-size: var(--fs-lg);
+}
+
+.achievement-text {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.achievement-name {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.achievement-desc {
+  color: var(--text-dim);
+  font-size: var(--fs-sm);
+}
+
+.achievement-when {
+  color: var(--text-faint);
+  font-size: var(--fs-xs);
+  white-space: nowrap;
+}
+
+.achievement-toast {
+  position: fixed;
+  z-index: 60;
+  left: 50%;
+  top: max(1rem, env(safe-area-inset-top));
+  transform: translateX(-50%);
+  width: min(22rem, calc(100% - 2rem));
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: var(--sp-3) var(--sp-4);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+  background: var(--hud-bg);
+  border: 1px solid var(--accent-deep);
+  border-radius: 0.8rem;
+  box-shadow: 0 1rem 2rem rgba(0, 0, 0, 0.5);
+  animation: overlay-in 0.2s ease-out;
+}
+
+.achievement-toast-label {
+  color: var(--accent);
+  font-size: var(--fs-2xs);
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+}
+
 /* ---------- hand review (study aid) ----------
 
    A list of the hand's decisions, each a small card: street and board on
@@ -435,12 +512,6 @@
   margin: 0;
   padding: 0;
   list-style: none;
-
-/* ---------- achievements ---------- */
-
-.achievements {
-  list-style: none;
-  margin: 0;
   display: flex;
   flex-direction: column;
   gap: var(--sp-3);
@@ -524,70 +595,4 @@
 
 .review-dim {
   color: var(--text-faint);
-
-.achievement {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-3);
-  opacity: 0.55;
-}
-
-.achievement-earned {
-  opacity: 1;
-}
-
-.achievement-mark {
-  color: var(--gold);
-  font-size: var(--fs-lg);
-}
-
-.achievement-text {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-width: 0;
-}
-
-.achievement-name {
-  color: var(--text);
-  font-weight: 600;
-}
-
-.achievement-desc {
-  color: var(--text-dim);
-  font-size: var(--fs-sm);
-}
-
-.achievement-when {
-  color: var(--text-faint);
-  font-size: var(--fs-xs);
-  white-space: nowrap;
-}
-
-.achievement-toast {
-  position: fixed;
-  z-index: 60;
-  left: 50%;
-  top: max(1rem, env(safe-area-inset-top));
-  transform: translateX(-50%);
-  width: min(22rem, calc(100% - 2rem));
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
-  padding: var(--sp-3) var(--sp-4);
-  text-align: left;
-  font: inherit;
-  cursor: pointer;
-  background: var(--hud-bg);
-  border: 1px solid var(--accent-deep);
-  border-radius: 0.8rem;
-  box-shadow: 0 1rem 2rem rgba(0, 0, 0, 0.5);
-  animation: overlay-in 0.2s ease-out;
-}
-
-.achievement-toast-label {
-  color: var(--accent);
-  font-size: var(--fs-2xs);
-  letter-spacing: var(--track);
-  text-transform: uppercase;
 }
