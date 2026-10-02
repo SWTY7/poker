@@ -61,6 +61,11 @@ this layer hasn't needed rework since the milestones in the v1 plan.
   Championship is one Deep final), with points 10/6/4/3/2/1. Top two move up; a Championship win is a
   title, defended next season. Screens: `CareerHub` (events, standings, next event) and its season summary,
   reached from a door in the Career lobby.
+- `tempo.ts`: timing tells, at Career tables only. A bot's pause is its action's base time × its own pace
+  × how close the decision was (`PsychBot.lastDecision.margin`): close calls tank (up to ~3×), obvious ones
+  snap. Nothing random, so each character's pattern can be learned; a rival keeps theirs across sessions
+  (keyed on their id). Studied players (high discipline) give away less; deeper thinkers are slower.
+- `blinds.ts`: rising blinds for the home game's house rule (about half again a level, on round amounts).
 
 ## Home game — `src/home/`
 

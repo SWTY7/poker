@@ -382,9 +382,13 @@ export class RivalSession {
     this.persist = persist
   }
 
-  /** Names and characters for the bot seats, in seat order. */
-  get seats(): { name: string; profile: PsychProfile }[] {
-    return this.plan.map(({ name, profile }) => ({ name, profile }))
+  /**
+   * Names and characters for the bot seats, in seat order. `key` stays the
+   * same for a rival from session to session (their id), so anything keyed
+   * on it, like their timing, is theirs for good.
+   */
+  get seats(): { name: string; profile: PsychProfile; key: string }[] {
+    return this.plan.map((seat) => ({ name: seat.name, profile: seat.profile, key: seat.kind === 'rival' ? seat.rival.id : seat.name }))
   }
 
   get snapshot(): RivalsData {
