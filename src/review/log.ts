@@ -52,6 +52,17 @@ export interface LoggedDecision {
    * (heads-up at a trained depth, or multiway preflop). Absent elsewhere.
    */
   book?: KindMix
+  /**
+   * What a `PRO` character would have done here, asked the same question at
+   * the same moment. Only recorded while hand review or hints are on.
+   */
+  pro?: LoggedMove
+}
+
+/** One specific move: for a bet, raise or all in, `amount` is what the bet was raised to. */
+export interface LoggedMove {
+  type: ActionType
+  amount?: number
 }
 
 export interface HandRecord {
@@ -147,8 +158,11 @@ export class HandLogger {
     }
   }
 
-  /** Call before the action is applied, with the solve's mix for the spot if there is one. */
-  decision(state: GameState, action: PokerAction, book?: WeightedAction[] | null): void {
+  /**
+   * Call before the action is applied, with the solve's mix for the spot if
+   * there is one, and what a pro would have done if one was asked.
+   */
+  decision(state: GameState, action: PokerAction, book?: WeightedAction[] | null, pro?: PokerAction | null): void {
     if (!this.current || action.playerId !== this.player) return
     const me = state.players.find((p) => p.id === this.player)
     if (!me) return
@@ -160,6 +174,7 @@ export class HandLogger {
       toCall: Math.max(0, state.currentBet - me.betThisStreet),
       stack: me.stack,
       ...(mix ? { book: mix } : {}),
+      ...(pro ? { pro: { type: pro.type, ...(pro.amount !== undefined ? { amount: pro.amount } : {}) } } : {}),
     })
   }
 

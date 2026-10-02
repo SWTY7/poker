@@ -1545,3 +1545,53 @@
 .felt-skippable {
   cursor: pointer;
 }
+
+/* ---------- study aids: hint line and hand review entry ----------
+
+   The hint rides on top of the action controls in the same dock, so in the
+   landscape layout it is still one bottom-right block. With no hint, the
+   wrapper steps out of the layout entirely and the controls are the dock. */
+
+.dock-plain {
+  display: contents;
+}
+
+.dock-hinted > .dock {
+  flex: 1 1 auto;
+}
+
+.hint-line {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--sp-1) var(--sp-3);
+  padding: var(--sp-2) var(--sp-3);
+  border: 1px dashed var(--accent-deep);
+  border-radius: var(--r-md);
+  background: var(--accent-tint);
+  font-size: var(--fs-xs);
+  color: var(--text);
+}
+
+.hint-label {
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
+  font-weight: 700;
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.result-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex-shrink: 0;
+}
+
+.result-review-summary {
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
+  color: var(--text-faint);
+}

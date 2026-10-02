@@ -3,15 +3,16 @@ import { HoldemEngine } from '../poker/game-engine'
 import type { PlayerSetup } from '../poker/game-engine'
 import type { ActionType, GameState, PokerAction, Street } from '../poker/game-state'
 import { buildObservation } from '../ai/observation'
-import type { Agent } from '../ai/agent'
+import type { Agent, WeightedAction } from '../ai/agent'
 import { PsychBot, firstAnswer, type Fundamentals } from '../ai/psychology/psych-bot'
 import { OpponentModel, actionContext, showdownOf } from '../ai/psychology/opponent-model'
-import { CAST, randomizeProfile } from '../ai/psychology/profile'
+import { CAST, PRO, randomizeProfile } from '../ai/psychology/profile'
 import { blindLevel, levelForHandsCompleted, type TournamentStructure } from '../game/tournament'
 import type { RivalSession } from '../game/rivals'
 import { createRng, shuffle } from '../utils/random'
 import { readEnum, writeString } from '../utils/storage'
-import { HandLogger, appendHand } from '../review/log'
+import { HandLogger, appendHand, mixByKind, type HandRecord } from '../review/log'
+import { describeMix, describeMove } from '../review/hand-review'
 import { describeRead } from '../review/table-read'
 
 const BOT_NAMES = ['Chip', 'Chris', 'Darla', 'Holly', 'Scarlet', 'Sparky', 'Connie', 'Lars', 'Nova']
@@ -65,6 +66,28 @@ export interface GameConfigOptions {
    * (game/rivals.ts). Absent, every bot seat is a fresh random character.
    */
   rivals?: RivalSession
+  /**
+   * Study aid, solo only: after each hand, go back over your decisions in it
+   * against the solve, your equity and a professional's play (review/hand-review.ts).
+   */
+  handReview?: boolean
+  /** Study aid, solo only: on your turn, show the solve's mix and what a professional would do. */
+  hints?: boolean
+}
+
+/** What the table can tell you about the decision in front of you, from the hint line. */
+export interface Hint {
+  /** The solve's mix in words, where a solve covers the spot. */
+  book: string | null
+  /** What the `PRO` character would do, in words. */
+  pro: string
+}
+
+/** The solve's mix and a professional's choice for one spot, asked once and shared by the hint and the log. */
+interface Advice {
+  key: string
+  book: WeightedAction[] | null
+  pro: PokerAction | null
 }
 
 export interface SessionStats {
@@ -171,6 +194,17 @@ export function useHoldemGame(options: GameConfigOptions) {
    */
   const [logger] = useState(() => (soloHumanId ? new HandLogger(soloHumanId) : null))
   const solvedRef = useRef<Fundamentals | null>(null)
+  /**
+   * A professional is asked about each of the human's decisions only while a
+   * study aid will show the answer: it is a whole bot decision, equity
+   * sampling and all.
+   */
+  const askPro = Boolean(soloHumanId && (options.handReview || options.hints))
+  const adviceRef = useRef<Advice | null>(null)
+  /** Flips once the solve has landed, so a hint worked out before it is worked out again with it. */
+  const [solveReady, setSolveReady] = useState(false)
+  /** The hand just finished, for the hand review. Cleared when the next one is dealt. */
+  const [lastHand, setLastHand] = useState<HandRecord | null>(null)
 
   const [state, setState] = useState<GameState | null>(null)
   const [speed, setSpeedState] = useState<Speed>(() => readEnum('poker.speed', ['slow', 'normal', 'fast'] as const, 'normal'))
@@ -241,6 +275,7 @@ export function useHoldemGame(options: GameConfigOptions) {
       if (showdown) opponentModel.observeShowdown(showdown)
       const record = logger?.endHand(engine.state)
       if (record) appendHand(record)
+      setLastHand(record ?? null)
       options.rivals?.handEnded(engine.state, { opponentModel, humanIds, botSeats })
       for (const result of engine.state.lastResults) {
         biggestPotRef.current = Math.max(biggestPotRef.current, result.potAmount)
@@ -301,6 +336,7 @@ export function useHoldemGame(options: GameConfigOptions) {
       const solved = firstAnswer(book, headsUp)
       for (const bot of bots) bot.useFundamentals(solved)
       solvedRef.current = solved
+      setSolveReady(true)
     })
     return () => {
       cancelled = true
@@ -344,6 +380,7 @@ export function useHoldemGame(options: GameConfigOptions) {
       const { smallBlind, bigBlind, ante } = blindLevel(options.tournament.structure, level)
       engine.setBlinds({ smallBlind, bigBlind, ante })
     }
+    setLastHand(null)
     engine.startHand()
     logger?.startHand(engine.state)
     commit()
@@ -351,6 +388,31 @@ export function useHoldemGame(options: GameConfigOptions) {
 
   /** The human whose action controls are currently live: revealed, and it's their turn. */
   const activeHumanId = soloHumanId ?? revealedFor
+
+  /**
+   * The solve's mix for the spot the human is in, and what a professional
+   * would do there. A fresh `PRO` each time, seeing exactly what a bot in
+   * that seat would see (the observation, the table's shared read), and
+   * sharing nothing back: it never acts, and the table never learns it was
+   * asked. Asked once per spot, so the hint on screen and the log agree.
+   */
+  const adviceFor = useCallback(
+    (playerId: string): Advice => {
+      const key = `${engine.state.handNumber}:${engine.state.actionHistory.length}:${playerId}:${solvedRef.current ? 'solved' : ''}`
+      if (adviceRef.current?.key === key) return adviceRef.current
+      const observation = buildObservation(engine, playerId)
+      let pro: PokerAction | null = null
+      if (askPro) {
+        const bot = new PsychBot(PRO, options.startingStack, createRng(), opponentModel)
+        if (solvedRef.current) bot.useFundamentals(solvedRef.current)
+        pro = bot.decideAction(observation)
+      }
+      const advice = { key, book: solvedRef.current?.strategyFor(observation) ?? null, pro }
+      adviceRef.current = advice
+      return advice
+    },
+    [engine, askPro, options.startingStack, opponentModel],
+  )
 
   const humanAct = useCallback(
     (type: ActionType, amount?: number) => {
@@ -360,10 +422,11 @@ export function useHoldemGame(options: GameConfigOptions) {
       // it's passed to next.
       setRevealedFor(null)
       const action: PokerAction = { playerId: activeHumanId, type, amount }
-      logger?.decision(engine.state, action, solvedRef.current?.strategyFor(buildObservation(engine, activeHumanId)))
+      const advice = logger ? adviceFor(activeHumanId) : null
+      logger?.decision(engine.state, action, advice?.book, advice?.pro)
       applyAndPace(action)
     },
-    [activeHumanId, applyAndPace, logger, engine],
+    [activeHumanId, applyAndPace, logger, adviceFor, engine],
   )
 
   /** Called from the "pass the device" gate once the next human confirms it's them. */
@@ -461,6 +524,33 @@ export function useHoldemGame(options: GameConfigOptions) {
     activeHumanId && currentPlayer?.id === activeHumanId && dealingStreet === null && !paused,
   )
 
+  // The hint line: worked out once the decision is the human's, in words.
+  // A beat after the turn arrives rather than during the render, since
+  // asking the professional is a whole bot decision; until then, and once
+  // the spot has moved on, there is no hint.
+  const [hintFor, setHintFor] = useState<{ key: string; hint: Hint } | null>(null)
+  const spotKey = state ? `${state.handNumber}:${state.actionHistory.length}` : ''
+  useEffect(() => {
+    if (!options.hints || !soloHumanId || !isHumanTurn) return
+    const timer = setTimeout(() => {
+      const current = engine.state
+      const me = current.players.find((p) => p.id === soloHumanId)
+      if (!me) return
+      const advice = adviceFor(soloHumanId)
+      const toCall = Math.max(0, current.currentBet - me.betThisStreet)
+      const mix = advice.book ? mixByKind(advice.book) : undefined
+      setHintFor({
+        key: `${current.handNumber}:${current.actionHistory.length}`,
+        hint: {
+          book: mix ? describeMix(mix, toCall, current.street) : null,
+          pro: advice.pro ? describeMove(advice.pro, toCall, current.street, current.currentBet, 'would') : '',
+        },
+      })
+    }, 0)
+    return () => clearTimeout(timer)
+  }, [options.hints, soloHumanId, isHumanTurn, spotKey, solveReady, engine, adviceFor])
+  const hint = isHumanTurn && hintFor?.key === spotKey ? hintFor.hint : null
+
   /** True when it's a different human's turn than whoever is currently revealed — pass-and-play only. */
   const needsReveal = Boolean(
     !soloHumanId &&
@@ -510,6 +600,10 @@ export function useHoldemGame(options: GameConfigOptions) {
     state,
     humanIds,
     readOnYou,
+    /** The hand just finished (solo), for the hand review; null while a hand is running. */
+    lastHand,
+    /** On your turn with hints on: the solve's mix and a professional's choice, in words. */
+    hint,
     /** True for a solo game (one human vs. bots) rather than local pass-and-play. */
     isSolo: soloHumanId !== null,
     activeHumanId,

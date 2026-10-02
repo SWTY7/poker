@@ -209,6 +209,8 @@ function GameScreen({ config, entry, onTableExit, onTournamentExit }: GameScreen
       tournament={tournamentHud}
       practice={entry.mode === 'quick'}
       readOnYou={game.isSolo ? game.readOnYou : undefined}
+      reviewHand={config.handReview ? game.lastHand : null}
+      hint={game.hint}
     />
   )
 }
