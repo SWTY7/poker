@@ -1,12 +1,15 @@
 import './App.css'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { MenuScreen } from './ui/MenuScreen'
 import { Lobby } from './ui/Lobby'
+import { RoomLobby } from './ui/RoomLobby'
+import { getLook, subscribeLook } from './game/settings'
 import { TournamentSetup } from './ui/TournamentSetup'
 import type { TournamentEntry } from './ui/TournamentSetup'
 import { TournamentResults } from './ui/TournamentResults'
 import { YourPlay } from './ui/YourPlay'
 import { AchievementsScreen, AchievementToast } from './ui/Achievements'
+import { SettingsScreen } from './ui/Settings'
 import {
   ACHIEVEMENTS,
   earn,
@@ -103,6 +106,7 @@ type Screen =
   | { kind: 'home-room'; code: string; playerId: string; seatKey: string; name?: string; hostToken?: string }
   | { kind: 'your-play' }
   | { kind: 'achievements' }
+  | { kind: 'settings' }
 
 interface TournamentExitPayload {
   standings: Standing[]
@@ -251,6 +255,7 @@ function App() {
   const [screen, setScreen] = useState<Screen>(() => (linkedRoom ? { kind: 'home-join', code: linkedRoom } : { kind: 'lobby' }))
   const [mode, setMode] = useState<GameMode>(() => (linkedRoom ? 'home' : loadMode()))
   const [career, setCareer] = useState<CareerData>(() => loadCareer())
+  const look = useSyncExternalStore(subscribeLook, getLook)
   const [achievements, setAchievements] = useState(() => loadAchievements())
   const achievementsRef = useRef(achievements)
   const [toasts, setToasts] = useState<Achievement[]>([])
@@ -465,9 +470,10 @@ function App() {
 
   function renderScreen() {
   switch (screen.kind) {
-    case 'lobby':
+    case 'lobby': {
+      const LobbyView = look.layout === 'round' ? RoomLobby : Lobby
       return (
-        <Lobby
+        <LobbyView
           profile={profile}
           mode={mode}
           onModeChange={handleModeChange}
@@ -486,8 +492,10 @@ function App() {
           achievementCount={Object.keys(achievements.earned).length}
           achievementTotal={ACHIEVEMENTS.length}
           onOpenAchievements={() => setScreen({ kind: 'achievements' })}
+          onOpenSettings={() => setScreen({ kind: 'settings' })}
         />
       )
+    }
     case 'cash-setup':
       return <MenuScreen bankroll={profile.bankroll} onBack={goLobby} onStart={handleStartCash} />
     case 'quick-setup':
@@ -551,6 +559,8 @@ function App() {
       return <YourPlay onBack={goLobby} />
     case 'achievements':
       return <AchievementsScreen data={achievements} onBack={goLobby} />
+    case 'settings':
+      return <SettingsScreen onBack={goLobby} />
   }
   }
 }

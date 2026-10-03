@@ -1,7 +1,8 @@
 import type { Card } from '../poker/card'
 import { POSITION_NAMES, type PositionLabel } from '../poker/position'
 import { CardView } from './CardView'
-import { PercentIcon } from './icons'
+import { CoinIcon, PercentIcon } from './icons'
+import { avatarInitial, avatarStyle } from './avatar'
 
 interface HeroZoneProps {
   name: string
@@ -15,6 +16,10 @@ interface HeroZoneProps {
   folded: boolean
   isAllIn: boolean
   isMyTurn: boolean
+  /** Chips this seat has put in on the current street. */
+  betThisStreet?: number
+  /** What this seat did on the current street, e.g. "Call $10". */
+  lastAction?: string
   /** What the hero currently holds, e.g. "Pair of nines". Null before the flop. */
   madeHand: string | null
   /** Opens the hand-potential drawer. Absent when the study aid is switched off. */
@@ -42,6 +47,8 @@ export function HeroZone({
   folded,
   isAllIn,
   isMyTurn,
+  betThisStreet = 0,
+  lastAction,
   madeHand,
   onShowPotential,
   potentialOpen,
@@ -62,6 +69,11 @@ export function HeroZone({
       </div>
 
       <div className="hero-info">
+        {/* The next three are only shown by layouts that seat you at the table
+            like everyone else (a chip, the chips you've committed, what you just did). */}
+        <span className="seat-avatar hero-avatar" style={avatarStyle(name)} aria-hidden="true">
+          {avatarInitial(name)}
+        </span>
         <div className="hero-id">
           {isMyTurn && <span className="hero-turn-chip">Your turn</span>}
           <span className="hero-name">{name}</span>
@@ -86,6 +98,15 @@ export function HeroZone({
             useful line for a player still learning to read a board, and it
             costs one row. */}
         {madeHand && !folded && <div className="hero-made">{madeHand}</div>}
+
+        {lastAction && !folded && <div className="hero-status">{lastAction}</div>}
+
+        {betThisStreet > 0 && !folded && (
+          <span className="hero-bet money" aria-label={`you have bet $${betThisStreet.toLocaleString()}`}>
+            <CoinIcon className="seat-bet-icon" />
+            {betThisStreet.toLocaleString()}
+          </span>
+        )}
 
         {folded && <div className="hero-state">Folded this hand</div>}
         {isAllIn && !folded && <div className="hero-state">All-in</div>}

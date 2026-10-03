@@ -92,6 +92,35 @@ Pages build reads its address from the `ROOM_SERVER` repository variable (`VITE_
 `src/ui/home/`: Home Game is a third lobby mode (Host / Join / Reopen room), a share link `?room=1234` opens
 onto joining, and one table screen serves everyone, with the dealer's controls on the host's phone.
 
+## Look and settings
+
+`game/settings.ts` holds the device's look, saved as JSON under `poker.look`. It is five independent choices,
+each a `data-*` attribute on `<html>` (set before the first paint in `main.tsx`): **colour** (Classic, Card
+room, Broadcast, Poster, Neon), **layout** (Standard, Round table), **font** (Classic serif, Warm serif,
+Condensed, Grotesque, Rounded), **buttons** (Standard, Brass and leather, Capitals, Hard shadow, Glow) and
+**corners** (Soft, Sharp, Square, Round). A preset is a saved set of the five (Classic is the default and is
+the original look); someone who had chosen a single theme before gets that preset.
+
+- Colours, fonts, corners and buttons are in `styles/themes.css`. Colour themes override tokens, including
+  the felt, the playing cards and the `--accent-rgb`-style tints; Classic's values are the defaults in
+  `tokens.css`. A button style is a set of `--bx-*` variables that `base.css` and `table.css` read, so the
+  Settings screen can preview each style on a wrapper (variables inherit from the nearest setter).
+- The Round table layout is `styles/layout-round.css`: the oval table, seats placed by CSS trig from
+  `--seat`/`--seats` (set on each `.seat-slot` in `Table.tsx`; `display: contents` in Standard), chip-disc
+  avatars, paper stack tags, a chip pile for the pot, and your cards at the bottom edge.
+- Under the Round table layout you are a seat like the others (`HeroZone` draws a chip avatar, the stack tag,
+  your last action and the chips you've committed beside your cards; no panel), seats lean away from the
+  centre and sit slightly off the line, and the dealer button is a puck on the felt. Standard hides those
+  parts.
+- The Round table layout also has its own lobby, `ui/RoomLobby.tsx` (`styles/room-lobby.css`): the three tables
+  (Quick Play, Career, Home game) listed on the left, each with a plan of its seats, and the one you pick shown
+  on the right as plain rows of what you can do there, one table at a time so it fits a screen. No cards.
+- The pot is drawn as chips (`PotChips` in `Board.tsx`, shown by the Round table layout): more chips, in more
+  stacks, as it grows, counted in big blinds with a square root. On a phone held upright, the Round table
+  shows only the seat being waited on (or the winner), where it sits. `App` picks it from `getLook()` (`useSyncExternalStore`). The other screens (setup, career hub,
+  results) still use the Standard styling in every layout.
+- The Settings screen (a button in the lobby) picks any of them, plus the default table speed.
+
 ## The table UI — `src/ui/`
 
 The lobby opens on a Quick Play / Career toggle (`docs/plans/game-modes.md` step 1). Quick Play is a practice

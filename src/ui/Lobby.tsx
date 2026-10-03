@@ -8,7 +8,7 @@ import { ChipIcon } from './ChipIcon'
 import { SUIT_PATH } from './suit-icons'
 import { ordinal } from '../utils/format'
 
-interface LobbyProps {
+export interface LobbyProps {
   profile: Profile
   mode: GameMode
   onModeChange: (mode: GameMode) => void
@@ -29,6 +29,7 @@ interface LobbyProps {
   achievementCount: number
   achievementTotal: number
   onOpenAchievements: () => void
+  onOpenSettings: () => void
 }
 
 /**
@@ -65,6 +66,7 @@ export function Lobby({
   achievementCount,
   achievementTotal,
   onOpenAchievements,
+  onOpenSettings,
   onOpenYourPlay,
 }: LobbyProps) {
   const [confirmingReset, setConfirmingReset] = useState(false)
@@ -279,6 +281,12 @@ export function Lobby({
               </div>
             </>
           )}
+
+          <div className="lobby-your-play-row">
+            <button type="button" className="btn btn-secondary" onClick={onOpenSettings}>
+              Settings
+            </button>
+          </div>
 
           {mode !== 'home' && (
             <div className="lobby-your-play-row">

@@ -348,9 +348,13 @@ export function Table({
             }}
           >
             <div className="felt-seats" data-count={opponents.length}>
-              {opponents.map((player) => (
-                <Seat
+              {opponents.map((player, seatIndex) => (
+                <div
+                  className="seat-slot"
                   key={player.id}
+                  style={{ '--seat': seatIndex, '--seats': opponents.length } as React.CSSProperties}
+                >
+                <Seat
                   name={player.name}
                   stack={player.stack}
                   betThisStreet={player.betThisStreet}
@@ -370,6 +374,7 @@ export function Table({
                   cards={revealAll ? player.holeCards : []}
                   revealCards={revealAll && !player.folded}
                 />
+                </div>
               ))}
             </div>
 
@@ -378,6 +383,7 @@ export function Table({
               potSize={middlePot}
               inPlay={inPlay}
               street={state.street}
+              bigBlind={state.config.bigBlind}
             />
 
             {dealingStreet && STREET_BANNER[dealingStreet] && (
@@ -401,6 +407,8 @@ export function Table({
               folded={activePlayer.folded}
               isAllIn={activePlayer.isAllIn}
               isMyTurn={isHumanTurn}
+              betThisStreet={activePlayer.betThisStreet}
+              lastAction={lastActionThisStreet(state.handLog, activePlayer.id, state.street)}
               madeHand={madeHand}
               onShowPotential={handOdds ? () => setShowPotential(true) : undefined}
               potentialOpen={showPotential}

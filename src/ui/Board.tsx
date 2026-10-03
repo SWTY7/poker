@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react'
 import type { Card } from '../poker/card'
 import type { Street } from '../poker/game-state'
 import { CardView } from './CardView'
@@ -10,6 +11,8 @@ interface BoardProps {
   /** Chips still sitting in front of seats on this street. */
   inPlay: number
   street: Street
+  /** The pot is drawn as chips counted in big blinds. */
+  bigBlind: number
 }
 
 const STREET_LABEL: Record<Street, string> = {
@@ -42,7 +45,36 @@ const CARDS_BY_STREET: Record<Street, number> = {
  * The street name is a small caption, not a headline. It labels the cards; it
  * is not more important than them.
  */
-export function Board({ communityCards, potSize, inPlay, street }: BoardProps) {
+/**
+ * The pot as chips on the felt: more chips the bigger the pot, in stacks that
+ * are added to as it grows. Counted against the big blind and eased with a
+ * square root, so a big pot is clearly bigger without a hundred chips.
+ */
+const MAX_POT_CHIPS = 48
+const MAX_STACK = 8
+const MAX_POT_STACKS = 6
+
+function PotChips({ amount, unit }: { amount: number; unit: number }) {
+  const count = amount <= 0 ? 0 : Math.min(MAX_POT_CHIPS, Math.ceil(Math.sqrt(amount / Math.max(unit, 1)) * 3))
+  const stacks = Math.min(MAX_POT_STACKS, Math.ceil(count / MAX_STACK))
+  return (
+    <div className="pot-chips" aria-hidden="true">
+      {Array.from({ length: stacks }, (_, s) => {
+        // Spread the chips over the stacks as evenly as they go.
+        const height = Math.floor(count / stacks) + (s < count % stacks ? 1 : 0)
+        return (
+          <span key={s} className="pot-stack" style={{ '--s': s } as CSSProperties}>
+            {Array.from({ length: height }, (_, k) => (
+              <i key={k} style={{ '--k': k } as CSSProperties} />
+            ))}
+          </span>
+        )
+      })}
+    </div>
+  )
+}
+
+export function Board({ communityCards, potSize, inPlay, street, bigBlind }: BoardProps) {
   // The headline is the whole pot — that is the number pot odds are figured
   // against. The sub-line says how much of it is still in front of players,
   // which is what the chips beside each seat represent, so the two readings
@@ -86,6 +118,7 @@ export function Board({ communityCards, potSize, inPlay, street }: BoardProps) {
       </div>
 
       <div className="pot">
+        <PotChips amount={total} unit={bigBlind} />
         <span className="label">Pot</span>
         <span className="pot-amount money">
           <CoinIcon className="pot-icon" aria-hidden="true" />${total.toLocaleString()}
