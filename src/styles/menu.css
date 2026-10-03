@@ -680,7 +680,31 @@
   color: var(--text-faint);
 }
 
-/* ---------- settings: the theme picker ---------- */
+/* ---------- settings: the look pickers ---------- */
+
+.theme-sample {
+  font-size: var(--fs-xl);
+  line-height: 1.1;
+}
+
+.theme-buttons {
+  display: flex;
+  gap: var(--sp-2);
+  pointer-events: none;
+}
+
+.theme-corner {
+  width: 3rem;
+  height: 1.8rem;
+  border: 2px solid var(--accent);
+  background: var(--accent-tint);
+}
+
+.layout-thumb {
+  width: 100%;
+  height: 2.6rem;
+  color: var(--accent);
+}
 
 .theme-grid {
   display: grid;

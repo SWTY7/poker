@@ -727,9 +727,10 @@
 }
 
 .btn-accent {
-  --btn-bg: rgb(var(--accent-rgb) / 0.14);
-  --btn-border: var(--accent);
-  --btn-fg: var(--accent);
+  --btn-bg: var(--bx-accent-bg, rgb(var(--accent-rgb) / 0.14));
+  --btn-border: var(--bx-accent-border, var(--accent));
+  --btn-fg: var(--bx-accent-fg, var(--accent));
+  box-shadow: var(--bx-accent-shadow, var(--bx-shadow, none));
 }
 
 .btn-accent:hover:not(:disabled) {

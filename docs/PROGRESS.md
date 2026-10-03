@@ -92,16 +92,23 @@ Pages build reads its address from the `ROOM_SERVER` repository variable (`VITE_
 `src/ui/home/`: Home Game is a third lobby mode (Host / Join / Reopen room), a share link `?room=1234` opens
 onto joining, and one table screen serves everyone, with the dealer's controls on the host's phone.
 
-## Themes and settings
+## Look and settings
 
-`game/settings.ts` holds the device's settings, saved under `poker.theme`. A theme is a block of design-token
-overrides in `styles/themes.css`, chosen by `data-theme` on `<html>` (set before the first paint in `main.tsx`),
-so no screen knows which theme is on. **Classic** is the original look, in `tokens.css`, untouched. Four
-concepts sit beside it for comparison: **Card room** (felt texture, leather rail, brass), **Broadcast**
-(condensed type, hot colour), **Poster** (light paper, flat colour, hard shadows) and **Neon**. To make that
-possible the felt, playing cards and translucent tints now come from tokens (`--felt-bg`, `--card-face`,
-`--accent-rgb`...) with Classic's old values as defaults. The Settings screen (a button in the lobby) picks
-the theme and the default table speed. The four concepts are rough: tokens only, no layout changes.
+`game/settings.ts` holds the device's look, saved as JSON under `poker.look`. It is five independent choices,
+each a `data-*` attribute on `<html>` (set before the first paint in `main.tsx`): **colour** (Classic, Card
+room, Broadcast, Poster, Neon), **layout** (Standard, Round table), **font** (Classic serif, Warm serif,
+Condensed, Grotesque, Rounded), **buttons** (Standard, Brass and leather, Capitals, Hard shadow, Glow) and
+**corners** (Soft, Sharp, Square, Round). A preset is a saved set of the five (Classic is the default and is
+the original look); someone who had chosen a single theme before gets that preset.
+
+- Colours, fonts, corners and buttons are in `styles/themes.css`. Colour themes override tokens, including
+  the felt, the playing cards and the `--accent-rgb`-style tints; Classic's values are the defaults in
+  `tokens.css`. A button style is a set of `--bx-*` variables that `base.css` and `table.css` read, so the
+  Settings screen can preview each style on a wrapper (variables inherit from the nearest setter).
+- The Round table layout is `styles/layout-round.css`: the oval table, seats placed by CSS trig from
+  `--seat`/`--seats` (set on each `.seat-slot` in `Table.tsx`; `display: contents` in Standard), chip-disc
+  avatars, paper stack tags, a chip pile for the pot, and your cards at the bottom edge.
+- The Settings screen (a button in the lobby) picks any of them, plus the default table speed.
 
 ## The table UI — `src/ui/`
 

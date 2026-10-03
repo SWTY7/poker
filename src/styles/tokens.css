@@ -64,6 +64,8 @@
   --accent-mid: #b6935a;
   --accent-deep: #8a6a3c;
   --accent-tint: rgba(205, 174, 112, 0.14);
+  /* Text on a solid accent fill (the main button, chips). */
+  --on-accent: #241a0c;
 
   --gold: #d5ae57;
   --green: #6fae7f;

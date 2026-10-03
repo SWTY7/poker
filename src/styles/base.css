@@ -15,11 +15,15 @@
 }
 
 /* --- buttons -------------------------------------------------------------
+   The look of buttons is a Settings choice. A choice sets `--bx-*` variables
+   on <html> (or on a preview wrapper); each hook below falls back to the
+   standard look when its variable isn't set. See themes.css.
+
    One shape, one type scale, four variants. Every button in the app is
    `.btn` plus at most one variant; sizes come from `.btn-sm` / `.btn-lg`. */
 .btn {
-  --btn-bg: var(--surface);
-  --btn-border: var(--line);
+  --btn-bg: var(--bx-bg, var(--surface));
+  --btn-border: var(--bx-border, var(--line));
   --btn-fg: var(--text);
 
   display: inline-flex;
@@ -32,13 +36,16 @@
 
   font-family: inherit;
   font-size: var(--fs-sm);
-  font-weight: 600;
+  font-weight: var(--bx-weight, 600);
   line-height: 1.15;
+  text-transform: var(--bx-case, none);
+  letter-spacing: var(--bx-track, normal);
   color: var(--btn-fg);
 
   background: var(--btn-bg);
-  border: 1px solid var(--btn-border);
+  border: var(--bx-bw, 1px) solid var(--btn-border);
   border-radius: var(--r-md);
+  box-shadow: var(--bx-shadow, none);
   cursor: pointer;
 
   transition:
@@ -55,11 +62,11 @@
   }
 
   .btn-primary:hover:not(:disabled) {
-    --btn-bg: var(--accent);
+    --btn-bg: var(--bx-primary-hover-bg, var(--accent));
   }
 
   .btn-danger:hover:not(:disabled) {
-    --btn-bg: rgb(var(--lose-rgb) / 0.18);
+    --btn-bg: var(--bx-danger-hover-bg, rgb(var(--lose-rgb) / 0.18));
     --btn-border: var(--red);
   }
 }
@@ -67,18 +74,21 @@
 /* A real press, not a colour change — on a phone the finger is covering the
    button, so the only feedback the player can see is the edge moving. */
 .btn:active:not(:disabled) {
-  transform: translateY(1px);
+  transform: var(--bx-press, translateY(1px));
+  box-shadow: var(--bx-press-shadow, var(--bx-shadow, none));
 }
 
 .btn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
+  box-shadow: none;
 }
 
 .btn-primary {
-  --btn-bg: var(--accent-mid);
-  --btn-border: var(--accent);
-  --btn-fg: #241a0c;
+  --btn-bg: var(--bx-primary-bg, var(--accent-mid));
+  --btn-border: var(--bx-primary-border, var(--accent));
+  --btn-fg: var(--bx-primary-fg, var(--on-accent));
+  box-shadow: var(--bx-primary-shadow, var(--bx-shadow, none));
 }
 
 
@@ -88,9 +98,10 @@
 }
 
 .btn-danger {
-  --btn-bg: rgb(var(--lose-rgb) / 0.1);
-  --btn-border: var(--red-deep);
-  --btn-fg: var(--red);
+  --btn-bg: var(--bx-danger-bg, rgb(var(--lose-rgb) / 0.1));
+  --btn-border: var(--bx-danger-border, var(--red-deep));
+  --btn-fg: var(--bx-danger-fg, var(--red));
+  box-shadow: var(--bx-danger-shadow, var(--bx-shadow, none));
 }
 
 
