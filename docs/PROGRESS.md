@@ -112,9 +112,12 @@ the original look); someone who had chosen a single theme before gets that prese
   your last action and the chips you've committed beside your cards; no panel), seats lean away from the
   centre and sit slightly off the line, and the dealer button is a puck on the felt. Standard hides those
   parts.
-- The Round table layout also has its own lobby, `ui/RoomLobby.tsx` (`styles/room-lobby.css`): the tables
-  you can sit at as ruled rows, each with a plan of its seats, and what you can do there as plain rows. No
-  cards. `App` picks it from `getLook()` (`useSyncExternalStore`). The other screens (setup, career hub,
+- The Round table layout also has its own lobby, `ui/RoomLobby.tsx` (`styles/room-lobby.css`): the three tables
+  (Quick Play, Career, Home game) listed on the left, each with a plan of its seats, and the one you pick shown
+  on the right as plain rows of what you can do there, one table at a time so it fits a screen. No cards.
+- The pot is drawn as chips (`PotChips` in `Board.tsx`, shown by the Round table layout): more chips, in more
+  stacks, as it grows, counted in big blinds with a square root. On a phone held upright, the Round table
+  shows only the seat being waited on (or the winner), where it sits. `App` picks it from `getLook()` (`useSyncExternalStore`). The other screens (setup, career hub,
   results) still use the Standard styling in every layout.
 - The Settings screen (a button in the lobby) picks any of them, plus the default table speed.
 

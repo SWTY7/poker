@@ -1,9 +1,9 @@
 /* ==========================================================================
    The room (the lobby under the Round table layout)
    --------------------------------------------------------------------------
-   A list of tables, left-aligned, ruled with thin lines. Each table has a plan
-   of its seats, a name, one line, and the things you can do there as plain
-   rows. Nothing sits in a card; whitespace, type and rules do the grouping.
+   The tables on the left, each a plan of its seats and a name, picked one at
+   a time; on the right, what you can do at the one you picked, as plain rows.
+   Nothing sits in a card; whitespace, type and rules do the grouping.
    Colours, fonts and buttons come from Settings like everywhere else.
    ========================================================================== */
 
@@ -18,41 +18,74 @@
   font-family: var(--font-display);
 }
 
-.room > * {
-  max-width: 54rem;
+.room-layout {
+  display: grid;
+  grid-template-columns: 15rem minmax(0, 1fr);
+  column-gap: clamp(2rem, 6vw, 5rem);
+  max-width: 62rem;
 }
 
-.room-head {
-  margin-bottom: var(--sp-6);
+.room-side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-5);
 }
 
 .room-title {
   margin: 0;
   font-family: var(--font-wordmark);
-  font-size: clamp(2.4rem, 7vw, 3.6rem);
+  font-size: clamp(2rem, 5vw, 2.8rem);
   font-weight: 600;
   line-height: 1;
 }
 
-.room-sub {
-  margin: var(--sp-2) 0 0;
-  color: var(--text-dim);
-  font-size: var(--fs-md);
-}
+/* --- the tables: a plan and a name each, one picked at a time ------------- */
 
-/* --- a table ------------------------------------------------------------- */
-
-.room-table-row {
-  display: grid;
-  grid-template-columns: 6.5rem minmax(0, 1fr);
-  column-gap: var(--sp-5);
-  padding: var(--sp-5) 0 var(--sp-6);
+.room-tables {
+  display: flex;
+  flex-direction: column;
   border-top: 1px solid var(--line);
 }
 
+.room-pick {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-3) 0;
+  font: inherit;
+  text-align: left;
+  color: var(--text-dim);
+  background: none;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  cursor: pointer;
+}
+
+.room-pick .room-table {
+  width: 4.2rem;
+  flex-shrink: 0;
+}
+
+.room-pick-name {
+  font-size: var(--fs-lg);
+  font-weight: 600;
+}
+
+.room-pick-on {
+  color: var(--text);
+}
+
+.room-pick-on .room-pick-name {
+  color: var(--accent);
+}
+
+@media (hover: hover) {
+  .room-pick:hover {
+    color: var(--text);
+  }
+}
+
 .room-table {
-  width: 100%;
-  margin-top: 0.3rem;
   color: var(--text-dim);
   overflow: visible;
 }
@@ -75,6 +108,20 @@
 
 .room-puck {
   fill: var(--text);
+}
+
+/* --- the table you picked ------------------------------------------------ */
+
+.room-side {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.room-detail {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  min-width: 0;
+  padding-top: 0.35rem;
 }
 
 .room-name {
@@ -200,14 +247,17 @@
   padding: 0.15rem 0;
 }
 
-/* --- footer -------------------------------------------------------------- */
+/* --- the quiet links ----------------------------------------------------- */
 
 .room-foot {
+  grid-column: 1;
+  grid-row: 2;
+  align-self: start;
+  margin-top: var(--sp-5);
   display: flex;
-  flex-wrap: wrap;
-  gap: var(--sp-3) var(--sp-5);
-  padding-top: var(--sp-5);
-  border-top: 1px solid var(--line);
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--sp-2);
   color: var(--text-dim);
   font-size: var(--fs-sm);
 }
@@ -230,9 +280,51 @@
   color: var(--text-faint);
 }
 
-@media (max-width: 560px) {
-  .room-table-row {
-    grid-template-columns: 4.2rem minmax(0, 1fr);
-    column-gap: var(--sp-3);
+/* --- phones: the tables sit in a row along the top ----------------------- */
+
+@media (max-width: 720px) {
+  .room-layout {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: var(--sp-5);
+  }
+
+  .room-tables {
+    flex-direction: row;
+    border-top: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .room-pick {
+    flex: 1 1 0;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--sp-2);
+    border-bottom: 2px solid transparent;
+  }
+
+  .room-pick-on {
+    border-bottom-color: var(--accent);
+  }
+
+  .room-pick .room-table {
+    width: 3.4rem;
+  }
+
+  .room-pick-name {
+    font-size: var(--fs-md);
+  }
+
+  .room-side,
+  .room-detail,
+  .room-foot {
+    grid-column: 1;
+    grid-row: auto;
+  }
+
+  .room-foot {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: var(--sp-2) var(--sp-4);
+    margin-top: 0;
   }
 }

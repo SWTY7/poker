@@ -383,6 +383,7 @@ export function Table({
               potSize={middlePot}
               inPlay={inPlay}
               street={state.street}
+              bigBlind={state.config.bigBlind}
             />
 
             {dealingStreet && STREET_BANNER[dealingStreet] && (

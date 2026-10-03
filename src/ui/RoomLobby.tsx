@@ -5,10 +5,17 @@ import { ordinal } from '../utils/format'
 import type { LobbyProps } from './Lobby'
 
 /**
- * The lobby as a poker room: a list of the tables you can sit at, each with a
- * plan of its seats, and what you can do there as plain rows under it. No
- * cards. Rules and spacing do the grouping.
+ * The lobby as a poker room: the tables you can sit at on the left, each with
+ * a plan of its seats, and on the right what you can do at the one you've
+ * picked, as plain rows. One table at a time, so the whole menu fits on a
+ * screen. No cards: rules and spacing do the grouping.
  */
+
+const TABLES = [
+  { mode: 'quick', name: 'Quick Play', seats: 6, button: 2 },
+  { mode: 'career', name: 'Career', seats: 6, button: 4 },
+  { mode: 'home', name: 'Home game', seats: 8, button: 6 },
+] as const
 
 /** A table seen from above: `seats` places round the rail, you at the bottom, and the button on one of them. */
 function TableThumb({ seats, button }: { seats: number; button: number }) {
@@ -55,6 +62,8 @@ function Go({ title, copy, verb, onClick }: { title: string; copy: string; verb:
 }
 
 export function RoomLobby({
+  mode,
+  onModeChange,
   profile,
   career,
   savedRoom,
@@ -81,112 +90,126 @@ export function RoomLobby({
 
   return (
     <div className="room">
-      <header className="room-head">
-        <h1 className="room-title">Poker</h1>
-        <p className="room-sub">Pick a table.</p>
-      </header>
-
-      <section className="room-table-row">
-        <TableThumb seats={6} button={2} />
-        <div className="room-table-body">
-          <h2 className="room-name">Quick Play</h2>
-          <p className="room-line">A practice table. No buy-in, and nothing counts toward your bankroll.</p>
-          <div className="room-goes">
-            <Go title="Sit down" copy="Pick the players, the stacks and the blinds." verb="Play" onClick={onChooseQuick} />
-          </div>
-        </div>
-      </section>
-
-      <section className="room-table-row">
-        <TableThumb seats={6} button={4} />
-        <div className="room-table-body">
-          <h2 className="room-name">Career</h2>
-          <p className="room-line">
-            You have <span className="room-money">${profile.bankroll.toLocaleString()}</span>
-            <ChipPile amount={profile.bankroll} />
-            {lifetime.handsPlayed > 0
-              ? ` and have played ${lifetime.handsPlayed.toLocaleString()} hands in ${lifetime.gamesPlayed.toLocaleString()} games. Biggest pot $${lifetime.biggestPot.toLocaleString()}${lifetime.bestFinish === null ? '' : `, best finish ${ordinal(lifetime.bestFinish)}`}.`
-              : '. Nothing played yet.'}{' '}
-            {canClaim ? (
-              <button type="button" className="room-text-link" onClick={onClaimDailyStake}>
-                Claim today’s ${DAILY_STAKE_AMOUNT}
+      <div className="room-layout">
+        <nav className="room-side" aria-label="Tables">
+          <h1 className="room-title">Poker</h1>
+          <div className="room-tables" role="radiogroup" aria-label="Game mode">
+            {TABLES.map((t) => (
+              <button
+                key={t.mode}
+                type="button"
+                role="radio"
+                aria-checked={mode === t.mode}
+                className={`room-pick ${mode === t.mode ? 'room-pick-on' : ''}`}
+                onClick={() => onModeChange(t.mode)}
+              >
+                <TableThumb seats={t.seats} button={t.button} />
+                <span className="room-pick-name">{t.name}</span>
               </button>
-            ) : (
-              profile.bankroll <= DAILY_STAKE_THRESHOLD && 'Come back tomorrow for another stake.'
-            )}
-          </p>
-
-          <div className="room-goes">
-            <Go
-              title={`${tier.name} season ${career.season}${career.titles > 0 ? `, ${career.titles} title${career.titles === 1 ? '' : 's'}` : ''}`}
-              copy={
-                career.lastSeason
-                  ? 'The season is over. See how it finished.'
-                  : `Event ${career.eventIndex + 1} of ${tier.events.length}. The same rivals each time; finish in the top two to move up.`
-              }
-              verb={career.lastSeason ? 'See it' : 'Open'}
-              onClick={onChooseCareer}
-            />
-            <Go title="Cash game" copy="You set the stakes. Leave and cash out whenever you like." verb="Sit down" onClick={onChooseCash} />
-            <Go title="Tournament" copy="One buy-in, rising blinds, and prizes for the places that pay." verb="Register" onClick={onChooseTournament} />
+            ))}
           </div>
+        </nav>
 
-          {recent.length > 0 && (
-            <ul className="room-recent" aria-label="Recent games">
-              {recent.map((entry) => (
-                <li key={entry.at}>
-                  <span>{entry.mode === 'tournament' ? `Tournament, ${ordinal(entry.finish ?? 0)} of ${entry.field}` : 'Cash game'}</span>
-                  <span className={entry.result >= 0 ? 'cashout-up' : 'cashout-down'}>
-                    {entry.result >= 0 ? '+' : '−'}${Math.abs(entry.result).toLocaleString()}
-                  </span>
-                </li>
-              ))}
-            </ul>
+        <main className="room-detail">
+          {mode === 'quick' && (
+            <>
+              <h2 className="room-name">Quick Play</h2>
+              <p className="room-line">A practice table. No buy-in, and nothing counts toward your bankroll.</p>
+              <div className="room-goes">
+                <Go title="Sit down" copy="Pick the players, the stacks and the blinds." verb="Play" onClick={onChooseQuick} />
+              </div>
+            </>
+          )}
+
+          {mode === 'career' && (
+            <>
+              <h2 className="room-name">Career</h2>
+              <p className="room-line">
+                You have <span className="room-money">${profile.bankroll.toLocaleString()}</span>
+                <ChipPile amount={profile.bankroll} />
+                {lifetime.handsPlayed > 0
+                  ? ` and have played ${lifetime.handsPlayed.toLocaleString()} hands in ${lifetime.gamesPlayed.toLocaleString()} games. Biggest pot $${lifetime.biggestPot.toLocaleString()}${lifetime.bestFinish === null ? '' : `, best finish ${ordinal(lifetime.bestFinish)}`}.`
+                  : '. Nothing played yet.'}{' '}
+                {canClaim ? (
+                  <button type="button" className="room-text-link" onClick={onClaimDailyStake}>
+                    Claim today’s ${DAILY_STAKE_AMOUNT}
+                  </button>
+                ) : (
+                  profile.bankroll <= DAILY_STAKE_THRESHOLD && 'Come back tomorrow for another stake.'
+                )}
+              </p>
+
+              <div className="room-goes">
+                <Go
+                  title={`${tier.name} season ${career.season}${career.titles > 0 ? `, ${career.titles} title${career.titles === 1 ? '' : 's'}` : ''}`}
+                  copy={
+                    career.lastSeason
+                      ? 'The season is over. See how it finished.'
+                      : `Event ${career.eventIndex + 1} of ${tier.events.length}. The same rivals each time; finish in the top two to move up.`
+                  }
+                  verb={career.lastSeason ? 'See it' : 'Open'}
+                  onClick={onChooseCareer}
+                />
+                <Go title="Cash game" copy="You set the stakes. Leave and cash out whenever you like." verb="Sit down" onClick={onChooseCash} />
+                <Go title="Tournament" copy="One buy-in, rising blinds, and prizes for the places that pay." verb="Register" onClick={onChooseTournament} />
+              </div>
+
+              {recent.length > 0 && (
+                <ul className="room-recent" aria-label="Recent games">
+                  {recent.map((entry) => (
+                    <li key={entry.at}>
+                      <span>{entry.mode === 'tournament' ? `Tournament, ${ordinal(entry.finish ?? 0)} of ${entry.field}` : 'Cash game'}</span>
+                      <span className={entry.result >= 0 ? 'cashout-up' : 'cashout-down'}>
+                        {entry.result >= 0 ? '+' : '−'}${Math.abs(entry.result).toLocaleString()}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </>
+          )}
+
+          {mode === 'home' && (
+            <>
+              <h2 className="room-name">Home game</h2>
+              <p className="room-line">Real cards at a real table with friends. The phones keep the chips.</p>
+              <div className="room-goes">
+                {savedRoom && (
+                  <Go title={`Room ${savedRoom}`} copy="The game you were hosting, stacks and all. Players reconnect by themselves." verb="Reopen" onClick={onResumeRoom} />
+                )}
+                <Go title="Host a table" copy="Open a room and run the dealing and the showdowns." verb="Host" onClick={onHostGame} />
+                <Go title="Join a table" copy="Enter the host’s room number and play from your phone." verb="Join" onClick={onJoinGame} />
+              </div>
+            </>
+          )}
+        </main>
+        <div className="room-foot">
+          <button type="button" className="room-text-link" onClick={onOpenYourPlay}>
+            Your play
+          </button>
+          <button type="button" className="room-text-link" onClick={onOpenAchievements}>
+            Achievements, {achievementCount} of {achievementTotal}
+          </button>
+          <button type="button" className="room-text-link" onClick={onOpenSettings}>
+            Settings
+          </button>
+          {confirmingReset ? (
+            <span>
+              Wipe your bankroll and history?{' '}
+              <button type="button" className="room-text-link" onClick={onResetProfile}>
+                Yes, reset
+              </button>{' '}
+              <button type="button" className="room-text-link" onClick={() => setConfirmingReset(false)}>
+                Keep it
+              </button>
+            </span>
+          ) : (
+            <button type="button" className="room-text-link room-text-link-quiet" onClick={() => setConfirmingReset(true)}>
+              Reset profile
+            </button>
           )}
         </div>
-      </section>
-
-      <section className="room-table-row">
-        <TableThumb seats={8} button={6} />
-        <div className="room-table-body">
-          <h2 className="room-name">Home game</h2>
-          <p className="room-line">Real cards at a real table with friends. The phones keep the chips.</p>
-          <div className="room-goes">
-            {savedRoom && (
-              <Go title={`Room ${savedRoom}`} copy="The game you were hosting, stacks and all. Players reconnect by themselves." verb="Reopen" onClick={onResumeRoom} />
-            )}
-            <Go title="Host a table" copy="Open a room and run the dealing and the showdowns." verb="Host" onClick={onHostGame} />
-            <Go title="Join a table" copy="Enter the host’s room number and play from your phone." verb="Join" onClick={onJoinGame} />
-          </div>
-        </div>
-      </section>
-
-      <footer className="room-foot">
-        <button type="button" className="room-text-link" onClick={onOpenYourPlay}>
-          Your play
-        </button>
-        <button type="button" className="room-text-link" onClick={onOpenAchievements}>
-          Achievements, {achievementCount} of {achievementTotal}
-        </button>
-        <button type="button" className="room-text-link" onClick={onOpenSettings}>
-          Settings
-        </button>
-        {confirmingReset ? (
-          <span>
-            Wipe your bankroll and history?{' '}
-            <button type="button" className="room-text-link" onClick={onResetProfile}>
-              Yes, reset
-            </button>{' '}
-            <button type="button" className="room-text-link" onClick={() => setConfirmingReset(false)}>
-              Keep it
-            </button>
-          </span>
-        ) : (
-          <button type="button" className="room-text-link room-text-link-quiet" onClick={() => setConfirmingReset(true)}>
-            Reset profile
-          </button>
-        )}
-      </footer>
+      </div>
     </div>
   )
 }
