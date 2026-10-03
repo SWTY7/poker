@@ -108,6 +108,14 @@ the original look); someone who had chosen a single theme before gets that prese
 - The Round table layout is `styles/layout-round.css`: the oval table, seats placed by CSS trig from
   `--seat`/`--seats` (set on each `.seat-slot` in `Table.tsx`; `display: contents` in Standard), chip-disc
   avatars, paper stack tags, a chip pile for the pot, and your cards at the bottom edge.
+- Under the Round table layout you are a seat like the others (`HeroZone` draws a chip avatar, the stack tag,
+  your last action and the chips you've committed beside your cards; no panel), seats lean away from the
+  centre and sit slightly off the line, and the dealer button is a puck on the felt. Standard hides those
+  parts.
+- The Round table layout also has its own lobby, `ui/RoomLobby.tsx` (`styles/room-lobby.css`): the tables
+  you can sit at as ruled rows, each with a plan of its seats, and what you can do there as plain rows. No
+  cards. `App` picks it from `getLook()` (`useSyncExternalStore`). The other screens (setup, career hub,
+  results) still use the Standard styling in every layout.
 - The Settings screen (a button in the lobby) picks any of them, plus the default table speed.
 
 ## The table UI — `src/ui/`

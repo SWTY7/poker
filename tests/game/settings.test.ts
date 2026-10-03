@@ -8,9 +8,11 @@ import {
   LAYOUTS,
   LOOK_STORAGE_KEY,
   PRESETS,
+  getLook,
   loadLook,
   sameLook,
   setLook,
+  subscribeLook,
 } from '../../src/game/settings'
 
 class MemoryStorage {
@@ -44,6 +46,17 @@ describe('the look', () => {
     setLook(look)
     expect(loadLook()).toEqual(look)
     expect(document.documentElement.dataset).toMatchObject(look)
+  })
+
+  it('tells anything listening when the look changes, so a screen can switch layout', () => {
+    let calls = 0
+    const stop = subscribeLook(() => calls++)
+    setLook({ ...DEFAULT_LOOK, layout: 'round' })
+    expect(calls).toBe(1)
+    expect(getLook().layout).toBe('round')
+    stop()
+    setLook(DEFAULT_LOOK)
+    expect(calls).toBe(1)
   })
 
   it('lets one choice change without touching the others', () => {

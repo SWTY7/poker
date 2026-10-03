@@ -101,10 +101,27 @@ export function loadLook(): Look {
   return PRESETS.find((p) => p.id === legacy)?.look ?? DEFAULT_LOOK
 }
 
+let current: Look | null = null
+const listeners = new Set<() => void>()
+
+/** The look on the page now, for components that pick a layout (see `useSyncExternalStore`). */
+export function getLook(): Look {
+  return (current ??= loadLook())
+}
+
+export function subscribeLook(listener: () => void): () => void {
+  listeners.add(listener)
+  return () => {
+    listeners.delete(listener)
+  }
+}
+
 /** Shows `look` on the page and remembers it. */
 export function setLook(look: Look): void {
+  current = look
   applyLook(look)
   writeJSON(LOOK_STORAGE_KEY, look)
+  for (const listener of listeners) listener()
 }
 
 export function applyLook(look: Look): void {

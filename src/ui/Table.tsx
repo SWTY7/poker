@@ -406,6 +406,8 @@ export function Table({
               folded={activePlayer.folded}
               isAllIn={activePlayer.isAllIn}
               isMyTurn={isHumanTurn}
+              betThisStreet={activePlayer.betThisStreet}
+              lastAction={lastActionThisStreet(state.handLog, activePlayer.id, state.street)}
               madeHand={madeHand}
               onShowPotential={handOdds ? () => setShowPotential(true) : undefined}
               potentialOpen={showPotential}

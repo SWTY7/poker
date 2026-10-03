@@ -81,6 +81,12 @@ export function Seat({
         <span className="seat-avatar" style={avatarStyle(name)} aria-hidden="true">
           {avatarInitial(name)}
         </span>
+        {/* The button as a puck on the felt, for layouts that draw one. */}
+        {isDealer && (
+          <span className="seat-dealer-puck" aria-hidden="true">
+            D
+          </span>
+        )}
         {isCurrentTurn && <span className="seat-pip" aria-hidden="true" />}
       </div>
 

@@ -303,6 +303,14 @@
   padding-bottom: 0.85rem;
 }
 
+/* Parts only some layouts draw: you as a seat, and the dealer puck. */
+.hero-avatar,
+.hero-status,
+.hero-bet,
+.seat-dealer-puck {
+  display: none;
+}
+
 /* A seat's place in the row. Plain layout here; a theme may place each slot
    itself, using --seat (this one's index) and --seats (how many). */
 .seat-slot {

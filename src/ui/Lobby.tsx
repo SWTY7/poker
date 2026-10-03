@@ -8,7 +8,7 @@ import { ChipIcon } from './ChipIcon'
 import { SUIT_PATH } from './suit-icons'
 import { ordinal } from '../utils/format'
 
-interface LobbyProps {
+export interface LobbyProps {
   profile: Profile
   mode: GameMode
   onModeChange: (mode: GameMode) => void

@@ -85,8 +85,10 @@
   display: block;
   position: absolute;
   --a: calc(150deg + (var(--seat) + 0.5) * 240deg / var(--seats));
-  left: calc(50% + cos(var(--a)) * var(--rx));
-  top: calc(var(--cy) + sin(var(--a)) * var(--ry));
+  /* A person never sits exactly on the line: each seat is nudged in or out by its own small amount. */
+  --j: sin(calc(var(--seat) * 2.4 + 0.7));
+  left: calc(50% + cos(var(--a)) * var(--rx) * (1 + var(--j) * 0.035));
+  top: calc(var(--cy) + sin(var(--a)) * var(--ry) * (1 + var(--j) * 0.035));
   /* Anchored at the avatar, so the chip sits on the rail and the name and tag hang inside it. */
   transform: translate(-50%, -1.3rem);
   z-index: 2;
@@ -168,7 +170,10 @@
 
 /* --- seats ---------------------------------------------------------------- */
 
+/* Seats lean away from the centre, the way a person sitting there faces in. */
 [data-layout='round'] .seat {
+  transform: rotate(calc(cos(var(--a)) * 6deg + var(--j) * 1.5deg));
+  transform-origin: 50% 18%;
   width: auto;
   min-width: 4.8rem;
   padding: 0;
@@ -220,7 +225,41 @@
   color: rgb(241 230 204 / 0.55);
 }
 
-[data-layout='round'] .badge-dealer {
+[data-layout='round'] .seat-top {
+  position: static;
+}
+
+[data-layout='round'] .seat .badge-dealer {
+  display: none;
+}
+
+/* The dealer button: a puck lying on the felt beside the seat that has it. */
+[data-layout='round'] .seat-dealer-puck {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.55rem;
+  height: 1.55rem;
+  border-radius: 50%;
+  background: #fbf6e8;
+  color: var(--ivory-ink);
+  font-weight: 800;
+  font-size: var(--fs-xs);
+  font-style: normal;
+  box-shadow:
+    inset 0 0 0 0.18rem #fbf6e8,
+    inset 0 0 0 0.25rem rgb(42 29 16 / 0.35),
+    0 0.2rem 0.4rem rgb(0 0 0 / 0.6);
+  transform: translate(
+    calc(-50% + cos(var(--a)) * -5.6rem + sin(var(--a)) * 1.7rem),
+    calc(-50% + sin(var(--a)) * -5.6rem - cos(var(--a)) * 1.7rem)
+  );
+}
+
+[data-layout='round'] .hero .badge-dealer {
   width: 1.15rem;
   height: 1.15rem;
   padding: 0;
@@ -291,13 +330,22 @@
 
 /* --- you ------------------------------------------------------------------ */
 
-/* Your cards lie across the bottom edge of the table. */
+/* You are a seat like the others. Your cards lie at the bottom edge of the table,
+   and your chip, name, stack and what you've just done sit beside them as one
+   group, with the chips you've committed out on the felt. There is no panel. */
 [data-layout='round'] .hero {
   position: relative;
   z-index: 3;
+  display: grid;
+  grid-template-columns: auto auto;
+  grid-template-areas:
+    'cards info'
+    'cards right';
   justify-content: center;
-  gap: var(--sp-4);
-  margin-top: -3.2rem;
+  align-items: end;
+  column-gap: var(--sp-5);
+  row-gap: 0;
+  margin-top: -3.4rem;
   padding: 0 var(--sp-4);
   background: none;
   border: 0;
@@ -309,6 +357,7 @@
 }
 
 [data-layout='round'] .hero-cards {
+  grid-area: cards;
   filter: drop-shadow(0 0.5rem 0.5rem rgb(0 0 0 / 0.6));
   /* Your hand is the biggest thing on the table. */
   transform: scale(1.3);
@@ -325,31 +374,115 @@
   margin-left: -0.9rem;
 }
 
-/* Who you are and what it costs: a place card. */
 [data-layout='round'] .hero-info {
-  flex: 0 1 auto;
-  min-width: 13rem;
-  --text: var(--ivory-ink);
-  --text-dim: #5e4c36;
-  --text-faint: #7b6849;
-  color: var(--ivory-ink);
-  padding: var(--sp-2) var(--sp-4);
-  background: var(--ivory);
-  border-radius: 0.3rem;
-  box-shadow: 0 0.2rem 0 rgb(0 0 0 / 0.45), 0 0.7rem 1rem rgb(0 0 0 / 0.45);
+  grid-area: info;
+  display: grid;
+  grid-template-columns: auto auto;
+  column-gap: var(--sp-3);
+  row-gap: 0.1rem;
+  align-items: center;
+  justify-content: start;
+  flex: none;
+  min-width: 0;
+  padding: 0;
+  background: none;
+  border-radius: 0;
+  box-shadow: none;
 }
 
-[data-layout='round'] .hero-turn .hero-info {
-  box-shadow: 0 0 0 0.2rem var(--accent), 0 0 1.6rem rgb(var(--accent-rgb) / 0.6), 0 0.7rem 1rem rgb(0 0 0 / 0.45);
+[data-layout='round'] .hero-avatar {
+  display: flex;
+  grid-row: 1 / span 2;
+}
+
+[data-layout='round'] .hero-id,
+[data-layout='round'] .hero-stack-row {
+  grid-column: 2;
+}
+
+[data-layout='round'] .hero-made,
+[data-layout='round'] .hero-status,
+[data-layout='round'] .hero-state {
+  grid-column: 1 / -1;
+}
+
+[data-layout='round'] .hero-name {
+  font-size: var(--fs-lg);
+  font-weight: 600;
+  color: var(--text);
+}
+
+[data-layout='round'] .hero-stack-row .label {
+  display: none;
+}
+
+/* Your stack is a paper tag, like everyone's. */
+[data-layout='round'] .hero-stack {
+  padding: 0.05rem 0.5rem;
+  font-size: var(--fs-md);
+  color: var(--ivory-ink);
+  background: var(--ivory);
+  border-radius: 0.18rem;
+  box-shadow: 0 0.12rem 0 rgb(0 0 0 / 0.5), 0 0.3rem 0.5rem rgb(0 0 0 / 0.4);
+  transform: rotate(-1.6deg);
+}
+
+[data-layout='round'] .hero-status {
+  display: block;
+  color: var(--text-dim);
+}
+
+[data-layout='round'] .hero-made {
+  color: var(--text-dim);
+}
+
+/* What you have put in this street sits on the felt above your cards, toward the pot. */
+[data-layout='round'] .hero-bet {
+  position: absolute;
+  left: 50%;
+  top: -2.6rem;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0.08rem 0.4rem;
+  font-size: var(--fs-sm);
+  color: var(--ivory);
+  background: rgb(0 0 0 / 0.38);
+  border: 1px solid rgb(var(--gold-rgb) / 0.5);
+  border-radius: var(--r-pill);
+  white-space: nowrap;
+}
+
+[data-layout='round'] .hero-turn .hero-avatar {
+  box-shadow:
+    inset 0 0 0 0.3rem rgb(0 0 0 / 0.16),
+    0 0 0 0.2rem var(--accent),
+    0 0 1.5rem rgb(var(--accent-rgb) / 0.8);
+}
+
+[data-layout='round'] .hero-turn .hero-name {
+  color: var(--accent);
 }
 
 [data-layout='round'] .hero-turn-chip {
-  background: var(--accent-deep);
-  color: var(--ivory);
+  padding: 0;
+  background: none;
+  color: var(--accent);
+  font-weight: 600;
 }
 
 [data-layout='round'] .hero-right {
-  color: var(--ivory);
+  grid-area: right;
+  align-self: start;
+  margin-top: var(--sp-2);
+  color: var(--text);
+}
+
+[data-layout='round'] .hero-tocall {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-2);
 }
 
 [data-layout='round'] .hero-tocall-amount {
@@ -408,9 +541,18 @@
     transform: translate(calc(-50% + cos(var(--a)) * -3.4rem), calc(-50% + sin(var(--a)) * -3.4rem));
   }
 
+  [data-layout='round'] .seat-dealer-puck {
+    width: 1.3rem;
+    height: 1.3rem;
+    transform: translate(
+      calc(-50% + cos(var(--a)) * -4.4rem + sin(var(--a)) * 1.4rem),
+      calc(-50% + sin(var(--a)) * -4.4rem - cos(var(--a)) * 1.4rem)
+    );
+  }
+
   [data-layout='round'] .hero {
-    margin-top: -2.4rem;
-    gap: var(--sp-2);
+    margin-top: -2.6rem;
+    column-gap: var(--sp-3);
     padding-inline: var(--sp-3);
   }
 
@@ -419,8 +561,16 @@
     margin-inline: 0.3rem;
   }
 
-  [data-layout='round'] .hero-info {
-    min-width: 0;
-    padding: var(--sp-2) var(--sp-3);
+  [data-layout='round'] .hero-avatar {
+    width: 2rem;
+    height: 2rem;
+  }
+
+  [data-layout='round'] .hero-name {
+    font-size: var(--fs-md);
+  }
+
+  [data-layout='round'] .hero-bet {
+    top: -2.2rem;
   }
 }
