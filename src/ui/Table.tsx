@@ -348,9 +348,13 @@ export function Table({
             }}
           >
             <div className="felt-seats" data-count={opponents.length}>
-              {opponents.map((player) => (
-                <Seat
+              {opponents.map((player, seatIndex) => (
+                <div
+                  className="seat-slot"
                   key={player.id}
+                  style={{ '--seat': seatIndex, '--seats': opponents.length } as React.CSSProperties}
+                >
+                <Seat
                   name={player.name}
                   stack={player.stack}
                   betThisStreet={player.betThisStreet}
@@ -370,6 +374,7 @@ export function Table({
                   cards={revealAll ? player.holeCards : []}
                   revealCards={revealAll && !player.folded}
                 />
+                </div>
               ))}
             </div>
 

@@ -303,6 +303,12 @@
   padding-bottom: 0.85rem;
 }
 
+/* A seat's place in the row. Plain layout here; a theme may place each slot
+   itself, using --seat (this one's index) and --seats (how many). */
+.seat-slot {
+  display: contents;
+}
+
 .seat {
   position: relative;
   box-sizing: border-box;
