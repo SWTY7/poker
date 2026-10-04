@@ -111,75 +111,6 @@
   --card-back-edge: #0b0d12;
 }
 
-/* ---------- Poster: light paper, flat green, vermilion ---------- */
-
-:root[data-color='poster'] {
-  color-scheme: light;
-
-  --bg: #efe6d2;
-  --panel: #f7f0df;
-  --hud-bg: #efe6d2;
-  --scrim: rgba(26, 23, 20, 0.55);
-  --surface: rgba(26, 23, 20, 0.05);
-  --surface-strong: rgba(26, 23, 20, 0.1);
-  --line: #1a1714;
-  --line-soft: #cfc4a9;
-  --text: #1a1714;
-  --text-dim: #5b5347;
-  --text-faint: #7d7566;
-
-  --accent: #e8452c;
-  --accent-mid: #cf3a22;
-  --accent-deep: #a62d19;
-  --accent-rgb: 232 69 44;
-  --accent-tint: rgb(232 69 44 / 0.12);
-  --gold: #c98f00;
-  --gold-rgb: 201 143 0;
-  --green: #1f7a4c;
-  --win-rgb: 31 122 76;
-  --red: #c22f2f;
-  --lose-rgb: 194 47 47;
-  --red-deep: #f1c9c4;
-  --warn: #b86e00;
-  --focus: #1a1714;
-  --on-accent: #fff;
-
-  --sh-1: 2px 2px 0 #1a1714;
-  --sh-2: 4px 4px 0 #1a1714;
-  --sh-3: 8px 8px 0 #1a1714;
-
-  --felt-rim: #1a1714;
-  --felt-bg: #1f5a3d;
-  --felt-border: 3px solid #1a1714;
-  --felt-shadow: 6px 6px 0 #1a1714;
-  --felt-ring: rgb(239 230 210 / 0.28);
-
-  --table-bg: #efe6d2;
-
-  --card-face: #fffaf0;
-  --card-red: #d23a24;
-  --card-black: #1a1714;
-  --card-back: repeating-linear-gradient(90deg, #1a1714 0 2px, transparent 2px 7px), #e8452c;
-  --card-back-edge: #1a1714;
-}
-
-/* Inside the felt the ground is dark green, so text goes light there. */
-:root[data-color='poster'] .felt {
-  --text: #f4ecd8;
-  --text-dim: #cfdccb;
-  --text-faint: #a6bba9;
-  --line: rgb(255 255 255 / 0.28);
-  --surface: rgb(255 255 255 / 0.08);
-  --surface-strong: rgb(255 255 255 / 0.14);
-  --accent: #ff6a50;
-  /* `color` is inherited as a resolved value, so it has to be set again here. */
-  color: var(--text);
-}
-
-:root[data-color='poster'] .menu-wordmark-text {
-  color: var(--text);
-}
-
 /* ---------- Neon: purple night, glowing pink ---------- */
 
 :root[data-color='neon'] {
@@ -291,14 +222,6 @@
   letter-spacing: 0.02em;
 }
 
-/* ---------- Rounded: Fredoka, friendly and chunky ---------- */
-
-:root[data-font='rounded'] {
-  --font-display: 'Fredoka', system-ui, sans-serif;
-  --font-wordmark: 'Shrikhand', 'Fredoka', cursive;
-  --font-mono: 'DM Mono', ui-monospace, monospace;
-}
-
 /* ==========================================================================
    Corners
    ========================================================================== */
@@ -393,20 +316,6 @@
   --bx-track: 0.08em;
   --bx-weight: 700;
   --bx-primary-border: var(--accent-deep);
-}
-
-/* ---------- Hard shadow: heavy outline, an offset shadow that presses in ---------- */
-
-[data-buttons='hard'] {
-  --bx-bw: 2px;
-  --bx-border: var(--text);
-  --bx-weight: 700;
-  --bx-shadow: 0.2rem 0.2rem 0 var(--text);
-  --bx-press: translate(0.15rem, 0.15rem);
-  --bx-press-shadow: 0.05rem 0.05rem 0 var(--text);
-  --bx-primary-border: var(--text);
-  --bx-danger-border: var(--text);
-  --bx-accent-border: var(--text);
 }
 
 /* ---------- Glow: lit from within, like a sign ---------- */

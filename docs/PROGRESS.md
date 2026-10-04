@@ -91,10 +91,10 @@ onto joining, and one table screen serves everyone, with the dealer's controls o
 
 `game/settings.ts` holds the device's look, saved as JSON under `poker.look`. It is five independent choices,
 each a `data-*` attribute on `<html>` (set before the first paint in `main.tsx`): **colour** (Classic, Card
-room, Broadcast, Poster, Neon), **layout** (Standard, Round table), **font** (Classic serif, Warm serif,
-Condensed, Grotesque, Rounded), **buttons** (Standard, Brass and leather, Capitals, Hard shadow, Glow) and
-**corners** (Soft, Sharp, Square, Round). A preset is a saved set of the five (Classic is the default and is
-the original look); someone who had chosen a single theme before gets that preset.
+room, Broadcast, Neon), **layout** (Standard, Round table), **font** (Classic serif, Warm serif,
+Condensed, Grotesque), **buttons** (Standard, Brass and leather, Capitals, Glow) and
+**corners** (Soft, Sharp, Square, Round). A preset is a saved set of the five (Card room is the default; Classic, the
+original look, is still a preset; Poster, Hard shadow and Rounded were dropped on 2026-10-05); someone who had chosen a single theme before gets that preset.
 
 - Colours, fonts, corners and buttons are in `styles/themes.css`. Colour themes override tokens, including
   the felt, the playing cards and the `--accent-rgb`-style tints; Classic's values are the defaults in
@@ -116,8 +116,8 @@ the original look); someone who had chosen a single theme before gets that prese
   form, rules between sections, left-aligned, a flat brass button, the season as a row of events. Standard is
   untouched.
 - The pot is drawn as chips (`PotChips` in `Board.tsx`, shown by the Round table layout): more chips, in more
-  stacks, as it grows, counted in big blinds with a square root. On a phone held upright, the Round table
-  shows only the seat being waited on (or the winner), where it sits. `App` picks the lobby from `getLook()` (`useSyncExternalStore`).
+  stacks, as it grows, counted in big blinds with a square root. (A phone held upright once showed only the seat being
+  waited on; it was tried and dropped, all seats show.) `App` picks the lobby from `getLook()` (`useSyncExternalStore`).
 - The Settings screen (a button in the lobby) picks any of them, plus the default table speed.
 
 ## The table UI — `src/ui/`

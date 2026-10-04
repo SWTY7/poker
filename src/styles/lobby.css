@@ -215,17 +215,25 @@
   font-family: var(--font-mono);
 }
 
+/* The way back: a small button, not a bare link. */
 .menu-back-link {
-  background: none;
-  border: none;
-  color: var(--accent);
-  font-size: var(--fs-xs);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.4rem 0.8rem;
+  font: inherit;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
   cursor: pointer;
-  padding: 0;
 }
 
 .menu-back-link:hover {
-  text-decoration: underline;
+  color: var(--accent);
+  border-color: var(--accent);
 }
 
 /* ---------- buy-in chips ---------- */

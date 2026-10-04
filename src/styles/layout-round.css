@@ -611,13 +611,3 @@
     top: -2.2rem;
   }
 }
-
-/* --- phone held upright: only the person we are waiting on ----------------- */
-
-/* The table is too narrow to seat everyone legibly, so only the seat that is to
-   act (or, once the hand is decided, the winner) is shown, where it sits. */
-@media (max-width: 820px) and (orientation: portrait) {
-  [data-layout='round'] .seat-slot:not(:has(.seat-active, .seat-winner)) {
-    display: none;
-  }
-}
