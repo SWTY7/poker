@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lobby options</title>
+<style>
+:root{--bg:#16100b;--panel:#1d1610;--line:#3d2c1a;--text:#f3e9d6;--dim:#b3a58c;--faint:#8d806a;--accent:#d9a24a;--felt:#1f5236;--felt2:#12301f;--rim:#3a2412}
+*{box-sizing:border-box}
+body{margin:0;background:#0d0906;color:var(--text);font-family:Georgia,'Times New Roman',serif}
+h1,h2,h3,p{margin:0}
+.label{font:600 .8rem system-ui,sans-serif;color:var(--accent);padding:2.2rem 2rem .6rem;max-width:70rem;margin:auto}
+.label b{display:block;font:600 1.3rem Georgia,serif;color:var(--text)}
+.label span{color:var(--dim);font:400 .9rem system-ui,sans-serif}
+.room{background:var(--bg);margin:0 auto 1rem;max-width:70rem;padding:2rem;border:1px solid var(--line)}
+.top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:1.6rem}
+.word{font-size:2.2rem;font-weight:600}
+.links{color:var(--dim);font:.85rem system-ui,sans-serif;display:flex;gap:1.2rem}
+.links u{text-decoration-color:var(--accent);text-underline-offset:3px}
+.go{font:600 .85rem system-ui,sans-serif;color:var(--accent);border-bottom:1px solid var(--accent);padding-bottom:1px;align-self:flex-start}
+.dim{color:var(--dim);font-size:.95rem;line-height:1.45}
+.money{font-weight:600;font-variant-numeric:lining-nums}
+.seat{fill:var(--dim);opacity:.6}.you{fill:var(--accent);opacity:1}.puck{fill:var(--text)}
+.felt{fill:var(--felt);stroke:var(--rim);stroke-width:2.4;paint-order:stroke}
+
+/* A: three tables side by side, each box is a plan of the table */
+.a{display:grid;grid-template-columns:repeat(3,1fr);gap:1.2rem}
+.a .box{border:1px solid var(--line);background:var(--panel);padding:1.2rem;display:flex;flex-direction:column;gap:.7rem;min-height:19rem}
+.a .box.hot{border-color:var(--accent)}
+.a svg{width:100%;height:auto;max-height:7.5rem}
+.a h2{font-size:1.4rem}
+.a .push{margin-top:auto;display:flex;justify-content:space-between;align-items:baseline;border-top:1px dotted var(--line);padding-top:.7rem}
+.a .push small{color:var(--faint);font:.8rem system-ui,sans-serif}
+
+/* B: the box IS the table: felt oval with the text on it */
+.b{display:grid;grid-template-columns:repeat(3,1fr);gap:1.4rem}
+.b .box{position:relative;aspect-ratio:1/1.05;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;padding:2.4rem 2.2rem;
+  background:radial-gradient(80% 70% at 50% 40%,#2f7048,#1f5236 50%,#0b1d13);border-radius:46% / 38%;border:.55rem solid var(--rim);box-shadow:inset 0 0 0 2px #00000055,0 .6rem 1.4rem #0008;gap:.5rem}
+.b h2{font-size:1.5rem}
+.b .dim{color:#cfe3d2;font-size:.9rem}
+.b .go{color:#f5d99a;border-color:#f5d99a}
+.b .chip{position:absolute;width:1.5rem;height:1.5rem;border-radius:50%;background:#efe6cf;box-shadow:inset 0 0 0 .25rem #b83a2e,inset 0 0 0 .4rem #efe6cf,0 2px 0 #0008;right:14%;top:7%}
+.b .chip.p{right:auto;left:12%;top:80%;background:#2a2522;box-shadow:inset 0 0 0 .25rem #2e6b46,inset 0 0 0 .4rem #2a2522,0 2px 0 #0008}
+
+/* C: one big table (Career) with the two others beside it, not equal */
+.c{display:grid;grid-template-columns:1.7fr 1fr;grid-template-rows:1fr 1fr;gap:1.2rem}
+.c .box{border:1px solid var(--line);background:var(--panel);padding:1.4rem;display:flex;flex-direction:column;gap:.7rem}
+.c .big{grid-row:1/3;border-color:var(--accent);gap:1rem}
+.c .big h2{font-size:2rem}
+.c .row{display:flex;justify-content:space-between;align-items:baseline;gap:1rem;border-top:1px dotted var(--line);padding:.75rem 0}
+.c .row strong{font-size:1.1rem}
+.c .row .dim{font-size:.85rem}
+.c .box svg{width:5.5rem;height:auto}
+.c .small{display:grid;grid-template-columns:auto 1fr;gap:.2rem 1rem;align-items:center}
+.c .small .go{grid-column:2}
+.c h2{font-size:1.3rem}
+.stats{display:flex;gap:2rem;color:var(--dim);font:.85rem system-ui,sans-serif;margin-top:1.4rem;border-top:1px solid var(--line);padding-top:.9rem}
+.stats b{color:var(--text);font:600 1rem Georgia,serif;margin-right:.3rem}
+@media(max-width:760px){.a,.b,.c{grid-template-columns:1fr}.c .big{grid-row:auto}.b .box{aspect-ratio:auto;border-radius:3rem;padding:2rem}.room{padding:1rem}}
+</style>
+</head>
+<body>
+
+<div class="label"><b>A. Three tables, plans on top</b><span>Closest to the original three boxes. Each box shows its table from above (6, 6 and 8 seats, the dealer button, you at the bottom), the one line you need, and one verb. Career is outlined because it is your main mode; it holds your bankroll. The stats run along the bottom as one line, not four boxes.</span></div>
+<div class="room">
+  <div class="top"><span class="word">Poker</span><span class="links"><u>Your play</u><u>Achievements 4 of 10</u><u>Settings</u></span></div>
+  <div class="a">
+    <div class="box">
+      <svg viewBox="0 0 80 48"><ellipse class="felt" cx="40" cy="24" rx="29" ry="15"/><g><circle class="you" cx="40" cy="45" r="4"/><circle class="seat" cx="12" cy="36" r="3.2"/><circle class="seat" cx="12" cy="12" r="3.2"/><circle class="seat" cx="40" cy="3" r="3.2"/><circle class="seat" cx="68" cy="12" r="3.2"/><circle class="seat" cx="68" cy="36" r="3.2"/><circle class="puck" cx="56" cy="34" r="2"/></g></svg>
+      <h2>Quick Play</h2><p class="dim">A practice table. No buy-in, and nothing counts toward your bankroll.</p>
+      <div class="push"><small>6 seats</small><span class="go">Play</span></div>
+    </div>
+    <div class="box hot">
+      <svg viewBox="0 0 80 48"><ellipse class="felt" cx="40" cy="24" rx="29" ry="15"/><g><circle class="you" cx="40" cy="45" r="4"/><circle class="seat" cx="12" cy="36" r="3.2"/><circle class="seat" cx="12" cy="12" r="3.2"/><circle class="seat" cx="40" cy="3" r="3.2"/><circle class="seat" cx="68" cy="12" r="3.2"/><circle class="seat" cx="68" cy="36" r="3.2"/><circle class="puck" cx="26" cy="34" r="2"/></g></svg>
+      <h2>Career</h2><p class="dim">You have <span class="money">$2,450</span>. Bronze season 2, event 3 of 5. Cash games and tournaments too.</p>
+      <div class="push"><small>Same rivals each time</small><span class="go">Open</span></div>
+    </div>
+    <div class="box">
+      <svg viewBox="0 0 80 48"><ellipse class="felt" cx="40" cy="24" rx="29" ry="15"/><g><circle class="you" cx="40" cy="45" r="4"/><circle class="seat" cx="15" cy="40" r="3.2"/><circle class="seat" cx="5" cy="24" r="3.2"/><circle class="seat" cx="15" cy="8" r="3.2"/><circle class="seat" cx="40" cy="3" r="3.2"/><circle class="seat" cx="65" cy="8" r="3.2"/><circle class="seat" cx="75" cy="24" r="3.2"/><circle class="seat" cx="65" cy="40" r="3.2"/></g></svg>
+      <h2>Home game</h2><p class="dim">Real cards at a real table with friends. The phones keep the chips.</p>
+      <div class="push"><small>Host or join</small><span class="go">Choose</span></div>
+    </div>
+  </div>
+  <div class="stats"><span><b>1,284</b>hands</span><span><b>37</b>games</span><span><b>$4,120</b>biggest pot</span><span><b>2nd</b>best finish</span></div>
+</div>
+
+<div class="label"><b>B. The box is the table</b><span>The most poker-native one: each mode is a felt table with a rail, and the text sits on the felt. A chip or two on the rail instead of icons. Round boxes, so it is the least like a card grid, but the text area is smaller, so copy must stay short.</span></div>
+<div class="room">
+  <div class="top"><span class="word">Poker</span><span class="links"><u>Your play</u><u>Achievements 4 of 10</u><u>Settings</u></span></div>
+  <div class="b">
+    <div class="box"><i class="chip"></i><h2>Quick Play</h2><p class="dim">Practice. No buy-in, nothing counts.</p><span class="go">Play</span></div>
+    <div class="box"><i class="chip"></i><i class="chip p"></i><h2>Career</h2><p class="dim">$2,450 · Bronze season 2<br>Cash games and tournaments</p><span class="go">Open</span></div>
+    <div class="box"><i class="chip"></i><h2>Home game</h2><p class="dim">Real cards with friends. The phones keep the chips.</p><span class="go">Host or join</span></div>
+  </div>
+  <div class="stats"><span><b>1,284</b>hands</span><span><b>37</b>games</span><span><b>$4,120</b>biggest pot</span><span><b>2nd</b>best finish</span></div>
+</div>
+
+<div class="label"><b>C. One main table, two side tables</b><span>Not three equal boxes. Career is the big box and shows what you would do there (season, cash game, tournament) so nothing is hidden behind a click. Quick Play and Home game are smaller boxes beside it. Everything is on one screen, the biggest decision is clear, and the layout is lopsided on purpose.</span></div>
+<div class="room">
+  <div class="top"><span class="word">Poker</span><span class="links"><u>Your play</u><u>Achievements 4 of 10</u><u>Settings</u></span></div>
+  <div class="c">
+    <div class="box big">
+      <div><h2>Career</h2><p class="dim" style="margin-top:.3rem">You have <span class="money">$2,450</span> and have played 1,284 hands. Biggest pot $4,120, best finish 2nd.</p></div>
+      <div>
+        <div class="row"><div><strong>Bronze season 2</strong><p class="dim">Event 3 of 5. Finish in the top two to move up.</p></div><span class="go">Open</span></div>
+        <div class="row"><div><strong>Cash game</strong><p class="dim">You set the stakes. Cash out whenever.</p></div><span class="go">Sit down</span></div>
+        <div class="row"><div><strong>Tournament</strong><p class="dim">One buy-in, rising blinds, prizes.</p></div><span class="go">Register</span></div>
+      </div>
+    </div>
+    <div class="box small">
+      <svg viewBox="0 0 80 48"><ellipse class="felt" cx="40" cy="24" rx="29" ry="15"/><circle class="you" cx="40" cy="45" r="4"/><circle class="seat" cx="12" cy="36" r="3.2"/><circle class="seat" cx="12" cy="12" r="3.2"/><circle class="seat" cx="40" cy="3" r="3.2"/><circle class="seat" cx="68" cy="12" r="3.2"/><circle class="seat" cx="68" cy="36" r="3.2"/></svg>
+      <div><h2>Quick Play</h2><p class="dim">Practice. Nothing counts.</p></div><span class="go">Play</span>
+    </div>
+    <div class="box small">
+      <svg viewBox="0 0 80 48"><ellipse class="felt" cx="40" cy="24" rx="29" ry="15"/><circle class="you" cx="40" cy="45" r="4"/><circle class="seat" cx="15" cy="40" r="3.2"/><circle class="seat" cx="5" cy="24" r="3.2"/><circle class="seat" cx="15" cy="8" r="3.2"/><circle class="seat" cx="40" cy="3" r="3.2"/><circle class="seat" cx="65" cy="8" r="3.2"/><circle class="seat" cx="75" cy="24" r="3.2"/><circle class="seat" cx="65" cy="40" r="3.2"/></svg>
+      <div><h2>Home game</h2><p class="dim">With friends, on phones.</p></div><span class="go">Host or join</span>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
