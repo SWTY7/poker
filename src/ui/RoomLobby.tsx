@@ -11,7 +11,7 @@ import type { LobbyProps } from './Lobby'
  */
 
 /** The eight-seat home table from above: you at the bottom, the others round the rail. */
-function HomeTable() {
+function HomeTable({ seated = 0 }: { seated?: number }) {
   const seats = 8
   return (
     <svg viewBox="0 0 80 48" className="room-table" aria-hidden="true">
@@ -24,7 +24,7 @@ function HomeTable() {
             cx={40 + Math.cos(a) * 35}
             cy={24 + Math.sin(a) * 21}
             r={i === 0 ? 4 : 3.2}
-            className={i === 0 ? 'room-seat-you' : 'room-seat'}
+            className={i === 0 ? 'room-seat-you' : i < seated ? 'room-seat room-seat-on' : 'room-seat'}
           />
         )
       })}
@@ -48,6 +48,7 @@ export function RoomLobby({
   profile,
   career,
   savedRoom,
+  savedRoomStatus,
   onChooseQuick,
   onClaimDailyStake,
   onResetProfile,
@@ -62,6 +63,16 @@ export function RoomLobby({
   const canClaim = canClaimDailyStake(profile)
   const tier = TIERS[career.tier]
   const { lifetime } = profile
+  // A room the server no longer has (it closes after a long quiet) can't be reopened.
+  const roomGone = savedRoom !== null && savedRoomStatus?.exists === false
+  const reopenable = savedRoom !== null && !roomGone
+  const roomLine = !savedRoom
+    ? 'Real cards at a real table with friends. The phones keep the chips.'
+    : roomGone
+      ? `Room ${savedRoom} has closed. Host a new one.`
+      : savedRoomStatus
+        ? `Room ${savedRoom}: ${savedRoomStatus.players} ${savedRoomStatus.players === 1 ? 'player' : 'players'} seated. They reconnect by themselves.`
+        : `Room ${savedRoom} is where you left it. Players reconnect by themselves.`
 
   return (
     <div className="room">
@@ -79,17 +90,13 @@ export function RoomLobby({
 
       <main className="room-boxes">
         <section className="room-box room-box-main" aria-labelledby="room-home">
-          <HomeTable />
+          <HomeTable seated={reopenable ? (savedRoomStatus?.players ?? 0) : 0} />
           <h2 id="room-home" className="room-name">
             Home game
           </h2>
-          <p className="room-line">
-            {savedRoom
-              ? `Room ${savedRoom} is where you left it. Players reconnect by themselves.`
-              : 'Real cards at a real table with friends. The phones keep the chips.'}
-          </p>
+          <p className="room-line">{roomLine}</p>
           <div className="room-acts">
-            {savedRoom && (
+            {reopenable && (
               <button type="button" className="room-go" onClick={onResumeRoom}>
                 Reopen {savedRoom}
               </button>

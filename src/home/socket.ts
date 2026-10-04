@@ -47,6 +47,22 @@ export async function roomExists(code: string): Promise<boolean | null> {
   }
 }
 
+/** A room as the lobby shows it: still there or not, and how many are seated. Null if the server can't be reached. */
+export interface RoomInfo {
+  exists: boolean
+  players: number
+}
+
+export async function roomStatus(code: string): Promise<RoomInfo | null> {
+  try {
+    const response = await fetch(`${roomServer()}/rooms/${code}`)
+    const body = (await response.json()) as { exists?: boolean; players?: number }
+    return { exists: body.exists === true, players: typeof body.players === 'number' ? body.players : 0 }
+  } catch {
+    return null
+  }
+}
+
 export interface RoomLine {
   send: (command: Command) => void
   close: () => void

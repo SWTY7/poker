@@ -20,7 +20,10 @@ interface HostEntryProps {
 
 interface JoinEntryProps {
   initialName: string
+  /** A room number from the link that brought you here; empty when you came from the lobby. */
   initialCode: string
+  /** The room you joined last time, shown faintly in the box until you type. */
+  lastCode?: string
   onJoin: (code: string, name: string) => void
   onBack: () => void
 }
@@ -184,7 +187,7 @@ export function HostEntry({ initialName, onOpen, onBack }: HostEntryProps) {
 }
 
 /** Joining a room: its number, and your name at the table. */
-export function JoinEntry({ initialName, initialCode, onJoin, onBack }: JoinEntryProps) {
+export function JoinEntry({ initialName, initialCode, lastCode = '', onJoin, onBack }: JoinEntryProps) {
   const [code, setCode] = useState(initialCode)
   const [name, setName] = useState(initialName)
   const valid = isRoomCode(code) && name.trim() !== ''
@@ -199,7 +202,7 @@ export function JoinEntry({ initialName, initialCode, onJoin, onBack }: JoinEntr
           maxLength={4}
           value={code}
           onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 4))}
-          placeholder="1234"
+          placeholder={lastCode || '1234'}
         />
       </label>
       <label className="home-field">
