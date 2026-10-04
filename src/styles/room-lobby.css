@@ -1,16 +1,16 @@
 /* ==========================================================================
    The room (the lobby under the Round table layout)
    --------------------------------------------------------------------------
-   The tables on the left, each a plan of its seats and a name, picked one at
-   a time; on the right, what you can do at the one you picked, as plain rows.
-   Nothing sits in a card; whitespace, type and rules do the grouping.
+   Three tables as three boxes: the home game first and widest, then Career,
+   then Quick Play. Each says what it is in a line and has its own verb. The
+   lifetime numbers run along the bottom as one line.
    Colours, fonts and buttons come from Settings like everywhere else.
    ========================================================================== */
 
 .room {
   min-height: 100dvh;
   box-sizing: border-box;
-  padding: clamp(1.5rem, 5vw, 3.5rem) clamp(1rem, 6vw, 5rem) 3rem;
+  padding: clamp(1.25rem, 4vw, 3rem) clamp(1rem, 5vw, 4rem) 2.5rem;
   background:
     repeating-linear-gradient(90deg, rgb(255 255 255 / 0.018) 0 2px, transparent 2px 11px),
     var(--table-bg);
@@ -18,17 +18,13 @@
   font-family: var(--font-display);
 }
 
-.room-layout {
-  display: grid;
-  grid-template-columns: 15rem minmax(0, 1fr);
-  column-gap: clamp(2rem, 6vw, 5rem);
-  max-width: 62rem;
-}
-
-.room-side {
+.room-head {
   display: flex;
-  flex-direction: column;
-  gap: var(--sp-5);
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--sp-4);
+  max-width: 64rem;
+  margin-bottom: var(--sp-5);
 }
 
 .room-title {
@@ -39,53 +35,95 @@
   line-height: 1;
 }
 
-/* --- the tables: a plan and a name each, one picked at a time ------------- */
+.room-links {
+  display: flex;
+  gap: var(--sp-4);
+  font-size: var(--fs-sm);
+}
 
-.room-tables {
+/* --- the three boxes ------------------------------------------------------ */
+
+.room-boxes {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr 1fr;
+  gap: var(--sp-4);
+  max-width: 64rem;
+}
+
+.room-box {
   display: flex;
   flex-direction: column;
-  border-top: 1px solid var(--line);
+  gap: var(--sp-2);
+  min-width: 0;
+  padding: var(--sp-4);
+  background: var(--panel);
+  border: 1px solid var(--line);
 }
 
-.room-pick {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-3);
-  padding: var(--sp-3) 0;
-  font: inherit;
-  text-align: left;
+.room-box-main {
+  border-color: var(--accent);
+}
+
+.room-name {
+  margin: 0;
+  font-size: var(--fs-xl);
+  font-weight: 600;
+  line-height: 1.15;
+}
+
+.room-line {
+  margin: 0;
   color: var(--text-dim);
+  font-size: var(--fs-md);
+  line-height: 1.45;
+}
+
+.room-fine {
+  margin: 0;
+  color: var(--text-faint);
+  font-size: var(--fs-sm);
+}
+
+.room-money {
+  margin: 0;
+  color: var(--text);
+  font-size: var(--fs-2xl);
+  font-weight: 600;
+  line-height: 1.1;
+  font-variant-numeric: lining-nums tabular-nums;
+}
+
+/* The verbs, along the bottom of each box under a dotted rule. */
+.room-acts {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--sp-3);
+  margin-top: auto;
+  padding-top: var(--sp-2);
+  border-top: 1px dotted var(--line);
+}
+
+.room-go {
+  padding: 0;
+  font: inherit;
+  font-weight: 600;
+  color: var(--accent);
   background: none;
   border: 0;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid var(--accent);
   cursor: pointer;
+  white-space: nowrap;
 }
 
-.room-pick .room-table {
-  width: 4.2rem;
-  flex-shrink: 0;
-}
-
-.room-pick-name {
-  font-size: var(--fs-lg);
-  font-weight: 600;
-}
-
-.room-pick-on {
+.room-go:hover {
   color: var(--text);
-}
-
-.room-pick-on .room-pick-name {
-  color: var(--accent);
-}
-
-@media (hover: hover) {
-  .room-pick:hover {
-    color: var(--text);
-  }
+  border-bottom-color: var(--text);
 }
 
 .room-table {
+  width: 100%;
+  max-height: 6.5rem;
   color: var(--text-dim);
   overflow: visible;
 }
@@ -93,7 +131,7 @@
 .room-table-felt {
   fill: var(--felt);
   stroke: var(--felt-rim);
-  stroke-width: 2.2;
+  stroke-width: 2.4;
   paint-order: stroke;
 }
 
@@ -103,228 +141,120 @@
 }
 
 .room-seat-you {
-  fill: var(--accent);
-}
-
-.room-puck {
   fill: var(--text);
-}
-
-/* --- the table you picked ------------------------------------------------ */
-
-.room-side {
-  grid-column: 1;
-  grid-row: 1;
-}
-
-.room-detail {
-  grid-column: 2;
-  grid-row: 1 / span 2;
-  min-width: 0;
-  padding-top: 0.35rem;
-}
-
-.room-name {
-  margin: 0;
-  font-size: var(--fs-2xl);
-  font-weight: 600;
-  line-height: 1.1;
-}
-
-.room-line {
-  margin: var(--sp-2) 0 0;
-  max-width: 38rem;
-  color: var(--text-dim);
-  font-size: var(--fs-md);
-  line-height: 1.5;
-}
-
-.room-money {
-  color: var(--text);
-  font-weight: 600;
-  font-variant-numeric: lining-nums tabular-nums;
 }
 
 /* A short stack of chips next to the bankroll: taller the more you have. */
 .room-chips {
   position: relative;
   display: inline-block;
-  width: 1.15rem;
-  height: 1rem;
-  margin: 0 0.15rem 0 0.4rem;
+  width: 1.4rem;
+  height: 1.3rem;
+  margin: 0 0.15rem 0 0.5rem;
   vertical-align: -0.1rem;
 }
 
 .room-chips i {
   position: absolute;
   left: 0;
-  bottom: calc(var(--k) * 0.16rem);
-  width: 1.15rem;
-  height: 0.5rem;
+  bottom: calc(var(--k) * 0.18rem);
+  width: 1.4rem;
+  height: 0.6rem;
   border-radius: 50%;
   background: #8f2a22;
-  box-shadow: inset 0 0 0 0.1rem #f1e6cc, 0 0.08rem 0 rgb(0 0 0 / 0.55);
+  box-shadow: inset 0 0 0 0.12rem #f1e6cc, 0 0.1rem 0 rgb(0 0 0 / 0.55);
 }
 
 .room-chips i:nth-child(even) {
   background: #1f4a31;
 }
 
-/* --- what you can do there ---------------------------------------------- */
-
-.room-goes {
-  margin-top: var(--sp-4);
-}
-
-.room-go {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--sp-4);
-  width: 100%;
-  padding: var(--sp-3) 0;
-  text-align: left;
-  font: inherit;
-  color: inherit;
-  background: none;
-  border: 0;
-  border-top: 1px dotted var(--line-soft);
-  cursor: pointer;
-}
-
-.room-go:first-child {
-  border-top: 0;
-}
-
-.room-go-text {
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
-  min-width: 0;
-}
-
-.room-go-title {
-  font-size: var(--fs-lg);
-  font-weight: 600;
-}
-
-.room-go-copy {
-  color: var(--text-dim);
-  font-size: var(--fs-sm);
-  line-height: 1.4;
-}
-
-.room-go-verb {
-  flex-shrink: 0;
-  color: var(--accent);
-  font-weight: 600;
-  border-bottom: 1px solid transparent;
-}
-
-@media (hover: hover) {
-  .room-go:hover .room-go-verb {
-    border-bottom-color: currentColor;
-  }
-
-  .room-go:hover .room-go-title {
-    color: var(--accent);
-  }
-}
-
-.room-recent {
-  list-style: none;
-  margin: var(--sp-4) 0 0;
-  padding: 0;
-  max-width: 26rem;
-  color: var(--text-dim);
-  font-size: var(--fs-sm);
-}
-
-.room-recent li {
-  display: flex;
-  justify-content: space-between;
-  gap: var(--sp-4);
-  padding: 0.15rem 0;
-}
-
-/* --- the quiet links ----------------------------------------------------- */
+/* --- the one line under them ---------------------------------------------- */
 
 .room-foot {
-  grid-column: 1;
-  grid-row: 2;
-  align-self: start;
-  margin-top: var(--sp-5);
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: var(--sp-2);
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--sp-2) var(--sp-5);
+  max-width: 64rem;
+  margin-top: var(--sp-5);
+  padding-top: var(--sp-3);
+  border-top: 1px solid var(--line);
   color: var(--text-dim);
   font-size: var(--fs-sm);
+}
+
+.room-foot b {
+  margin-right: 0.2rem;
+  color: var(--text);
+  font-size: var(--fs-md);
+  font-variant-numeric: lining-nums tabular-nums;
+}
+
+.room-reset {
+  margin-left: auto;
 }
 
 .room-text-link {
   padding: 0;
   font: inherit;
-  color: var(--accent);
+  color: var(--text-dim);
   background: none;
   border: 0;
-  border-bottom: 1px solid transparent;
+  border-bottom: 1px solid var(--accent);
   cursor: pointer;
 }
 
 .room-text-link:hover {
-  border-bottom-color: currentColor;
+  color: var(--text);
+}
+
+.room-claim {
+  align-self: flex-start;
+  color: var(--accent);
 }
 
 .room-text-link-quiet {
   color: var(--text-faint);
+  border-bottom-color: transparent;
 }
 
-/* --- phones: the tables sit in a row along the top ----------------------- */
+/* --- phones: one column, home game first, big buttons ----------------------- */
 
 @media (max-width: 720px) {
-  .room-layout {
+  .room-boxes {
     grid-template-columns: minmax(0, 1fr);
-    row-gap: var(--sp-5);
   }
 
-  .room-tables {
-    flex-direction: row;
-    border-top: 0;
-    border-bottom: 1px solid var(--line);
-  }
-
-  .room-pick {
-    flex: 1 1 0;
-    flex-direction: column;
-    align-items: flex-start;
+  .room-box-main .room-acts {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     gap: var(--sp-2);
-    border-bottom: 2px solid transparent;
+    border-top: 0;
+    padding-top: var(--sp-1);
   }
 
-  .room-pick-on {
-    border-bottom-color: var(--accent);
+  .room-box-main .room-go:first-child:nth-last-child(3) {
+    grid-column: 1 / -1;
   }
 
-  .room-pick .room-table {
-    width: 3.4rem;
+  .room-box-main .room-go {
+    padding: 0.7rem 1rem;
+    text-align: center;
+    border: 1px solid var(--accent);
+    border-radius: var(--radius-sm, 0.4rem);
   }
 
-  .room-pick-name {
-    font-size: var(--fs-md);
+  .room-box-main .room-go:first-child:nth-last-child(3) {
+    color: var(--on-accent);
+    background: var(--accent);
   }
 
-  .room-side,
-  .room-detail,
-  .room-foot {
-    grid-column: 1;
-    grid-row: auto;
+  .room-table {
+    max-height: 5rem;
   }
 
-  .room-foot {
-    flex-direction: row;
-    flex-wrap: wrap;
-    gap: var(--sp-2) var(--sp-4);
-    margin-top: 0;
+  .room-reset {
+    margin-left: 0;
   }
 }

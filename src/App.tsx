@@ -483,7 +483,10 @@ function App() {
         <CareerHub
           career={career}
           bankroll={profile.bankroll}
+          history={profile.history}
           onPlayEvent={handlePlayEvent}
+          onCash={() => setScreen({ kind: 'cash-setup' })}
+          onTournament={() => setScreen({ kind: 'tournament-setup' })}
           onDismissSeason={() => setCareer((c) => ({ ...c, lastSeason: null }))}
           onBack={goLobby}
         />

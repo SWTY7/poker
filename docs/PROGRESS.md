@@ -107,13 +107,17 @@ the original look); someone who had chosen a single theme before gets that prese
   your last action and the chips you've committed beside your cards; no panel), seats lean away from the
   centre and sit slightly off the line, and the dealer button is a puck on the felt. Standard hides those
   parts.
-- The Round table layout also has its own lobby, `ui/RoomLobby.tsx` (`styles/room-lobby.css`): the three tables
-  (Quick Play, Career, Home game) listed on the left, each with a plan of its seats, and the one you pick shown
-  on the right as plain rows of what you can do there, one table at a time so it fits a screen. No cards.
+- The Round table layout also has its own lobby, `ui/RoomLobby.tsx` (`styles/room-lobby.css`): three boxes, the
+  home game first and widest (Reopen / Host / Join), then Career (bankroll as a chip stack, season, daily stake)
+  and Quick Play, each with its own verb, and the lifetime numbers as one line under them. One column on a
+  phone. The Career screen carries Cash game, Tournament and recent results under "Outside the season".
+- `styles/layout-round-screens.css` brings every screen built from the menu pieces (setup, career, join/host,
+  your play, settings, the home room) into the same look under the Round table layout: no card around the
+  form, rules between sections, left-aligned, a flat brass button, the season as a row of events. Standard is
+  untouched.
 - The pot is drawn as chips (`PotChips` in `Board.tsx`, shown by the Round table layout): more chips, in more
   stacks, as it grows, counted in big blinds with a square root. On a phone held upright, the Round table
-  shows only the seat being waited on (or the winner), where it sits. `App` picks it from `getLook()` (`useSyncExternalStore`). The other screens (setup, career hub,
-  results) still use the Standard styling in every layout.
+  shows only the seat being waited on (or the winner), where it sits. `App` picks the lobby from `getLook()` (`useSyncExternalStore`).
 - The Settings screen (a button in the lobby) picks any of them, plus the default table speed.
 
 ## The table UI — `src/ui/`
