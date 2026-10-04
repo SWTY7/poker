@@ -108,6 +108,12 @@
   font-variant-numeric: lining-nums;
 }
 
+/* The last room number sits in the box as a faint hint, and goes as you type. */
+[data-layout='round'] .home-field input.home-code-input::placeholder {
+  color: var(--text-faint);
+  opacity: 0.55;
+}
+
 /* --- career: the season as a row of events, then the other ways to play ---- */
 
 [data-layout='round'] .career-events {

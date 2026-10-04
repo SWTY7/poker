@@ -10,7 +10,7 @@ import { MAX_LEVEL_MINUTES, newTable, shuffledDeck, type CardMode, type HomeConf
  * holds the deck where no player, the host included, can see it.
  *
  *   POST /rooms             create a room: { config, cards } → { code, hostToken }
- *   GET  /rooms/:code       does it exist?  → { exists }
+ *   GET  /rooms/:code       does it exist, and how many are seated?  → { exists, players }
  *   GET  /rooms/:code/ws    the WebSocket for a phone at that table
  */
 
@@ -67,6 +67,12 @@ export class Room extends DurableObject<Env> {
 
   async exists(): Promise<boolean> {
     return (await this.ctx.storage.get('room')) !== undefined
+  }
+
+  /** What the lobby shows beside a room you could reopen: whether it is still there, and how many are seated. */
+  async status(): Promise<{ exists: boolean; players: number }> {
+    const saved = await this.ctx.storage.get<Saved>('room')
+    return { exists: saved !== undefined, players: saved?.state.players.length ?? 0 }
   }
 
   async fetch(_request: Request): Promise<Response> {
@@ -207,7 +213,7 @@ export default {
 
     if (request.method === 'GET' && path[0] === 'rooms' && path.length >= 2 && isRoomCode(path[1])) {
       const room = env.ROOMS.get(env.ROOMS.idFromName(path[1]))
-      if (path.length === 2) return json({ exists: await room.exists() })
+      if (path.length === 2) return json(await room.status())
       if (path.length === 3 && path[2] === 'ws') {
         if (request.headers.get('Upgrade') !== 'websocket') return new Response('Expected a WebSocket', { status: 426 })
         return room.fetch(request)

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { Profile } from '../game/profile'
 import type { GameMode } from '../game/mode'
+import type { RoomInfo } from '../home/socket'
 import { TIERS, type CareerData } from '../game/career'
 import { canClaimDailyStake, DAILY_STAKE_AMOUNT, DAILY_STAKE_THRESHOLD } from '../game/profile'
 import { DealIcon, TrophyIcon } from './icons'
@@ -21,6 +22,8 @@ export interface LobbyProps {
   onChooseCareer: () => void
   /** Home Game: a room this phone was hosting, to reopen after a reload. */
   savedRoom: string | null
+  /** What the server says about that room; null until it has answered, or if it can't be reached. */
+  savedRoomStatus?: RoomInfo | null
   onHostGame: () => void
   onResumeRoom: () => void
   onJoinGame: () => void

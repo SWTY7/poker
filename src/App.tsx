@@ -15,7 +15,7 @@ import { HostEntry, JoinEntry, type HostSetup } from './ui/home/HomeEntry'
 import { RoomScreen } from './ui/home/HomeScreens'
 import { isRoomCode } from './home/room'
 import { loadHost, loadMe, saveHost, saveMe } from './home/saved'
-import { createRoom } from './home/socket'
+import { createRoom, roomStatus, type RoomInfo } from './home/socket'
 import type { TournamentOutcome } from './ui/TournamentResults'
 import { Table } from './ui/Table'
 import { useHoldemGame } from './ui/useHoldemGame'
@@ -245,6 +245,22 @@ function App() {
 
   const goLobby = () => setScreen({ kind: 'lobby' })
 
+  // The room you were hosting: is it still there, and how many are seated? Asked of the server whenever the lobby opens.
+  const savedRoom = loadHost()?.code ?? null
+  const [fetchedRoom, setFetchedRoom] = useState<{ code: string; info: RoomInfo | null } | null>(null)
+  const inLobby = screen.kind === 'lobby'
+  useEffect(() => {
+    if (!savedRoom || !inLobby) return
+    let current = true
+    void roomStatus(savedRoom).then((info) => {
+      if (current) setFetchedRoom({ code: savedRoom, info })
+    })
+    return () => {
+      current = false
+    }
+  }, [savedRoom, inLobby])
+  const savedRoomStatus = fetchedRoom?.code === savedRoom ? fetchedRoom.info : null
+
   /** Makes the room on the server; returns a message to show if that failed. */
   const handleOpenRoom = async ({ config, hostName, cards }: HostSetup): Promise<string | null> => {
     let room: { code: string; hostToken: string }
@@ -438,10 +454,11 @@ function App() {
           onChooseTournament={() => setScreen({ kind: 'tournament-setup' })}
           career={career}
           onChooseCareer={() => setScreen({ kind: 'career' })}
-          savedRoom={loadHost()?.code ?? null}
+          savedRoom={savedRoom}
+          savedRoomStatus={savedRoomStatus}
           onHostGame={() => setScreen({ kind: 'home-host-setup' })}
           onResumeRoom={handleResumeRoom}
-          onJoinGame={() => setScreen({ kind: 'home-join', code: loadMe().code })}
+          onJoinGame={() => setScreen({ kind: 'home-join', code: '' })}
           onOpenYourPlay={() => setScreen({ kind: 'your-play' })}
           onOpenSettings={() => setScreen({ kind: 'settings' })}
         />
@@ -466,7 +483,7 @@ function App() {
     case 'home-host-setup':
       return <HostEntry initialName={loadMe().name} onOpen={handleOpenRoom} onBack={goLobby} />
     case 'home-join':
-      return <JoinEntry initialName={loadMe().name} initialCode={screen.code} onJoin={handleJoinRoom} onBack={leaveHome} />
+      return <JoinEntry initialName={loadMe().name} initialCode={screen.code} lastCode={loadMe().code} onJoin={handleJoinRoom} onBack={leaveHome} />
     case 'home-room':
       return (
         <RoomScreen

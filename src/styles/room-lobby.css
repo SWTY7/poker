@@ -140,6 +140,11 @@
   opacity: 0.55;
 }
 
+.room-seat-on {
+  fill: var(--accent);
+  opacity: 0.9;
+}
+
 .room-seat-you {
   fill: var(--text);
 }
