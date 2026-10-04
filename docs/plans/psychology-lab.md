@@ -111,6 +111,47 @@ accounting style, tilt sensitivity, level-k depth, confidence, discipline. So:
 If bot personalities can't be recovered from their play, there's no claim to make about humans. This step
 decides whether 3b is worth doing.
 
+### 3a result (2026-10-04)
+
+Built as `src/lab/` (`draw.ts` the ground-truth draw, `session.ts` six bots logged like the human,
+`features.ts` the statistics, `recover.ts` ridge regression and nearest-neighbour) and
+`scripts/personality-lab.ts` (`npm run lab -- generate|analyze`). 80 tables of six, 500 hands each, 480 seats;
+every seat's character drawn independently from wide ranges (`PARAMS` in `draw.ts`); the bots play with the
+app's solves. Scored on seats from tables the fit never saw (the last 30% of tables, about 144 seats, so a
+correlation is good to roughly ±0.07). One run, no repeats. Held-out correlation r, ridge (nearest-neighbour
+is the same story or worse):
+
+| parameter | 50 hands | 100 | 200 | 500 |
+|---|---|---|---|---|
+| loss aversion (lambda) | 0.68 | 0.73 | 0.79 | 0.85 |
+| level-k depth | 0.52 | 0.63 | 0.69 | 0.68 |
+| discipline | 0.42 | 0.58 | 0.69 | 0.77 |
+| probability weighting (gamma) | 0.43 | 0.52 | 0.64 | 0.69 |
+| losses kept in the reference point | 0.19 | 0.24 | 0.29 | 0.45 |
+| gains kept in the reference point | 0.15 | 0.25 | 0.27 | 0.26 |
+| confidence | 0.00 | 0.12 | 0.14 | 0.25 |
+| tilt sensitivity (kappa) | 0.01 | 0.09 | 0.10 | 0.12 |
+| tilt retained per hand | 0.03 | 0.03 | -0.02 | 0.00 |
+
+- **Recoverable from these statistics:** lambda, level, discipline and gamma. Lambda and level are usable by
+  100 hands (r about 0.7 and 0.6); discipline and gamma need 200 or more. This answers "which stats are
+  stable in ~100 hands" for the open question below: the ones that move with those four.
+- **Not recoverable from these statistics:** tilt sensitivity, tilt retention, confidence, and the gains
+  persistence. Reported as not identifiable here, with no number. The loss persistence is weak and only shows
+  at 500 hands.
+- **What that does and doesn't say.** The tilt signature needs big losses to exist: at 25 bb a seat has few in
+  500 hands, so those two parameters may be invisible to *summary statistics* and still visible to a method
+  that uses every decision. That is the likelihood fit. It was not built: it needs PsychBot to expose
+  the probability of each action it could take (it only samples one today), a seam that must change no
+  decision, and each decision's full observation, which `HandRecord` does not keep.
+- Not tested: whether lambda and discipline are recovered independently or one is standing in for the other
+  (the draws are independent, but the table's play isn't). Alpha, beta and the accounting mode were held fixed.
+- **Decision for 3b:** the plan said a failed 3a means no claim about humans. It half-passed: four parameters
+  come back, so a real-player study could at most speak to loss aversion, depth of reasoning, how much
+  they've studied, and probability weighting. It cannot speak to tilt or confidence from summary
+  statistics. Whether that justifies the Supabase backend (which conflicts with the no-backend invariant) is
+  sunwoo's call.
+
 ### 3b. Real players
 
 - **Backend:** Supabase (auth + Postgres) with the site still on GitHub Pages. The anon key may ship

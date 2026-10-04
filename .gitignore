@@ -30,3 +30,5 @@ poker-ui-directions.html
 # Wrangler (Cloudflare) local state and build output
 .wrangler
 .dev.vars
+lab-data/
+lab-gen-*.log
