@@ -67,8 +67,6 @@ export function RoomLobby({
   profile,
   career,
   savedRoom,
-  achievementCount,
-  achievementTotal,
   onChooseQuick,
   onClaimDailyStake,
   onResetProfile,
@@ -78,7 +76,6 @@ export function RoomLobby({
   onHostGame,
   onResumeRoom,
   onJoinGame,
-  onOpenAchievements,
   onOpenSettings,
   onOpenYourPlay,
 }: LobbyProps) {
@@ -186,9 +183,6 @@ export function RoomLobby({
         <div className="room-foot">
           <button type="button" className="room-text-link" onClick={onOpenYourPlay}>
             Your play
-          </button>
-          <button type="button" className="room-text-link" onClick={onOpenAchievements}>
-            Achievements, {achievementCount} of {achievementTotal}
           </button>
           <button type="button" className="room-text-link" onClick={onOpenSettings}>
             Settings

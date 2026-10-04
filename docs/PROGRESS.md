@@ -61,12 +61,7 @@ this layer hasn't needed rework since the milestones in the v1 plan.
   Championship is one Deep final), with points 10/6/4/3/2/1. Top two move up; a Championship win is a
   title, defended next season. Screens: `CareerHub` (events, standings, next event) and its season summary,
   reached from a door in the Career lobby.
-- `achievements.ts`: ten Career achievements, saved under `poker.achievements` with the date each was
-  earned. Detected after the fact: `handAchievements` from a finished hand (first pot, a win with 7-2, a
-  hero call with one pair or less against a river bet, busting a rival), `tournamentAchievements` from a
-  finish, `seasonAchievements` from the career after an event (top of the standings, each promotion, the
-  title). Only solo Career tables earn them. `App` shows a toast (`ui/Achievements.tsx`) and the Career
-  lobby has an Achievements screen.
+- Achievements were built (ten, with toasts and a screen) and removed again on 2026-10-04 at sunwoo’s request; nothing else depended on them.
 - `blinds.ts`: rising blinds for the home game's house rule (about half again a level, on round amounts).
 
 ## Home game — `src/home/`

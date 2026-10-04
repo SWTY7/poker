@@ -102,7 +102,7 @@ after step 3, before step 4.*
 *Built (a pause from how close each decision was, plus a per-character rhythm) and then taken out at the
 user's request. Bots are back on the fixed pause per action type in `useHoldemGame.ts`.*
 
-### 5. Basic achievements — done 2026-10-02
+### 5. Basic achievements — done 2026-10-02, removed 2026-10-04 (not wanted for now)
 
 *Built in `src/game/achievements.ts` (tests: `tests/game/achievements.test.ts`) and `src/ui/Achievements.tsx`.
 Decisions made along the way: "first win" became two, the first pot and the first tournament win; "win a

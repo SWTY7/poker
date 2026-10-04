@@ -25,10 +25,6 @@ export interface LobbyProps {
   onResumeRoom: () => void
   onJoinGame: () => void
   onOpenYourPlay: () => void
-  /** Career: how many achievements are earned, of how many. */
-  achievementCount: number
-  achievementTotal: number
-  onOpenAchievements: () => void
   onOpenSettings: () => void
 }
 
@@ -63,9 +59,6 @@ export function Lobby({
   onHostGame,
   onResumeRoom,
   onJoinGame,
-  achievementCount,
-  achievementTotal,
-  onOpenAchievements,
   onOpenSettings,
   onOpenYourPlay,
 }: LobbyProps) {
@@ -293,11 +286,6 @@ export function Lobby({
               <button type="button" className="btn btn-secondary" onClick={onOpenYourPlay}>
                 Your play — style, leaks, hand history
               </button>
-              {mode === 'career' && (
-                <button type="button" className="btn btn-secondary" onClick={onOpenAchievements}>
-                  Achievements · {achievementCount} of {achievementTotal}
-                </button>
-              )}
             </div>
           )}
         </div>
