@@ -260,14 +260,10 @@
 
   /* The surface itself. A bounded, slightly lifted plane, rimmed rather than
      shadowed — enough that the seats read as sitting AT something. */
-  background:
-    radial-gradient(85% 65% at 50% 42%, rgba(90, 140, 100, 0.12) 0%, transparent 70%),
-    linear-gradient(180deg, #1b3527 0%, #122015 100%);
-  border: 1px solid var(--felt-rim);
+  background: var(--felt-bg);
+  border: var(--felt-border);
   border-radius: var(--r-xl);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.04),
-    var(--sh-2);
+  box-shadow: var(--felt-shadow);
 }
 
 /* The rail: an ellipse inscribed in the surface, at the opacity of a
@@ -278,7 +274,7 @@
   content: '';
   position: absolute;
   inset: 22% 5% 8%;
-  border: 1px solid rgba(205, 174, 112, 0.09);
+  border: 1px solid var(--felt-ring);
   border-radius: 50% / 42%;
   pointer-events: none;
 }
@@ -305,6 +301,21 @@
   /* Room for the bet chips that hang below each seat. Without it they landed
      on top of the street caption. */
   padding-bottom: 0.85rem;
+}
+
+/* Parts only some layouts draw: you as a seat, and the dealer puck. */
+.hero-avatar,
+.hero-status,
+.hero-bet,
+.seat-dealer-puck,
+.pot-chips {
+  display: none;
+}
+
+/* A seat's place in the row. Plain layout here; a theme may place each slot
+   itself, using --seat (this one's index) and --seats (how many). */
+.seat-slot {
+  display: contents;
 }
 
 .seat {
@@ -339,13 +350,13 @@
 .seat-active {
   border-color: var(--accent);
   background: var(--accent-tint);
-  box-shadow: 0 0 18px rgba(205, 174, 112, 0.28);
+  box-shadow: 0 0 18px rgb(var(--accent-rgb) / 0.28);
 }
 
 .seat-winner {
   border-color: var(--green);
-  background: rgba(126, 207, 149, 0.1);
-  box-shadow: 0 0 16px rgba(126, 207, 149, 0.35);
+  background: rgb(var(--win-rgb) / 0.1);
+  box-shadow: 0 0 16px rgb(var(--win-rgb) / 0.35);
 }
 
 .seat-top {
@@ -427,7 +438,7 @@
 
 .badge-blind {
   color: var(--gold);
-  border-color: rgba(213, 174, 87, 0.4);
+  border-color: rgb(var(--gold-rgb) / 0.4);
 }
 
 .seat-stack {
@@ -474,7 +485,7 @@
   font-size: var(--fs-2xs);
   color: var(--gold);
   background: var(--felt);
-  border: 1px solid rgba(213, 174, 87, 0.35);
+  border: 1px solid rgb(var(--gold-rgb) / 0.35);
   border-radius: var(--r-pill);
   padding: 0.08rem 0.35rem;
   white-space: nowrap;
@@ -725,13 +736,14 @@
 }
 
 .btn-accent {
-  --btn-bg: rgba(205, 174, 112, 0.14);
-  --btn-border: var(--accent);
-  --btn-fg: var(--accent);
+  --btn-bg: var(--bx-accent-bg, rgb(var(--accent-rgb) / 0.14));
+  --btn-border: var(--bx-accent-border, var(--accent));
+  --btn-fg: var(--bx-accent-fg, var(--accent));
+  box-shadow: var(--bx-accent-shadow, var(--bx-shadow, none));
 }
 
 .btn-accent:hover:not(:disabled) {
-  --btn-bg: rgba(205, 174, 112, 0.24);
+  --btn-bg: rgb(var(--accent-rgb) / 0.24);
 }
 
 .dock-row > .dock-back {
@@ -916,8 +928,8 @@
   justify-content: space-between;
   gap: var(--sp-4);
   padding: var(--sp-3) var(--sp-4);
-  background: rgba(126, 207, 149, 0.07);
-  border: 1px solid rgba(126, 207, 149, 0.35);
+  background: rgb(var(--win-rgb) / 0.07);
+  border: 1px solid rgb(var(--win-rgb) / 0.35);
   border-radius: var(--r-lg);
   animation: result-in var(--t-mid) var(--ease);
 }

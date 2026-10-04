@@ -8,7 +8,7 @@ import { ChipIcon } from './ChipIcon'
 import { SUIT_PATH } from './suit-icons'
 import { ordinal } from '../utils/format'
 
-interface LobbyProps {
+export interface LobbyProps {
   profile: Profile
   mode: GameMode
   onModeChange: (mode: GameMode) => void
@@ -25,10 +25,7 @@ interface LobbyProps {
   onResumeRoom: () => void
   onJoinGame: () => void
   onOpenYourPlay: () => void
-  /** Career: how many achievements are earned, of how many. */
-  achievementCount: number
-  achievementTotal: number
-  onOpenAchievements: () => void
+  onOpenSettings: () => void
 }
 
 /**
@@ -62,9 +59,7 @@ export function Lobby({
   onHostGame,
   onResumeRoom,
   onJoinGame,
-  achievementCount,
-  achievementTotal,
-  onOpenAchievements,
+  onOpenSettings,
   onOpenYourPlay,
 }: LobbyProps) {
   const [confirmingReset, setConfirmingReset] = useState(false)
@@ -280,16 +275,17 @@ export function Lobby({
             </>
           )}
 
+          <div className="lobby-your-play-row">
+            <button type="button" className="btn btn-secondary" onClick={onOpenSettings}>
+              Settings
+            </button>
+          </div>
+
           {mode !== 'home' && (
             <div className="lobby-your-play-row">
               <button type="button" className="btn btn-secondary" onClick={onOpenYourPlay}>
                 Your play — style, leaks, hand history
               </button>
-              {mode === 'career' && (
-                <button type="button" className="btn btn-secondary" onClick={onOpenAchievements}>
-                  Achievements · {achievementCount} of {achievementTotal}
-                </button>
-              )}
             </div>
           )}
         </div>

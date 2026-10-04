@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lobby flow</title>
+<style>
+:root{--bg:#16100b;--panel:#1d1610;--line:#3d2c1a;--soft:#33261a;--text:#f3e9d6;--dim:#b3a58c;--faint:#8d806a;--accent:#d9a24a;--felt:#1f5236;--rim:#3a2412;--down:#c8624f;--up:#6fbf86}
+*{box-sizing:border-box}
+body{margin:0;background:#0d0906;color:var(--text);font-family:Georgia,'Times New Roman',serif}
+h1,h2,h3,p,ul,ol{margin:0;padding:0}
+ul,ol{list-style:none}
+.intro{max-width:82rem;margin:0 auto;padding:2rem 1.5rem 0;font:.95rem/1.5 system-ui,sans-serif;color:var(--dim)}
+.intro b{display:block;font:600 1.5rem Georgia,serif;color:var(--text);margin-bottom:.3rem}
+.nav{display:flex;flex-wrap:wrap;gap:.5rem 1rem;margin-top:.8rem}
+.nav a{color:var(--accent);text-decoration:none;border-bottom:1px solid var(--accent)}
+.label{font:400 .9rem system-ui,sans-serif;color:var(--dim);padding:2.2rem 1.5rem .7rem;max-width:82rem;margin:auto}
+.label b{display:block;font:600 1.2rem Georgia,serif;color:var(--text);margin-bottom:.2rem}
+.label em{color:var(--accent);font-style:normal}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) 23.5rem;gap:1.5rem;max-width:82rem;margin:0 auto;padding:0 1.5rem;align-items:start}
+.cap{font:.75rem system-ui,sans-serif;color:var(--faint);margin-bottom:.4rem}
+.frame{container-type:inline-size;background:var(--bg);border:1px solid var(--line);padding:1.6rem}
+.phone{width:23.5rem;padding:1rem;border-radius:1.6rem;border:2px solid #4a3a28}
+@media(max-width:1000px){.pair{grid-template-columns:1fr}}
+
+/* ---- shared pieces ---- */
+.back{font:.82rem system-ui,sans-serif;color:var(--dim);border-bottom:1px solid var(--line);align-self:flex-start}
+.head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:1.3rem;gap:1rem}
+.word{font-size:2rem;font-weight:600}
+.title{font-size:1.9rem;font-weight:600;line-height:1.1}
+.sub{color:var(--dim);font-size:.95rem;margin-top:.3rem;line-height:1.45}
+.links{color:var(--dim);font:.82rem system-ui,sans-serif;display:flex;gap:1.1rem}
+.links u{text-decoration-color:var(--accent);text-underline-offset:3px}
+.go{font:600 .85rem system-ui,sans-serif;color:var(--accent);border-bottom:1px solid var(--accent);padding-bottom:1px;white-space:nowrap}
+.dim{color:var(--dim);font-size:.93rem;line-height:1.45}
+.faint{color:var(--faint);font:.8rem system-ui,sans-serif}
+.btn{display:block;font:600 .95rem system-ui,sans-serif;text-align:center;padding:.8rem 1.2rem;border:1px solid var(--accent);color:var(--accent);border-radius:.4rem}
+.btn.solid{background:var(--accent);color:#1b1208}
+.btn.quiet{border-color:var(--line);color:var(--dim)}
+.sec{border-top:1px solid var(--line);padding:1rem 0;display:flex;flex-direction:column;gap:.8rem}
+.sec>h2{font:600 .95rem Georgia,serif;color:var(--dim);font-style:italic}
+.row{display:flex;justify-content:space-between;align-items:baseline;gap:1rem;padding:.55rem 0;border-top:1px dotted var(--soft)}
+.row:first-of-type{border-top:0}
+.row strong{font-weight:600}
+.num{font-variant-numeric:lining-nums tabular-nums}
+.seg{display:flex;border:1px solid var(--line);border-radius:.4rem;overflow:hidden;font:600 .85rem system-ui,sans-serif;width:max-content;max-width:100%}
+.seg span{padding:.5rem .9rem;color:var(--dim);border-left:1px solid var(--line)}
+.seg span:first-child{border-left:0}
+.seg .on{background:var(--accent);color:#1b1208}
+.field{display:flex;flex-direction:column;gap:.25rem;font:.8rem system-ui,sans-serif;color:var(--dim)}
+.field i{font:normal 1.05rem Georgia,serif;color:var(--text);border-bottom:1px solid var(--faint);padding:.3rem 0;font-variant-numeric:lining-nums}
+.fields{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem}
+.felt{fill:var(--felt);stroke:var(--rim);stroke-width:2.4;paint-order:stroke}
+.s{fill:#4a3a28}.f{fill:var(--accent)}.me{fill:#f3e9d6}.pk{fill:#f3e9d6}
+.chips{display:inline-block;position:relative;width:1.4rem;height:1.3rem;vertical-align:-.15rem;margin-left:.4rem}
+.chips i{position:absolute;left:0;width:1.4rem;height:.6rem;border-radius:50%;background:#8f2a22;box-shadow:inset 0 0 0 .12rem #f1e6cc,0 .1rem 0 #0008}
+.chips i:nth-child(even){background:#1f4a31}
+.big{font-size:2rem;font-weight:600;font-variant-numeric:lining-nums}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:2rem}
+.stack{display:flex;flex-direction:column;gap:1rem}
+.denoms{display:flex;gap:.7rem;flex-wrap:wrap}
+.denom{width:3.6rem;height:3.6rem;border-radius:50%;display:grid;place-items:center;font:600 .8rem system-ui,sans-serif;color:#1b1208;background:#efe6cf;box-shadow:inset 0 0 0 .3rem var(--c),inset 0 0 0 .42rem #efe6cf,0 .15rem 0 #0008}
+.denom.on{outline:2px solid var(--accent);outline-offset:3px}
+.slots{display:flex;gap:.6rem}
+.slots i{width:3.4rem;height:4.2rem;border:1px solid var(--faint);border-radius:.3rem;display:grid;place-items:center;font:normal 2rem Georgia,serif;font-variant-numeric:lining-nums}
+.slots i.cur{border-color:var(--accent)}
+.stepper{display:flex;align-items:center;gap:.8rem;font:600 1.1rem Georgia,serif}
+.stepper b{width:2rem;height:2rem;border:1px solid var(--line);border-radius:50%;display:grid;place-items:center;font:600 1rem system-ui,sans-serif;color:var(--dim)}
+.toggle{font:600 .8rem system-ui,sans-serif;color:var(--dim);border:1px solid var(--line);border-radius:2rem;padding:.25rem .8rem}
+.toggle.on{border-color:var(--accent);color:var(--accent)}
+.bar{display:flex;align-items:center;gap:.4rem}
+.ev{display:flex;gap:0;margin:.3rem 0}
+.ev li{flex:1;border-top:2px solid var(--line);padding-top:.5rem;font:.78rem system-ui,sans-serif;color:var(--faint);display:flex;flex-direction:column;gap:.1rem}
+.ev li strong{font:600 .95rem Georgia,serif;color:var(--text)}
+.ev li.done{border-color:var(--dim)}
+.ev li.now{border-color:var(--accent)}.ev li.now strong{color:var(--accent)}
+.ev li+li{margin-left:.5rem}
+.sw{display:flex;gap:.5rem}
+.sw i{width:2.2rem;height:2.2rem;border-radius:.3rem;border:1px solid var(--line)}
+.up{color:var(--up)}.down{color:var(--down)}
+.bigchip{width:2.2rem;height:2.2rem;border-radius:50%;background:var(--accent);flex-shrink:0;display:grid;place-items:center;color:#1b1208;font:700 .8rem system-ui}
+.seats{display:flex;flex-direction:column}
+.seat{display:flex;align-items:center;gap:.8rem;padding:.55rem 0;border-top:1px dotted var(--soft)}
+.seat:first-child{border-top:0}
+.av{width:2rem;height:2rem;border-radius:50%;display:grid;place-items:center;font:700 .85rem system-ui,sans-serif;color:#1b1208;flex-shrink:0}
+.seat .nm{flex:1}.seat .st{font-variant-numeric:lining-nums}
+.empty{opacity:.55}
+.pill{font:600 .75rem system-ui,sans-serif;color:var(--up);border:1px solid var(--up);border-radius:2rem;padding:.15rem .6rem}
+
+/* phones: everything single column */
+@container (max-width:560px){
+  .two,.fields{grid-template-columns:1fr 1fr}
+  .two{grid-template-columns:1fr;gap:1rem}
+  .head{flex-direction:column;gap:.4rem}
+  .title{font-size:1.6rem}
+  .slots i{width:2.9rem}
+  .ev{flex-direction:column;gap:.2rem}.ev li{flex-direction:row;justify-content:space-between;border-top:0;border-left:2px solid var(--line);padding:.1rem 0 .1rem .6rem;margin:0!important}
+  .big{font-size:1.6rem}
+  .hidephone{display:none}
+}
+</style>
+</head>
+<body>
+<div class="intro"><b>What each button opens</b>
+Every screen below is shown on desktop and phone. They keep the lobby's look: left-aligned, rules between sections, one solid brass button for the main action, and poker things (chips, seats, a room number) instead of icons. Achievements is gone from the lobby. These are mockups with made-up numbers.
+<div class="nav"><a href="#lobby">Lobby</a><a href="#reopen">Reopen</a><a href="#host">Host</a><a href="#join">Join</a><a href="#career">Career, Open</a><a href="#quick">Quick Play, Play</a><a href="#play">Your play</a><a href="#settings">Settings</a></div></div>
+
+<!-- ============ templates ============ -->
+<template id="t-lobby">
+  <div class="head"><span class="word">Poker</span><span class="links"><u>Your play</u><u>Settings</u></span></div>
+  <div style="display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:1rem" class="lobbygrid">
+    <div class="box hot"><svg viewBox="0 0 80 48" style="width:100%;max-height:6.5rem"><ellipse class="felt" cx="40" cy="24" rx="29" ry="15"/><circle class="me" cx="40" cy="45" r="4"/><circle class="f" cx="15" cy="40" r="3.2"/><circle class="f" cx="5" cy="24" r="3.2"/><circle class="s" cx="15" cy="8" r="3.2"/><circle class="f" cx="40" cy="3" r="3.2"/><circle class="s" cx="65" cy="8" r="3.2"/><circle class="f" cx="75" cy="24" r="3.2"/><circle class="s" cx="65" cy="40" r="3.2"/></svg>
+      <h2>Home game</h2><p class="dim">Room 4821, five of eight seats taken. Players reconnect by themselves.</p>
+      <div class="push"><span class="go">Reopen</span><span class="go">Host</span><span class="go">Join</span></div></div>
+    <div class="box"><h2>Career</h2><div class="big">$2,450</div><p class="dim">Bronze season 2, event 3 of 5.</p><div class="push"><small class="faint">+ cash, tournaments</small><span class="go">Open</span></div></div>
+    <div class="box"><h2>Quick Play</h2><p class="dim">A practice table. No buy-in, and nothing counts toward your bankroll.</p><div class="push"><small class="faint">Against bots</small><span class="go">Play</span></div></div>
+  </div>
+  <div style="margin-top:1.3rem;border-top:1px solid var(--line);padding-top:.8rem;display:flex;gap:1.6rem;color:var(--dim);font:.82rem system-ui,sans-serif;flex-wrap:wrap"><span><b style="color:var(--text);font:600 1rem Georgia,serif">1,284</b> hands</span><span><b style="color:var(--text);font:600 1rem Georgia,serif">37</b> games</span><span><b style="color:var(--text);font:600 1rem Georgia,serif">$4,120</b> biggest pot</span></div>
+</template>
+
+<template id="t-reopen">
+  <div class="head"><div class="stack" style="gap:.4rem"><span class="back">← Leave</span><h1 class="title">Room 4821</h1><p class="sub">You are hosting. Friends open the link or choose Join and type 4821.</p></div><span class="pill">Connected</span></div>
+  <div class="two">
+    <div class="stack">
+      <svg viewBox="0 0 80 48" style="width:100%;max-height:11rem"><ellipse class="felt" cx="40" cy="24" rx="29" ry="15"/><circle class="me" cx="40" cy="45" r="4"/><circle class="f" cx="15" cy="40" r="3.2"/><circle class="f" cx="5" cy="24" r="3.2"/><circle class="s" cx="15" cy="8" r="3.2"/><circle class="f" cx="40" cy="3" r="3.2"/><circle class="s" cx="65" cy="8" r="3.2"/><circle class="f" cx="75" cy="24" r="3.2"/><circle class="s" cx="65" cy="40" r="3.2"/><circle class="pk" cx="26" cy="34" r="2"/></svg>
+      <p class="dim">Real cards. Blinds 5 / 10, rising every 20 minutes. Everyone starts with $1,000.</p>
+      <span class="btn solid">Deal the first hand</span>
+      <span class="faint">Hand 12 was the last one. Stacks are as you left them.</span>
+    </div>
+    <div class="seats">
+      <div class="seat"><span class="av" style="background:#d9a24a">Y</span><span class="nm">You <span class="faint">dealer</span></span><span class="st num">$1,420</span></div>
+      <div class="seat"><span class="av" style="background:#9bb7a0">M</span><span class="nm">Mia</span><span class="st num">$980</span></div>
+      <div class="seat"><span class="av" style="background:#c8a0a0">D</span><span class="nm">Dev <span class="faint">offline</span></span><span class="st num">$1,150</span></div>
+      <div class="seat"><span class="av" style="background:#a0aac8">A</span><span class="nm">Ana</span><span class="st num">$610</span></div>
+      <div class="seat"><span class="av" style="background:#c8bda0">J</span><span class="nm">Joe</span><span class="st num">$840</span></div>
+      <div class="seat empty"><span class="av" style="border:1px dashed var(--faint)"></span><span class="nm faint">Open seat</span></div>
+      <div class="seat empty"><span class="av" style="border:1px dashed var(--faint)"></span><span class="nm faint">Open seat</span></div>
+      <div class="seat empty"><span class="av" style="border:1px dashed var(--faint)"></span><span class="nm faint">Open seat</span></div>
+    </div>
+  </div>
+</template>
+
+<template id="t-host">
+  <div class="head"><div class="stack" style="gap:.4rem"><span class="back">← Lobby</span><h1 class="title">Host a game</h1><p class="sub">Real cards, real table. The phones keep the chips.</p></div></div>
+  <div class="sec"><h2>Stakes</h2>
+    <div class="fields"><div class="field">Everyone starts with<i>$1,000</i></div><div class="field">Small blind<i>$5</i></div><div class="field">Big blind<i>$10</i></div><div class="field">Ante<i>$0</i></div></div>
+    <div class="row"><span>Rising blinds</span><span class="bar"><span class="toggle on">On</span><span class="seg"><span>15 min</span><span class="on">20 min</span><span>30 min</span></span></span></div>
+    <p class="faint">A house rule. On a clock each level is about half again the last, so the game ends with a winner. Off, the blinds stay put.</p>
+  </div>
+  <div class="sec"><h2>Cards</h2>
+    <div class="seg"><span class="on">Real cards</span><span>Online cards</span></div>
+    <p class="faint">You deal a real deck and pick who won each showdown. The phones only keep the chips.</p>
+  </div>
+  <div class="sec"><h2>You</h2>
+    <div class="row"><span>I’m playing too</span><span class="toggle on">Yes</span></div>
+    <div class="field" style="max-width:18rem">Your name<i>Sunwoo</i></div>
+  </div>
+  <span class="btn solid" style="max-width:18rem">Open the room</span>
+</template>
+
+<template id="t-join">
+  <div class="head"><div class="stack" style="gap:.4rem"><span class="back">← Lobby</span><h1 class="title">Join a game</h1><p class="sub">Ask the host for the room number.</p></div></div>
+  <div class="sec"><h2>Room number</h2>
+    <div class="slots"><i>4</i><i>8</i><i class="cur">2</i><i></i></div></div>
+  <div class="sec"><h2>Your name</h2><div class="field" style="max-width:18rem"><i>Mia</i></div></div>
+  <span class="btn solid" style="max-width:18rem">Join room</span>
+  <p class="faint" style="margin-top:.8rem">If you opened the host’s link, the number is already filled in.</p>
+</template>
+
+<template id="t-career">
+  <div class="head"><div class="stack" style="gap:.4rem"><span class="back">← Lobby</span><h1 class="title">Bronze, season 2</h1></div>
+    <div style="text-align:right"><span class="big">$2,450</span><span class="chips"><i style="bottom:0"></i><i style="bottom:.18rem"></i><i style="bottom:.36rem"></i><i style="bottom:.54rem"></i></span><div class="faint">1 title</div></div></div>
+  <div class="sec"><h2>This season</h2>
+    <ol class="ev"><li class="done"><strong>1st</strong>Turbo</li><li class="done"><strong>3rd</strong>Standard</li><li class="now"><strong>Next</strong>Standard</li><li><strong>·</strong>Deep stack</li><li><strong>·</strong>Final</li></ol>
+    <div class="two" style="gap:2rem;margin-top:.3rem"><div><div class="row"><span>You</span><span class="num">13 pts</span></div><div class="row"><span>Holly</span><span class="num">11 pts</span></div><div class="row"><span>Scarlet</span><span class="num">9 pts</span></div></div>
+    <div class="stack" style="gap:.6rem"><p class="dim">Event 3 of 5. $100 buy-in, 6 players, pays $360 / $150. Finish in the top two after the final to move up.</p><span class="btn solid">Play event 3</span></div></div>
+  </div>
+  <div class="sec"><h2>Outside the season</h2>
+    <div class="row"><div><strong>Cash game</strong><p class="dim">You set the stakes. Leave and cash out whenever.</p></div><span class="go">Sit down</span></div>
+    <div class="row"><div><strong>Tournament</strong><p class="dim">One buy-in, rising blinds, prizes for the places that pay.</p></div><span class="go">Register</span></div>
+  </div>
+  <div class="sec"><h2>Recent</h2>
+    <div class="row"><span class="dim">Season event, 3rd of 6</span><span class="down num">−$100</span></div>
+    <div class="row"><span class="dim">Cash game</span><span class="up num">+$240</span></div>
+    <div class="row"><span class="dim">Season event, 1st of 6</span><span class="up num">+$260</span></div>
+  </div>
+  <p class="faint">Out of money? Come back tomorrow for a $500 stake.</p>
+</template>
+
+<template id="t-quick">
+  <div class="head"><div class="stack" style="gap:.4rem"><span class="back">← Lobby</span><h1 class="title">Quick Play</h1><p class="sub">A practice table. Nothing is bought in, nothing is recorded.</p></div></div>
+  <div class="two">
+    <div class="stack">
+      <svg viewBox="0 0 80 48" style="width:100%;max-height:11rem"><ellipse class="felt" cx="40" cy="24" rx="29" ry="15"/><circle class="me" cx="40" cy="45" r="4"/><circle class="s" cx="12" cy="36" r="3.2"/><circle class="s" cx="12" cy="12" r="3.2"/><circle class="s" cx="40" cy="3" r="3.2"/><circle class="s" cx="68" cy="12" r="3.2"/><circle class="s" cx="68" cy="36" r="3.2"/></svg>
+      <div class="row"><span>Players <span class="faint">you included</span></span><span class="stepper"><b>−</b>6<b>+</b></span></div>
+      <div class="row"><span>Humans <span class="faint">pass-and-play</span></span><span class="stepper"><b>−</b>1<b>+</b></span></div>
+      <p class="faint">Just you, against the bots.</p>
+    </div>
+    <div class="stack">
+      <div><p class="faint" style="margin-bottom:.5rem">Starting stack</p><div class="denoms"><span class="denom" style="--c:#b83a2e">$500</span><span class="denom on" style="--c:#2e6b46">$1,000</span><span class="denom" style="--c:#2a2522">$2,500</span><span class="denom" style="--c:#7a5aa0">$5,000</span></div></div>
+      <div class="row"><span>Blinds</span><span class="seg"><span>5/10</span><span class="on">10/20</span><span>25/50</span></span></div>
+      <div class="row"><span>Ante</span><span class="seg"><span class="on">None</span><span>Small</span></span></div>
+      <div class="row"><span>Show hand odds</span><span class="toggle on">On</span></div>
+      <div class="row"><span>Review each hand</span><span class="toggle">Off</span></div>
+      <div class="row"><span>Hints</span><span class="toggle">Off</span></div>
+    </div>
+  </div>
+  <span class="btn solid" style="max-width:18rem;margin-top:1.2rem">Deal me in</span>
+</template>
+
+<template id="t-play">
+  <div class="head"><div class="stack" style="gap:.4rem"><span class="back">← Lobby</span><h1 class="title">Your play</h1><p class="sub">From your own hand history. Every number shows what it was measured over.</p></div></div>
+  <div class="seg"><span class="on">All hands</span><span>Last 500</span><span>Cash</span><span>Tournament</span></div>
+  <div style="margin:1.1rem 0 .3rem"><span class="big">1,284 hands</span> <span class="faint">Past 100, the numbers are settling.</span></div>
+  <div class="sec"><h2>Style</h2>
+    <div class="row"><div><strong>Plays 24% of hands</strong><p class="faint">VPIP, over 1,284 hands. Most six-handed players sit between 20% and 28%.</p></div></div>
+    <div class="row"><div><strong>Raises 17%</strong><p class="faint">PFR, over 1,284 hands. A gap of 7 points from VPIP is a little passive.</p></div></div>
+    <div class="row"><div><strong>Folds to a bet 46%</strong><p class="faint">Over 612 spots on the flop and later.</p></div></div>
+  </div>
+  <div class="sec"><h2>Against the solved strategy</h2>
+    <p class="dim">You follow it on 71% of preflop decisions (over 1,284). The three that cost the most:</p>
+    <div class="row"><span>Folding the big blind to a small raise</span><span class="down num">too often, 38%</span></div>
+    <div class="row"><span>Calling raises from the small blind</span><span class="down num">too often, 31%</span></div>
+    <div class="row"><span>Opening from the button</span><span class="down num">too rarely, 52%</span></div>
+  </div>
+</template>
+
+<template id="t-settings">
+  <div class="head"><div class="stack" style="gap:.4rem"><span class="back">← Lobby</span><h1 class="title">Settings</h1><p class="sub">Each choice is separate, and it saves as you tap.</p></div></div>
+  <div class="sec"><h2>Look</h2>
+    <div class="seg" style="flex-wrap:wrap"><span class="on">Classic</span><span>Card room</span><span>Broadcast</span><span>Poster</span><span>Neon</span></div>
+    <p class="faint">A look sets all five choices below. You can change any of them after.</p></div>
+  <div class="sec"><h2>Colours</h2><div class="sw"><i style="background:#16100b"></i><i style="background:#1f5236"></i><i style="background:#d9a24a"></i><i style="background:#f3e9d6"></i><i style="background:#8a5f22"></i></div></div>
+  <div class="sec"><h2>Layout</h2><div class="seg"><span>Standard</span><span class="on">Round table</span></div></div>
+  <div class="sec"><h2>Fonts</h2><div class="seg" style="flex-wrap:wrap"><span>Classic</span><span class="on" style="font-family:Georgia">Warm</span><span>Condensed</span><span>Grotesque</span><span>Rounded</span></div></div>
+  <div class="sec"><h2>Buttons</h2><div style="display:flex;gap:.6rem"><span class="btn quiet" style="padding:.5rem 1rem">Fold</span><span class="btn" style="padding:.5rem 1rem">Call</span><span class="btn solid" style="padding:.5rem 1rem">Raise</span></div></div>
+  <div class="sec"><h2>Corners</h2><div class="seg"><span class="on">Soft</span><span>Sharp</span><span>Square</span><span>Round</span></div></div>
+  <div class="sec"><h2>Table speed</h2><div class="seg"><span>Relaxed</span><span class="on">Normal</span><span>Quick</span></div></div>
+</template>
+
+<!-- ============ screens ============ -->
+<div id="out"></div>
+
+<style>
+.box{border:1px solid var(--line);background:var(--panel);padding:1.1rem;display:flex;flex-direction:column;gap:.6rem}
+.box h2{font-size:1.35rem}.box.hot{border-color:var(--accent)}
+.push{margin-top:auto;display:flex;justify-content:space-between;align-items:baseline;border-top:1px dotted var(--line);padding-top:.6rem}
+@container (max-width:560px){.lobbygrid{grid-template-columns:1fr!important}}
+</style>
+<script>
+const screens=[
+ ['lobby','Lobby','The same as A2. Achievements is gone; Your play and Settings are the two quiet links. Home game is first. Each button below goes to the screen that follows.'],
+ ['reopen','Reopen','Reopen the home game you were hosting. It goes straight back to the room: everyone who was seated is listed with their stack, so you can see who has reconnected, then deal. Empty seats show as dashed. A smaller version of this is what a friend sees after Join.'],
+ ['host','Host','Host a game, with the stakes, the rising-blinds house rule, the cards, and whether you play. One page, one brass button. Sections are separated by rules, not boxes.'],
+ ['join','Join','Join a game: the four digits of the room number as four slots, then a name. Short on purpose, since friends do this on a phone.'],
+ ['career','Career, Open','Career opens on the season: five events in a row, the standings and the next event with its button. Cash game and Tournament are here under "Outside the season", so the lobby box can stay small. Your bankroll and recent results are on the same page.'],
+ ['quick','Quick Play, Play','Quick Play opens the setup. The table drawing shows the number of players you pick. Starting stacks are chip denominations, and the blinds and study aids are one line each.'],
+ ['play','Your play','Your play: your own style from your hand history, in sentences with what each was measured over, and where you differ from the solved strategy.'],
+ ['settings','Settings','Settings: the same options as now, laid out as rules and rows instead of cards.']
+];
+const out=document.getElementById('out');
+for(const [id,name,text] of screens){
+  out.insertAdjacentHTML('beforeend',`<div class="label" id="${id}"><b>${name}</b>${text}</div><div class="pair"><div><div class="cap">Desktop</div><div class="frame" data-t="t-${id}"></div></div><div><div class="cap">Phone</div><div class="frame phone" data-t="t-${id}"></div></div></div>`);
+}
+document.querySelectorAll('[data-t]').forEach(f=>f.appendChild(document.getElementById(f.dataset.t).content.cloneNode(true)));
+</script>
+<div style="height:3rem"></div>
+</body>
+</html>

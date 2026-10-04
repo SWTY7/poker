@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lobby A options</title>
+<style>
+:root{--bg:#16100b;--panel:#1d1610;--line:#3d2c1a;--text:#f3e9d6;--dim:#b3a58c;--faint:#8d806a;--accent:#d9a24a;--felt:#1f5236;--rim:#3a2412}
+*{box-sizing:border-box}
+body{margin:0;background:#0d0906;color:var(--text);font-family:Georgia,'Times New Roman',serif}
+h1,h2,p{margin:0}
+.label{font:400 .9rem system-ui,sans-serif;color:var(--dim);padding:2rem 1.5rem .8rem;max-width:80rem;margin:auto}
+.label b{display:block;font:600 1.3rem Georgia,serif;color:var(--text);margin-bottom:.2rem}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) 23.5rem;gap:1.5rem;max-width:80rem;margin:0 auto 1rem;padding:0 1.5rem;align-items:start}
+.frame{container-type:inline-size;background:var(--bg);border:1px solid var(--line);padding:1.6rem}
+.phone{width:23.5rem;padding:1rem;border-radius:1.6rem;border:2px solid #4a3a28}
+.cap{font:.75rem system-ui,sans-serif;color:var(--faint);margin-bottom:.5rem}
+.top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:1.3rem}
+.word{font-size:2rem;font-weight:600}
+.links{color:var(--dim);font:.82rem system-ui,sans-serif;display:flex;gap:1.1rem;flex-wrap:wrap}
+.links u{text-decoration-color:var(--accent);text-underline-offset:3px}
+.go{font:600 .85rem system-ui,sans-serif;color:var(--accent);border-bottom:1px solid var(--accent);padding-bottom:1px;white-space:nowrap}
+.dim{color:var(--dim);font-size:.93rem;line-height:1.45}
+.money{font-weight:600}
+.box{border:1px solid var(--line);background:var(--panel);padding:1.1rem;display:flex;flex-direction:column;gap:.6rem}
+.box h2{font-size:1.35rem}
+.box.hot{border-color:var(--accent)}
+.foot{margin-top:1.3rem;border-top:1px solid var(--line);padding-top:.8rem;display:flex;gap:1.6rem;flex-wrap:wrap;color:var(--dim);font:.82rem system-ui,sans-serif}
+.foot b{color:var(--text);font:600 1rem Georgia,serif;margin-right:.25rem}
+.btn{font:600 .9rem system-ui,sans-serif;text-align:center;padding:.7rem 1rem;border:1px solid var(--accent);color:var(--accent);border-radius:.4rem}
+.btn.solid{background:var(--accent);color:#1b1208}
+.push{margin-top:auto;display:flex;justify-content:space-between;align-items:baseline;border-top:1px dotted var(--line);padding-top:.6rem}
+.push small{color:var(--faint);font:.78rem system-ui,sans-serif}
+.felt{fill:var(--felt);stroke:var(--rim);stroke-width:2.4;paint-order:stroke}
+.s{fill:#4a3a28}.f{fill:var(--accent)}.me{fill:#f3e9d6}
+.chips{display:inline-block;position:relative;width:1.4rem;height:1.3rem;vertical-align:-.15rem;margin-left:.4rem}
+.chips i{position:absolute;left:0;width:1.4rem;height:.6rem;border-radius:50%;background:#8f2a22;box-shadow:inset 0 0 0 .12rem #f1e6cc,0 .1rem 0 #0008}
+.chips i:nth-child(even){background:#1f4a31}
+.big{font-size:2rem;font-weight:600;font-variant-numeric:lining-nums}
+
+/* ---------- A1: no drawings, three different boxes, home game first ---------- */
+.a1 .grid{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:1rem}
+.a1 .code{font:600 .8rem system-ui,sans-serif;color:var(--faint)}
+/* ---------- A2: each drawing means something ---------- */
+.a2 .grid{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:1rem}
+.a2 svg{width:100%;max-height:6.5rem}
+/* ---------- A3: home game is the wide top box ---------- */
+.a3 .grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+.a3 .wide{grid-column:1/3;flex-direction:row;gap:1.5rem;align-items:center}
+.a3 .wide .acts{display:flex;flex-direction:column;gap:.5rem;min-width:11rem}
+.a3 .wide svg{width:11rem;flex-shrink:0}
+.a3 .wide .txt{flex:1;display:flex;flex-direction:column;gap:.4rem}
+
+/* phones: everything in one column, home game first, tap targets big */
+@container (max-width:560px){
+  .grid{grid-template-columns:1fr!important}
+  .wide{grid-column:auto!important;flex-direction:column!important;align-items:stretch!important}
+  .wide svg{width:100%!important;max-height:5rem}
+  .top{flex-direction:column;gap:.5rem}
+  .push{margin-top:.2rem}
+}
+@media(max-width:1000px){.pair{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<!-- ===================== A1 ===================== -->
+<div class="label"><b>A1. No drawings; each box is different</b>Home game goes first and is widest, since it is what you play most. The three boxes have different content instead of the same picture: the home game shows the room you can reopen, Career shows your bankroll as a chip stack, Quick Play is just text. On the phone it is one column in the same order, with big buttons.</div>
+<div class="pair a1">
+  <div><div class="cap">Desktop</div>
+  <div class="frame">
+    <div class="top"><span class="word">Poker</span><span class="links"><u>Your play</u><u>Achievements 4 of 10</u><u>Settings</u></span></div>
+    <div class="grid">
+      <div class="box hot"><h2>Home game</h2><p class="dim">Real cards at a real table with friends. The phones keep the chips.</p>
+        <div class="code">Your last room: 4821 · 5 players</div>
+        <div class="push"><span class="go">Reopen 4821</span><span class="go">Host</span><span class="go">Join</span></div></div>
+      <div class="box"><h2>Career</h2><div class="big">$2,450<span class="chips"><i style="bottom:0"></i><i style="bottom:.18rem"></i><i style="bottom:.36rem"></i><i style="bottom:.54rem"></i></span></div><p class="dim">Bronze season 2, event 3 of 5.</p><div class="push"><small>+ cash games, tournaments</small><span class="go">Open</span></div></div>
+      <div class="box"><h2>Quick Play</h2><p class="dim">A practice table. No buy-in, and nothing counts toward your bankroll.</p><div class="push"><small>Against bots</small><span class="go">Play</span></div></div>
+    </div>
+    <div class="foot"><span><b>1,284</b>hands</span><span><b>37</b>games</span><span><b>$4,120</b>biggest pot</span><span><b>2nd</b>best finish</span></div>
+  </div></div>
+  <div><div class="cap">Phone</div>
+  <div class="frame phone">
+    <div class="top"><span class="word">Poker</span><span class="links"><u>Your play</u><u>Achievements</u><u>Settings</u></span></div>
+    <div class="grid">
+      <div class="box hot"><h2>Home game</h2><p class="dim">Real cards with friends. The phones keep the chips.</p>
+        <span class="btn solid">Reopen room 4821</span><div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem"><span class="btn">Host</span><span class="btn">Join</span></div></div>
+      <div class="box"><h2>Career</h2><div class="big">$2,450</div><p class="dim">Bronze season 2, event 3 of 5.</p><span class="btn">Open</span></div>
+      <div class="box"><h2>Quick Play</h2><p class="dim">Practice. Nothing counts.</p><span class="btn">Play</span></div>
+    </div>
+  </div></div>
+</div>
+
+<!-- ===================== A2 ===================== -->
+<div class="label"><b>A2. Drawings that tell you something</b>Same boxes, but the picture is information. Home game: the eight-seat table with seats filled by the friends who joined last time (brass seats are people, dark seats are empty). Career: the bankroll as a stack of chips that grows. Quick Play has no picture, because it has nothing to show. On the phone the table drawing shrinks to a strip.</div>
+<div class="pair a2">
+  <div><div class="cap">Desktop</div>
+  <div class="frame">
+    <div class="top"><span class="word">Poker</span><span class="links"><u>Your play</u><u>Achievements 4 of 10</u><u>Settings</u></span></div>
+    <div class="grid">
+      <div class="box hot"><svg viewBox="0 0 80 48"><ellipse class="felt" cx="40" cy="24" rx="29" ry="15"/><circle class="me" cx="40" cy="45" r="4"/><circle class="f" cx="15" cy="40" r="3.2"/><circle class="f" cx="5" cy="24" r="3.2"/><circle class="s" cx="15" cy="8" r="3.2"/><circle class="f" cx="40" cy="3" r="3.2"/><circle class="s" cx="65" cy="8" r="3.2"/><circle class="f" cx="75" cy="24" r="3.2"/><circle class="s" cx="65" cy="40" r="3.2"/></svg>
+        <h2>Home game</h2><p class="dim">Room 4821, five of eight seats taken. Players reconnect by themselves.</p>
+        <div class="push"><span class="go">Reopen</span><span class="go">Host</span><span class="go">Join</span></div></div>
+      <div class="box"><h2>Career</h2><div class="big">$2,450</div><div style="display:flex;align-items:flex-end;gap:3px;height:3.2rem"><i class="chips" style="width:1.4rem;height:3rem;margin:0"><i style="bottom:0"></i><i style="bottom:.35rem"></i><i style="bottom:.7rem"></i><i style="bottom:1.05rem"></i><i style="bottom:1.4rem"></i><i style="bottom:1.75rem"></i></i><i class="chips" style="width:1.4rem;height:1.5rem;margin:0"><i style="bottom:0"></i><i style="bottom:.35rem"></i><i style="bottom:.7rem"></i></i></div><p class="dim">Bronze season 2, event 3 of 5.</p><div class="push"><small>+ cash, tournaments</small><span class="go">Open</span></div></div>
+      <div class="box"><h2>Quick Play</h2><p class="dim">A practice table. No buy-in, and nothing counts toward your bankroll.</p><div class="push"><small>Against bots</small><span class="go">Play</span></div></div>
+    </div>
+    <div class="foot"><span><b>1,284</b>hands</span><span><b>37</b>games</span><span><b>$4,120</b>biggest pot</span><span><b>2nd</b>best finish</span></div>
+  </div></div>
+  <div><div class="cap">Phone</div>
+  <div class="frame phone">
+    <div class="top"><span class="word">Poker</span><span class="links"><u>Your play</u><u>Achievements</u><u>Settings</u></span></div>
+    <div class="grid">
+      <div class="box hot"><div style="display:flex;gap:.8rem;align-items:center"><svg viewBox="0 0 80 48" style="width:6rem;flex-shrink:0"><ellipse class="felt" cx="40" cy="24" rx="29" ry="15"/><circle class="me" cx="40" cy="45" r="4"/><circle class="f" cx="15" cy="40" r="3.2"/><circle class="f" cx="5" cy="24" r="3.2"/><circle class="s" cx="15" cy="8" r="3.2"/><circle class="f" cx="40" cy="3" r="3.2"/><circle class="s" cx="65" cy="8" r="3.2"/><circle class="f" cx="75" cy="24" r="3.2"/><circle class="s" cx="65" cy="40" r="3.2"/></svg><div><h2>Home game</h2><p class="dim">Room 4821, 5 of 8 seats</p></div></div>
+        <span class="btn solid">Reopen</span><div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem"><span class="btn">Host</span><span class="btn">Join</span></div></div>
+      <div class="box"><h2>Career</h2><div class="big">$2,450</div><p class="dim">Bronze season 2, event 3 of 5.</p><span class="btn">Open</span></div>
+      <div class="box"><h2>Quick Play</h2><p class="dim">Practice. Nothing counts.</p><span class="btn">Play</span></div>
+    </div>
+  </div></div>
+</div>
+
+<!-- ===================== A3 ===================== -->
+<div class="label"><b>A3. Home game on its own row</b>Home game gets the full-width box with its table drawing and the three actions stacked as real buttons, since you reach for them most. Career and Quick Play sit under it as two equal, quieter boxes. On the phone the same order, so the home game is the first thing under the title and its buttons are in thumb reach.</div>
+<div class="pair a3">
+  <div><div class="cap">Desktop</div>
+  <div class="frame">
+    <div class="top"><span class="word">Poker</span><span class="links"><u>Your play</u><u>Achievements 4 of 10</u><u>Settings</u></span></div>
+    <div class="grid">
+      <div class="box hot wide"><svg viewBox="0 0 80 48"><ellipse class="felt" cx="40" cy="24" rx="29" ry="15"/><circle class="me" cx="40" cy="45" r="4"/><circle class="f" cx="15" cy="40" r="3.2"/><circle class="f" cx="5" cy="24" r="3.2"/><circle class="s" cx="15" cy="8" r="3.2"/><circle class="f" cx="40" cy="3" r="3.2"/><circle class="s" cx="65" cy="8" r="3.2"/><circle class="f" cx="75" cy="24" r="3.2"/><circle class="s" cx="65" cy="40" r="3.2"/></svg>
+        <div class="txt"><h2>Home game</h2><p class="dim">Real cards at a real table with friends. The phones keep the chips. Your last room, 4821, has five players waiting.</p></div>
+        <div class="acts"><span class="btn solid">Reopen room 4821</span><span class="btn">Host a new game</span><span class="btn">Join a game</span></div></div>
+      <div class="box"><h2>Career</h2><p class="dim">You have <span class="money">$2,450</span>. Bronze season 2, event 3 of 5, plus cash games and tournaments.</p><div class="push"><small>Same rivals each time</small><span class="go">Open</span></div></div>
+      <div class="box"><h2>Quick Play</h2><p class="dim">A practice table. No buy-in, and nothing counts toward your bankroll.</p><div class="push"><small>Against bots</small><span class="go">Play</span></div></div>
+    </div>
+    <div class="foot"><span><b>1,284</b>hands</span><span><b>37</b>games</span><span><b>$4,120</b>biggest pot</span><span><b>2nd</b>best finish</span></div>
+  </div></div>
+  <div><div class="cap">Phone</div>
+  <div class="frame phone">
+    <div class="top"><span class="word">Poker</span><span class="links"><u>Your play</u><u>Achievements</u><u>Settings</u></span></div>
+    <div class="grid">
+      <div class="box hot wide"><svg viewBox="0 0 80 48"><ellipse class="felt" cx="40" cy="24" rx="29" ry="15"/><circle class="me" cx="40" cy="45" r="4"/><circle class="f" cx="15" cy="40" r="3.2"/><circle class="f" cx="5" cy="24" r="3.2"/><circle class="s" cx="15" cy="8" r="3.2"/><circle class="f" cx="40" cy="3" r="3.2"/><circle class="s" cx="65" cy="8" r="3.2"/><circle class="f" cx="75" cy="24" r="3.2"/><circle class="s" cx="65" cy="40" r="3.2"/></svg>
+        <div class="txt"><h2>Home game</h2><p class="dim">Room 4821, five players waiting.</p></div>
+        <div class="acts"><span class="btn solid">Reopen room 4821</span><span class="btn">Host a new game</span><span class="btn">Join a game</span></div></div>
+      <div class="box"><h2>Career</h2><p class="dim"><span class="money">$2,450</span>, Bronze season 2.</p><span class="btn">Open</span></div>
+      <div class="box"><h2>Quick Play</h2><p class="dim">Practice. Nothing counts.</p><span class="btn">Play</span></div>
+    </div>
+  </div></div>
+</div>
+
+</body>
+</html>

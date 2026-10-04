@@ -1,7 +1,7 @@
 import type { CareerData, SeasonOutcome } from '../game/career'
 import { FIELD_SIZE, POINTS, TIERS, YOU, entrantName, nextEvent, seasonStandings } from '../game/career'
 import { STRUCTURES, prizesForField } from '../game/tournament'
-import { canAffordBuyIn } from '../game/profile'
+import { canAffordBuyIn, type ProfileHistoryEntry } from '../game/profile'
 import { ordinal } from '../utils/format'
 import { DealIcon, TrophyIcon } from './icons'
 import { SUIT_PATH } from './suit-icons'
@@ -9,7 +9,10 @@ import { SUIT_PATH } from './suit-icons'
 interface CareerHubProps {
   career: CareerData
   bankroll: number
+  history: ProfileHistoryEntry[]
   onPlayEvent: () => void
+  onCash: () => void
+  onTournament: () => void
   onDismissSeason: () => void
   onBack: () => void
 }
@@ -26,7 +29,7 @@ const RESULT_LINE: Record<SeasonOutcome['result'], (tier: string, next: string) 
  * event, and the next event to play. Right after a season's last event it
  * shows how that season finished first.
  */
-export function CareerHub({ career, bankroll, onPlayEvent, onDismissSeason, onBack }: CareerHubProps) {
+export function CareerHub({ career, bankroll, history, onPlayEvent, onCash, onTournament, onDismissSeason, onBack }: CareerHubProps) {
   return (
     <div className="menu-scene">
       <svg className="menu-watermark menu-watermark-a" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -39,7 +42,15 @@ export function CareerHub({ career, bankroll, onPlayEvent, onDismissSeason, onBa
         {career.lastSeason ? (
           <SeasonSummary outcome={career.lastSeason} nextTier={TIERS[career.tier].name} onContinue={onDismissSeason} />
         ) : (
-          <Season career={career} bankroll={bankroll} onPlayEvent={onPlayEvent} onBack={onBack} />
+          <Season
+            career={career}
+            bankroll={bankroll}
+            history={history}
+            onPlayEvent={onPlayEvent}
+            onCash={onCash}
+            onTournament={onTournament}
+            onBack={onBack}
+          />
         )}
       </div>
     </div>
@@ -60,7 +71,7 @@ function Standings({ rows }: { rows: { id: string; points: number }[] }) {
   )
 }
 
-function Season({ career, bankroll, onPlayEvent, onBack }: Omit<CareerHubProps, 'onDismissSeason'>) {
+function Season({ career, bankroll, history, onPlayEvent, onCash, onTournament, onBack }: Omit<CareerHubProps, 'onDismissSeason'>) {
   const tier = TIERS[career.tier]
   const event = nextEvent(career)
   const affordable = canAffordBuyIn(bankroll, tier.buyIn)
@@ -131,6 +142,40 @@ function Season({ career, bankroll, onPlayEvent, onBack }: Omit<CareerHubProps, 
           <DealIcon className="menu-start-icon" />
           Play event {event.number}
         </button>
+
+        {/* Round table only: where the cash game and tournament live now. */}
+        <section className="career-outside">
+          <h2 className="menu-section">Outside the season</h2>
+          <button type="button" className="career-outside-row" onClick={onCash}>
+            <span>
+              <strong>Cash game</strong>
+              <span className="menu-hint">You set the stakes. Leave and cash out whenever you like.</span>
+            </span>
+            <span className="career-outside-verb">Sit down</span>
+          </button>
+          <button type="button" className="career-outside-row" onClick={onTournament}>
+            <span>
+              <strong>Tournament</strong>
+              <span className="menu-hint">One buy-in, rising blinds, and prizes for the places that pay.</span>
+            </span>
+            <span className="career-outside-verb">Register</span>
+          </button>
+          {history.length > 0 && (
+            <ul className="career-recent" aria-label="Recent games">
+              {[...history]
+                .slice(-3)
+                .reverse()
+                .map((entry) => (
+                  <li key={entry.at}>
+                    <span>{entry.mode === 'tournament' ? `Tournament, ${ordinal(entry.finish ?? 0)} of ${entry.field}` : 'Cash game'}</span>
+                    <span className={entry.result >= 0 ? 'cashout-up' : 'cashout-down'}>
+                      {entry.result >= 0 ? '+' : '−'}${Math.abs(entry.result).toLocaleString()}
+                    </span>
+                  </li>
+                ))}
+            </ul>
+          )}
+        </section>
       </div>
     </>
   )

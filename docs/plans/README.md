@@ -5,7 +5,7 @@ Read `docs/PROGRESS.md` first, then the plan for your track.*
 
 | track | plan | branch | owns |
 |---|---|---|---|
-| Game elements (modes, career, rivals, timing, achievements) | [`game-modes.md`](./game-modes.md) | its own branch, e.g. `claude/game-modes-*` | `src/game/career*`, `src/game/rivals*`, `src/game/achievements*`, lobby / setup / career screens in `src/ui/` |
+| Game elements (modes, career, rivals, timing) | [`game-modes.md`](./game-modes.md) | its own branch, e.g. `claude/game-modes-*` | `src/game/career*`, `src/game/rivals*`, lobby / setup / career screens in `src/ui/` |
 | Home game (real cards, phones as chips; same track, after game-modes step 3) | [`home-game.md`](./home-game.md) | `claude/home-game-*` | `src/home/**`, home game screens in `src/ui/` |
 | Psychology (read-your-play, hand review, personality lab, real players) | [`psychology-lab.md`](./psychology-lab.md) | `claude/poker-bot-psychology-*` | `src/ai/**`, `src/review/**`, `src/gto/**`, research scripts |
 
@@ -29,7 +29,7 @@ The hotspots:
    additions there to a single call each (`onHandEnd(state)`-style), with the logic living in the track's
    own module.
 2. **`src/game/profile.ts`**. Don't both bump the profile `version`. Each feature keeps its **own
-   `localStorage` key** (`poker.career`, `poker.rivals`, `poker.review`, `poker.achievements`) via
+   `localStorage` key** (`poker.career`, `poker.rivals`, `poker.review`) via
    `src/utils/storage.ts`, each with its own versioned schema. Then neither track touches the other's
    saved data, and the existing profile needs no migration.
 3. **`src/ai/psychology/*`**. The game track needs three small things from the bots. They're built in the

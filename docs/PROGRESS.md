@@ -61,12 +61,7 @@ this layer hasn't needed rework since the milestones in the v1 plan.
   Championship is one Deep final), with points 10/6/4/3/2/1. Top two move up; a Championship win is a
   title, defended next season. Screens: `CareerHub` (events, standings, next event) and its season summary,
   reached from a door in the Career lobby.
-- `achievements.ts`: ten Career achievements, saved under `poker.achievements` with the date each was
-  earned. Detected after the fact: `handAchievements` from a finished hand (first pot, a win with 7-2, a
-  hero call with one pair or less against a river bet, busting a rival), `tournamentAchievements` from a
-  finish, `seasonAchievements` from the career after an event (top of the standings, each promotion, the
-  title). Only solo Career tables earn them. `App` shows a toast (`ui/Achievements.tsx`) and the Career
-  lobby has an Achievements screen.
+- Achievements were built (ten, with toasts and a screen) and removed again on 2026-10-04 at sunwoo’s request; nothing else depended on them.
 - `blinds.ts`: rising blinds for the home game's house rule (about half again a level, on round amounts).
 
 ## Home game — `src/home/`
@@ -91,6 +86,39 @@ reconnection. `npm run server:dev` runs the server locally; `npm run server:depl
 Pages build reads its address from the `ROOM_SERVER` repository variable (`VITE_ROOM_SERVER`). Screens in
 `src/ui/home/`: Home Game is a third lobby mode (Host / Join / Reopen room), a share link `?room=1234` opens
 onto joining, and one table screen serves everyone, with the dealer's controls on the host's phone.
+
+## Look and settings
+
+`game/settings.ts` holds the device's look, saved as JSON under `poker.look`. It is five independent choices,
+each a `data-*` attribute on `<html>` (set before the first paint in `main.tsx`): **colour** (Classic, Card
+room, Broadcast, Poster, Neon), **layout** (Standard, Round table), **font** (Classic serif, Warm serif,
+Condensed, Grotesque, Rounded), **buttons** (Standard, Brass and leather, Capitals, Hard shadow, Glow) and
+**corners** (Soft, Sharp, Square, Round). A preset is a saved set of the five (Classic is the default and is
+the original look); someone who had chosen a single theme before gets that preset.
+
+- Colours, fonts, corners and buttons are in `styles/themes.css`. Colour themes override tokens, including
+  the felt, the playing cards and the `--accent-rgb`-style tints; Classic's values are the defaults in
+  `tokens.css`. A button style is a set of `--bx-*` variables that `base.css` and `table.css` read, so the
+  Settings screen can preview each style on a wrapper (variables inherit from the nearest setter).
+- The Round table layout is `styles/layout-round.css`: the oval table, seats placed by CSS trig from
+  `--seat`/`--seats` (set on each `.seat-slot` in `Table.tsx`; `display: contents` in Standard), chip-disc
+  avatars, paper stack tags, a chip pile for the pot, and your cards at the bottom edge.
+- Under the Round table layout you are a seat like the others (`HeroZone` draws a chip avatar, the stack tag,
+  your last action and the chips you've committed beside your cards; no panel), seats lean away from the
+  centre and sit slightly off the line, and the dealer button is a puck on the felt. Standard hides those
+  parts.
+- The Round table layout also has its own lobby, `ui/RoomLobby.tsx` (`styles/room-lobby.css`): three boxes, the
+  home game first and widest (Reopen / Host / Join), then Career (bankroll as a chip stack, season, daily stake)
+  and Quick Play, each with its own verb, and the lifetime numbers as one line under them. One column on a
+  phone. The Career screen carries Cash game, Tournament and recent results under "Outside the season".
+- `styles/layout-round-screens.css` brings every screen built from the menu pieces (setup, career, join/host,
+  your play, settings, the home room) into the same look under the Round table layout: no card around the
+  form, rules between sections, left-aligned, a flat brass button, the season as a row of events. Standard is
+  untouched.
+- The pot is drawn as chips (`PotChips` in `Board.tsx`, shown by the Round table layout): more chips, in more
+  stacks, as it grows, counted in big blinds with a square root. On a phone held upright, the Round table
+  shows only the seat being waited on (or the winner), where it sits. `App` picks the lobby from `getLook()` (`useSyncExternalStore`).
+- The Settings screen (a button in the lobby) picks any of them, plus the default table speed.
 
 ## The table UI — `src/ui/`
 

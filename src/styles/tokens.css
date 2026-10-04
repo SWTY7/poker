@@ -20,6 +20,33 @@
   --felt: #163a28;
   --felt-rim: #3a2a1c;
 
+  /* The felt surface, and what is drawn on it. A theme replaces these to
+     change what the table is made of, not just what colour it is. */
+  --felt-bg:
+    radial-gradient(85% 65% at 50% 42%, rgba(90, 140, 100, 0.12) 0%, transparent 70%),
+    linear-gradient(180deg, #1b3527 0%, #122015 100%);
+  --felt-border: 1px solid var(--felt-rim);
+  --felt-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    var(--sh-2);
+  --felt-ring: rgb(var(--accent-rgb) / 0.09);
+
+  /* Playing cards. */
+  --card-face: linear-gradient(170deg, #fffdf8, #ece7f3);
+  --card-red: #a5333f;
+  --card-black: #241a0c;
+  --card-back:
+    repeating-linear-gradient(45deg, rgb(var(--accent-rgb) / 0.16) 0 3px, transparent 3px 6px),
+    linear-gradient(165deg, #2e2418, #1c160e);
+  --card-back-edge: #4a3c26;
+
+  /* The same colours as bare channel triples, for the translucent tints
+     (glows, washes, badges) that need an alpha: rgb(var(--accent-rgb) / 0.2). */
+  --accent-rgb: 205 174 112;
+  --gold-rgb: 213 174 87;
+  --win-rgb: 126 207 149;
+  --lose-rgb: 238 125 153;
+
   --surface: rgba(255, 255, 255, 0.035);
   --surface-strong: rgba(255, 255, 255, 0.07);
   --panel: #17140f;
@@ -37,6 +64,8 @@
   --accent-mid: #b6935a;
   --accent-deep: #8a6a3c;
   --accent-tint: rgba(205, 174, 112, 0.14);
+  /* Text on a solid accent fill (the main button, chips). */
+  --on-accent: #241a0c;
 
   --gold: #d5ae57;
   --green: #6fae7f;
