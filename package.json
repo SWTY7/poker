@@ -19,6 +19,7 @@
     "compare:blueprints": "node scripts/run.mjs scripts/compare-blueprints.ts",
     "benchmark:pro": "node scripts/run.mjs scripts/benchmark-pro.ts",
     "calibrate:reads": "node scripts/run.mjs scripts/calibrate-reads.ts",
+    "lab": "node scripts/run.mjs scripts/personality-lab.ts",
     "train:preflop": "node scripts/run.mjs scripts/train-preflop-multiway.ts"
   },
   "dependencies": {

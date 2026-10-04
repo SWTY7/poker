@@ -241,6 +241,13 @@ on purpose, so it lives outside `src/ai/`, and nothing in `src/ai/` or `src/gto/
   book's mix and what Iris would do; it is worked out a beat after the turn arrives and again once the solve
   finishes downloading.
 
+- **Personality lab, Phase 3a** (`src/lab/`, `scripts/personality-lab.ts`, 2026-10-04): bot-vs-bot tables with
+  characters drawn from wide ranges, every seat logged like the human, and a recovery of each seat's
+  parameters from its statistics alone (`npm run lab -- generate|analyze`). Result: loss aversion, level-k
+  depth, discipline and probability weighting come back (held-out r 0.69-0.85 at 500 hands); tilt, confidence
+  and gains persistence do not. Numbers and caveats in `docs/plans/psychology-lab.md`. The likelihood-fit
+  method is not built yet (needs a no-behaviour-change seam on PsychBot).
+
 ## The GTO solver — `src/gto/`
 
 From-scratch CFR and Monte Carlo CFR (`cfr.ts`, `mccfr.ts`), verified against solved-game oracles at small
