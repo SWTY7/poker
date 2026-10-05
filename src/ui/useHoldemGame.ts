@@ -23,19 +23,8 @@ export type Speed = 'slow' | 'normal' | 'fast'
 const SPEED_FACTOR: Record<Speed, number> = { slow: 1.7, normal: 1, fast: 0.4 }
 
 
-/**
- * How long an opponent appears to think, by what they decided. A snap-fold
- * and a big raise landing at the same tempo is what makes a table feel like a
- * conveyor belt rather than a game with other people at it.
- */
-const THINK_TIME: Record<ActionType, number> = {
-  fold: 340,
-  check: 420,
-  call: 620,
-  bet: 900,
-  raise: 950,
-  'all-in': 1200,
-}
+/** The pause before an opponent acts. The same for every action, so how long it took says nothing about what they did. */
+const ACTION_PAUSE = 500
 
 /** Beat held after cards hit the board, before anyone may act on them. */
 const DEAL_PAUSE = 950
@@ -490,7 +479,7 @@ export function useHoldemGame(options: GameConfigOptions) {
     // Decide first, then pause for as long as that decision deserves. Nothing
     // else can touch the engine in between — this timer is the only driver.
     const action = agents[current.id].decideAction(buildObservation(engine, current.id))
-    timerRef.current = setTimeout(() => applyAndPace(action), pace(THINK_TIME[action.type]))
+    timerRef.current = setTimeout(() => applyAndPace(action), pace(ACTION_PAUSE))
     return () => clearTimer()
   }, [
     state,

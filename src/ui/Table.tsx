@@ -6,6 +6,7 @@ import { positionLabels } from '../poker/position'
 import { cardToString } from '../poker/card'
 import { estimateHandOdds } from '../poker/equity'
 import { currentHandName } from '../poker/hand-name'
+import { lastActionThisStreet } from './street-action'
 import { Seat } from './Seat'
 import { HeroZone } from './HeroZone'
 import { Board } from './Board'
@@ -69,34 +70,6 @@ const STREET_BANNER: Record<string, string> = {
   flop: 'Flop',
   turn: 'Turn',
   river: 'River',
-}
-
-/**
- * What this player did on the CURRENT street. Scanning the whole hand instead
- * — as this used to — leaves a preflop "Raise $30" pinned to a seat while the
- * turn is being bet, which is worse than showing nothing.
- */
-function lastActionThisStreet(log: HandLogEntry[], playerId: string, street: string): string | undefined {
-  for (let i = log.length - 1; i >= 0; i--) {
-    const entry = log[i]
-    if (entry.street !== street) break
-    if (entry.kind !== 'action' || entry.playerId !== playerId) continue
-    switch (entry.actionType) {
-      case 'fold':
-        return 'Folded'
-      case 'check':
-        return 'Check'
-      case 'call':
-        return `Call $${entry.amount?.toLocaleString()}`
-      case 'bet':
-        return `Bet $${entry.toAmount?.toLocaleString()}`
-      case 'raise':
-        return `Raise $${entry.toAmount?.toLocaleString()}`
-      case 'all-in':
-        return 'All-in'
-    }
-  }
-  return undefined
 }
 
 /** One line of plain English for the screen-reader live region. */
@@ -340,6 +313,7 @@ export function Table({
               while you're waiting. Buttons inside it keep their own handlers. */}
           <section
             className={`felt ${canSkipToMyTurn ? 'felt-skippable' : ''}`}
+            data-seats={opponents.length}
             aria-label="Table"
             onClick={(event) => {
               if (!canSkipToMyTurn) return
@@ -370,7 +344,7 @@ export function Table({
                   // steps back so the seat that did is the one you see.
                   hasLost={Boolean(lastResult) && !winnerIds.has(player.id)}
                   position={positions.get(player.id)}
-                  lastAction={lastActionThisStreet(state.handLog, player.id, state.street)}
+                  lastAction={lastActionThisStreet(state.handLog, player, state.street, state.currentBet)}
                   cards={revealAll ? player.holeCards : []}
                   revealCards={revealAll && !player.folded}
                 />
@@ -408,7 +382,7 @@ export function Table({
               isAllIn={activePlayer.isAllIn}
               isMyTurn={isHumanTurn}
               betThisStreet={activePlayer.betThisStreet}
-              lastAction={lastActionThisStreet(state.handLog, activePlayer.id, state.street)}
+              lastAction={lastActionThisStreet(state.handLog, activePlayer, state.street, state.currentBet)}
               madeHand={madeHand}
               onShowPotential={handOdds ? () => setShowPotential(true) : undefined}
               potentialOpen={showPotential}
