@@ -187,18 +187,21 @@ export function TableHud({
           ${smallBlind} / ${bigBlind}
           {tournament && tournament.ante > 0 ? ` +$${tournament.ante}` : ''}
         </span>
+        {/* On a phone this is its own second line, so the level and the field
+            size are never squeezed off the right edge. */}
         {tournament && (
-          <>
+          <span className="hud-tourney">
             <span className="hud-sep" />
             <span className="hud-dim hud-tournament-level" title={`Blinds go up in ${tournament.handsUntilNextLevel} hand${tournament.handsUntilNextLevel === 1 ? '' : 's'}`}>
               Level {tournament.level}
             </span>
             <span className="hud-sep" />
             <span className={`hud-dim ${tournament.bubble ? 'hud-tournament-bubble' : ''}`}>
-              {tournament.playersRemaining} of {tournament.fieldSize} left
-              {tournament.bubble ? ' · bubble' : ''}
+              {compact
+                ? `${tournament.bubble ? 'Bubble · ' : ''}${tournament.playersRemaining}/${tournament.fieldSize}`
+                : `${tournament.playersRemaining} of ${tournament.fieldSize} left${tournament.bubble ? ' · bubble' : ''}`}
             </span>
-          </>
+          </span>
         )}
       </div>
 

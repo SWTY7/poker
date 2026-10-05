@@ -15,6 +15,12 @@
 [data-layout='round'] {
   --ivory: #f1e6cc;
   --ivory-ink: #2a1d10;
+  /* The opponents' paper tags: a notch dimmer than --ivory so your own stack,
+     in gold on black, is the brightest figure in view. */
+  --ivory-dim: #d3c8ad;
+  /* Small text on the felt or the rail. 0.82 of ivory keeps it above 4.5:1 on
+     the darkest and the lightest part of the felt. */
+  --ivory-soft: rgb(241 230 204 / 0.82);
 }
 
 /* --- the room ------------------------------------------------------------- */
@@ -84,11 +90,20 @@
 [data-layout='round'] .seat-slot {
   display: block;
   position: absolute;
-  --a: calc(150deg + (var(--seat) + 0.5) * 240deg / var(--seats));
+  /* Seats are spread evenly over the top 240 degrees of the table, centred on
+     straight up. A phone narrows the step for a small table (see below), so a
+     3-handed table keeps its seats up by the corners instead of level with the
+     board. */
+  --step: calc(var(--span, 240deg) / var(--seats));
+  --a: calc(270deg + (var(--seat) - (var(--seats) - 1) / 2) * var(--step));
   /* A person never sits exactly on the line: each seat is nudged in or out by its own small amount. */
   --j: sin(calc(var(--seat) * 2.4 + 0.7));
-  left: calc(50% + cos(var(--a)) * var(--rx) * (1 + var(--j) * 0.035));
-  top: calc(var(--cy) + sin(var(--a)) * var(--ry) * (1 + var(--j) * 0.035));
+  /* The two seats level with the middle of the table sit lower, below the
+     board's row of cards rather than beside it (cos^6 is ~1 there, ~0 up top). */
+  --c: cos(var(--a));
+  --drop: calc(var(--c) * var(--c) * var(--c) * var(--c) * var(--c) * var(--c) * var(--rdrop, 0%));
+  left: calc(50% + var(--c) * var(--rx) * (1 + var(--j) * 0.035));
+  top: calc(var(--cy) + sin(var(--a)) * var(--ry) * (1 + var(--j) * 0.035) + var(--drop));
   /* Anchored at the avatar, so the chip sits on the rail and the name and tag hang inside it. */
   transform: translate(-50%, -1.3rem);
   z-index: 2;
@@ -99,7 +114,8 @@
 [data-layout='round'] .board {
   position: absolute;
   left: 50%;
-  top: var(--cy);
+  /* A touch below the seats' ring centre (--bshift) when seats crowd the top. */
+  top: calc(var(--cy) + var(--bshift, 0%));
   transform: translate(-50%, -50%);
   margin: 0;
   gap: var(--sp-3);
@@ -111,7 +127,7 @@
 
 [data-layout='round'] .board-street-label {
   font-size: var(--fs-sm);
-  color: rgb(241 230 204 / 0.75);
+  color: var(--ivory-soft);
 }
 
 [data-layout='round'] .board-cards {
@@ -202,7 +218,9 @@
   top: 100%;
   right: 0;
   white-space: nowrap;
-  color: rgb(241 230 204 / 0.6);
+  font-style: normal;
+  color: var(--ivory-soft);
+  text-shadow: 0 1px 2px rgb(0 0 0 / 0.8);
 }
 
 /* --- seats ---------------------------------------------------------------- */
@@ -259,7 +277,8 @@
 [data-layout='round'] .badge-pos {
   border: 0;
   padding: 0;
-  color: rgb(241 230 204 / 0.55);
+  color: var(--ivory-soft);
+  text-shadow: 0 1px 2px rgb(0 0 0 / 0.8);
 }
 
 [data-layout='round'] .seat-top {
@@ -270,11 +289,28 @@
   display: none;
 }
 
-/* The dealer button: a puck lying on the felt beside the seat that has it. */
+/* The dealer button: a puck lying on the felt beside the seat that has it.
+   It and the bet pill are placed from the seat, not from the table centre: a
+   straight line to the middle runs through the board for every seat except the
+   top ones, and there is no room between the rail and the cards to stop short.
+   --side is +1 on the left of the table, -1 on the right (so "inward" is
+   +side), and --top is 1 for the seats along the top edge, 0 elsewhere. Seats
+   at the sides put their bet on the inward side of the chip; seats along the
+   top put it just under their name, toward the pot. The puck goes on the other
+   side of the chip. */
+[data-layout='round'] .seat-slot {
+  --side: clamp(-1, calc(cos(var(--a)) * -50), 1);
+  --top: clamp(0, calc((sin(var(--a)) * sin(var(--a)) - 0.5) * 5), 1);
+}
+
+[data-layout='round'] .seat {
+  --av: 2.5rem;
+}
+
 [data-layout='round'] .seat-dealer-puck {
   position: absolute;
   left: 50%;
-  top: 50%;
+  top: calc(var(--av) / 2);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -290,9 +326,10 @@
     inset 0 0 0 0.18rem #fbf6e8,
     inset 0 0 0 0.25rem rgb(42 29 16 / 0.35),
     0 0.2rem 0.4rem rgb(0 0 0 / 0.6);
+  /* Outward from the chip (the rail side); to the right of it along the top. */
   transform: translate(
-    calc(-50% + cos(var(--a)) * -5.6rem + sin(var(--a)) * 1.7rem),
-    calc(-50% + sin(var(--a)) * -5.6rem - cos(var(--a)) * 1.7rem)
+    calc(-50% + (var(--side) * (var(--top) - 1) + var(--top)) * (var(--av) / 2 + 1rem)),
+    -50%
   );
 }
 
@@ -314,14 +351,14 @@
   padding: 0.05rem 0.5rem;
   font-size: var(--fs-sm);
   color: var(--ivory-ink);
-  background: var(--ivory);
+  background: var(--ivory-dim);
   border-radius: 0.18rem;
   box-shadow: 0 0.12rem 0 rgb(0 0 0 / 0.5), 0 0.3rem 0.5rem rgb(0 0 0 / 0.4);
   transform: rotate(-1.6deg);
 }
 
 [data-layout='round'] .seat-status {
-  color: rgb(241 230 204 / 0.6);
+  color: var(--ivory-soft);
   text-shadow: 0 1px 2px rgb(0 0 0 / 0.8);
 }
 
@@ -355,9 +392,12 @@
 /* A bet sits on the felt between the seat and the pot. */
 [data-layout='round'] .seat-bet {
   left: 50%;
-  top: 50%;
+  /* Level with the chip, or (top seats) just below the seat's own lines. */
+  top: calc(var(--av) / 2 + var(--top) * (100% - var(--av) / 2 + 0.7rem));
   bottom: auto;
-  transform: translate(calc(-50% + cos(var(--a)) * -4rem), calc(-50% + sin(var(--a)) * -4rem));
+  transform: translate(calc(-50% + var(--side) * (1 - var(--top)) * 3.4rem), -50%);
+  /* Fade in: the base slide would replace the transform that places the pill. */
+  animation: bet-fade var(--t-mid) var(--ease);
   background: rgb(0 0 0 / 0.38);
   border: 1px solid rgb(var(--gold-rgb) / 0.5);
   color: var(--ivory);
@@ -365,25 +405,35 @@
   font-variant-numeric: lining-nums tabular-nums;
 }
 
+@keyframes bet-fade {
+  from {
+    opacity: 0;
+  }
+}
+
 /* --- you ------------------------------------------------------------------ */
 
-/* You are a seat like the others. Your cards lie at the bottom edge of the table,
-   and your chip, name, stack and what you've just done sit beside them as one
-   group, with the chips you've committed out on the felt. There is no panel. */
+/* You are a seat like the others, with a bit more to say. Two rows on one grid:
+   who you are (chip, name, position, stack) across the top, then your cards on
+   the left and the price to call on the right, centred on each other. Nothing
+   is tilted or scaled by transform (a transform moves the paint, not the box,
+   which is how the cards used to hang over the divider), and there is room
+   under the cards so they sit fully inside the panel. */
 [data-layout='round'] .hero {
   position: relative;
   z-index: 3;
   display: grid;
-  grid-template-columns: auto auto;
+  grid-template-columns: auto minmax(0, 1fr);
   grid-template-areas:
-    'cards info'
-    'cards right';
-  justify-content: center;
-  align-items: end;
+    'head head'
+    'cards right'
+    'made right'
+    'notes notes';
+  align-items: center;
   column-gap: var(--sp-5);
   row-gap: 0;
-  margin-top: -3.4rem;
-  padding: 0 var(--sp-4);
+  margin-top: 0;
+  padding: var(--sp-2) var(--sp-4) var(--sp-4);
   background: none;
   border: 0;
   border-radius: 0;
@@ -393,54 +443,58 @@
   background: none;
 }
 
-[data-layout='round'] .hero-cards {
-  grid-area: cards;
-  filter: drop-shadow(0 0.5rem 0.5rem rgb(0 0 0 / 0.6));
-  /* Your hand is the biggest thing on the table. */
-  transform: scale(1.3);
-  transform-origin: 50% 70%;
-  margin-inline: 0.6rem;
-}
-
-[data-layout='round'] .hero-cards > .card:first-child {
-  transform: rotate(-5deg) translateY(0.15rem);
-}
-
-[data-layout='round'] .hero-cards > .card:last-child {
-  transform: rotate(4deg);
-  margin-left: -0.9rem;
-}
-
+/* The hero's info block dissolves into the grid, so its parts can take
+   their own cells. */
 [data-layout='round'] .hero-info {
-  grid-area: info;
-  display: grid;
-  grid-template-columns: auto auto;
-  column-gap: var(--sp-3);
-  row-gap: 0.1rem;
+  display: contents;
+}
+
+[data-layout='round'] .hero-head {
+  grid-area: head;
+  display: flex;
+  flex-direction: row;
   align-items: center;
-  justify-content: start;
-  flex: none;
-  min-width: 0;
-  padding: 0;
-  background: none;
-  border-radius: 0;
-  box-shadow: none;
+  gap: var(--sp-3);
+  padding-bottom: var(--sp-3);
 }
 
 [data-layout='round'] .hero-avatar {
   display: flex;
-  grid-row: 1 / span 2;
+  flex: none;
 }
 
-[data-layout='round'] .hero-id,
-[data-layout='round'] .hero-stack-row {
-  grid-column: 2;
+[data-layout='round'] .hero-id {
+  flex: 0 1 auto;
+  min-width: 0;
+  white-space: nowrap;
 }
 
-[data-layout='round'] .hero-made,
-[data-layout='round'] .hero-status,
-[data-layout='round'] .hero-state {
-  grid-column: 1 / -1;
+[data-layout='round'] .hero-cards {
+  --hero-card-w: 4.2rem;
+  grid-area: cards;
+  justify-self: start;
+  filter: drop-shadow(0 0.5rem 0.5rem rgb(0 0 0 / 0.6));
+}
+
+/* Your hand is the biggest thing on the table, sized for real. */
+[data-layout='round'] .hero-cards .card {
+  width: var(--hero-card-w);
+  height: calc(var(--hero-card-w) * 1.38);
+  padding: calc(var(--hero-card-w) * 0.09) calc(var(--hero-card-w) * 0.11);
+}
+
+[data-layout='round'] .hero-cards .card-rank {
+  font-size: calc(var(--hero-card-w) * 0.46);
+}
+
+[data-layout='round'] .hero-cards .card-suit {
+  width: calc(var(--hero-card-w) * 0.41);
+  height: calc(var(--hero-card-w) * 0.41);
+}
+
+/* Two cards side by side, close but not covering each other's corners. */
+[data-layout='round'] .hero-cards {
+  gap: var(--sp-1);
 }
 
 [data-layout='round'] .hero-name {
@@ -449,36 +503,62 @@
   color: var(--text);
 }
 
+[data-layout='round'] .hero-stack-row {
+  margin-left: auto;
+}
+
 [data-layout='round'] .hero-stack-row .label {
   display: none;
 }
 
-/* Your stack is a paper tag, like everyone's. */
+/* Your stack is the number you read most, so it is not a paper tag like the
+   opponents' but a dark pill with the figure in gold: the highest contrast on
+   the screen, upright, no tilt. */
 [data-layout='round'] .hero-stack {
-  padding: 0.05rem 0.5rem;
-  font-size: var(--fs-md);
-  color: var(--ivory-ink);
-  background: var(--ivory);
-  border-radius: 0.18rem;
-  box-shadow: 0 0.12rem 0 rgb(0 0 0 / 0.5), 0 0.3rem 0.5rem rgb(0 0 0 / 0.4);
-  transform: rotate(-1.6deg);
+  display: inline-block;
+  padding: 0.1rem 0.8rem;
+  font-size: var(--fs-stack-hero);
+  line-height: 1.3;
+  color: var(--gold);
+  background: rgb(0 0 0 / 0.55);
+  border: 1px solid rgb(var(--gold-rgb) / 0.5);
+  border-radius: var(--r-pill);
+  box-shadow: inset 0 0.1rem 0.25rem rgb(0 0 0 / 0.6);
 }
 
-[data-layout='round'] .hero-status {
-  display: block;
-  color: var(--text-dim);
-}
-
+/* What you hold, as a small chip just under the cards. */
 [data-layout='round'] .hero-made {
+  grid-area: made;
+  justify-self: start;
+  margin-top: var(--sp-3);
+  padding: 0.12rem var(--sp-3);
+  font-size: var(--fs-xs);
+  color: var(--text);
+  background: rgb(0 0 0 / 0.4);
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+}
+
+[data-layout='round'] .hero-notes {
+  grid-area: notes;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+}
+
+[data-layout='round'] .hero-notes:not(:empty) {
+  margin-top: var(--sp-2);
+}
+
+[data-layout='round'] .hero-status,
+[data-layout='round'] .hero-state {
+  display: block;
+  font-size: var(--fs-sm);
   color: var(--text-dim);
 }
 
-/* What you have put in this street sits on the felt above your cards, toward the pot. */
+/* What you have put in this street, in the notes row under your cards. */
 [data-layout='round'] .hero-bet {
-  position: absolute;
-  left: 50%;
-  top: -2.6rem;
-  transform: translateX(-50%);
   display: flex;
   align-items: center;
   gap: 0.15rem;
@@ -509,21 +589,35 @@
   font-weight: 600;
 }
 
+/* The price to call, level with the middle of your cards. */
 [data-layout='round'] .hero-right {
   grid-area: right;
-  align-self: start;
-  margin-top: var(--sp-2);
+  align-self: center;
+  justify-self: end;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--sp-2);
   color: var(--text);
 }
 
 [data-layout='round'] .hero-tocall {
-  display: flex;
-  align-items: baseline;
-  gap: var(--sp-2);
+  align-items: flex-end;
+  gap: 0.1rem;
+}
+
+[data-layout='round'] .hero-tocall .label {
+  font-size: var(--fs-xs);
+  color: var(--text-dim);
 }
 
 [data-layout='round'] .hero-tocall-amount {
+  font-size: var(--fs-xl);
   color: var(--accent);
+}
+
+[data-layout='round'] .hero-tocall-odds {
+  font-size: var(--fs-xs);
+  color: var(--text-dim);
 }
 
 /* --- the shelf ------------------------------------------------------------ */
@@ -544,15 +638,78 @@
 /* --- phones --------------------------------------------------------------- */
 
 @media (max-width: 820px) {
+  /* Seats sit on the felt: close enough to the middle that a name and a stack
+     tag clear the rail, which is 1.5% + 0.6rem in from the edge. */
   [data-layout='round'] .felt {
-    --rx: 41%;
-    --ry: 38%;
-    --cy: 46%;
+    --rx: 34%;
+    --ry: 31%;
+    /* Lower than the felt's middle, so the seats and board fill the oval
+       instead of leaving its lower half empty above your own panel. */
+    --cy: 52%;
+    --rdrop: 9%;
+    --bshift: 2.5%;
+  }
+
+  /* A full ring (7+ players, up to 10) has to fit more chips into the same
+     felt: a slightly wider ring, smaller chips and tags, and a narrower board
+     so the corner seats don't sit on its first and last cards. */
+  [data-layout='round'] .felt:is([data-seats='6'], [data-seats='7'], [data-seats='8'], [data-seats='9']) {
+    --rx: 36%;
+    --ry: 32%;
+    --cy: 49%;
+    --rdrop: 7%;
+    --bshift: 3%;
+  }
+
+  [data-layout='round'] .felt:is([data-seats='6'], [data-seats='7'], [data-seats='8'], [data-seats='9']) .seat {
+    --av: 1.7rem;
+    min-width: 3rem;
+  }
+
+  [data-layout='round'] .felt:is([data-seats='6'], [data-seats='7'], [data-seats='8'], [data-seats='9']) .seat-avatar {
+    width: 1.7rem;
+    height: 1.7rem;
+  }
+
+  [data-layout='round'] .felt:is([data-seats='6'], [data-seats='7'], [data-seats='8'], [data-seats='9']) :is(.seat-name, .seat-stack) {
+    font-size: var(--fs-2xs);
+    max-width: 3.4rem;
+  }
+
+  [data-layout='round'] .felt:is([data-seats='6'], [data-seats='7'], [data-seats='8'], [data-seats='9']) .card-md {
+    width: 2.3rem;
+    height: 3.2rem;
+  }
+
+  [data-layout='round'] .felt:is([data-seats='6'], [data-seats='7'], [data-seats='8'], [data-seats='9']) .card-md .card-rank {
+    font-size: 1rem;
   }
 
   [data-layout='round'] .felt::after {
     inset: 9% 1.5% 12%;
     border-width: 0.6rem;
+  }
+
+  [data-layout='round'] .seat-slot {
+    --step: min(60deg, calc(var(--span, 240deg) / var(--seats)));
+  }
+
+  /* Three opponents sit in the upper corners and top, not level with the
+     board. */
+  [data-layout='round'] .felt[data-seats='3'] .seat-slot {
+    --step: 45deg;
+  }
+
+  /* With a full ring the arc runs further round, into the empty felt beside
+     your own panel, so the seats are spread out instead of piled on the board. */
+  [data-layout='round'] .felt:is([data-seats='6'], [data-seats='7'], [data-seats='8'], [data-seats='9']) .seat-slot {
+    --span: 290deg;
+  }
+
+  /* On a phone the betting line would run through the seat tags; the felt
+     reads cleaner without it. */
+  [data-layout='round'] .felt::before {
+    display: none;
   }
 
   [data-layout='round'] .seat {
@@ -574,28 +731,22 @@
     font-size: var(--fs-xs);
   }
 
-  [data-layout='round'] .seat-bet {
-    transform: translate(calc(-50% + cos(var(--a)) * -3.4rem), calc(-50% + sin(var(--a)) * -3.4rem));
+  [data-layout='round'] .seat {
+    --av: 2rem;
   }
 
   [data-layout='round'] .seat-dealer-puck {
     width: 1.3rem;
     height: 1.3rem;
-    transform: translate(
-      calc(-50% + cos(var(--a)) * -4.4rem + sin(var(--a)) * 1.4rem),
-      calc(-50% + sin(var(--a)) * -4.4rem - cos(var(--a)) * 1.4rem)
-    );
   }
 
   [data-layout='round'] .hero {
-    margin-top: -2.6rem;
     column-gap: var(--sp-3);
     padding-inline: var(--sp-3);
   }
 
   [data-layout='round'] .hero-cards {
-    transform: scale(1.1);
-    margin-inline: 0.3rem;
+    --hero-card-w: 3.3rem;
   }
 
   [data-layout='round'] .hero-avatar {
@@ -606,8 +757,86 @@
   [data-layout='round'] .hero-name {
     font-size: var(--fs-md);
   }
+}
 
-  [data-layout='round'] .hero-bet {
-    top: -2.2rem;
+/* A short phone (an iPhone SE is 667px tall) has about 400px of felt once the
+   bar, your panel and the buttons are in. Everything on the table steps down a
+   size so the same ring still fits: your cards, the board, the seat chips. */
+@media (max-width: 820px) and (max-height: 740px) and (orientation: portrait) {
+  [data-layout='round'] .hero-cards {
+    --hero-card-w: 2.9rem;
+  }
+
+  [data-layout='round'] .hero-head {
+    padding-bottom: var(--sp-2);
+  }
+
+  /* The oval fills more of the felt box, and the ring of seats is taller. */
+  [data-layout='round'] .felt[data-seats] {
+    --rx: 36%;
+    --ry: 37%;
+    --cy: 50%;
+    --rdrop: 8%;
+    --bshift: 2%;
+  }
+
+  [data-layout='round'] .felt[data-seats]::after {
+    inset: 5% 1.5% 4%;
+  }
+
+  [data-layout='round'] .felt .card-md {
+    width: 2.3rem;
+    height: 3.2rem;
+  }
+
+  [data-layout='round'] .felt .card-md .card-rank {
+    font-size: 1rem;
+  }
+
+  [data-layout='round'] .felt .seat {
+    --av: 1.7rem;
+    min-width: 3rem;
+  }
+
+  [data-layout='round'] .felt .seat-avatar {
+    width: 1.7rem;
+    height: 1.7rem;
+  }
+
+  [data-layout='round'] .felt .seat-name,
+  [data-layout='round'] .felt .seat-stack {
+    font-size: var(--fs-2xs);
+    max-width: 3.4rem;
+  }
+
+  [data-layout='round'] .felt .pot-amount {
+    font-size: var(--fs-xl);
+  }
+
+  [data-layout='round'] .felt .pot-chips {
+    height: 2.6rem;
+  }
+}
+
+/* A heads-up or 3-handed table is a smaller table, not the same tall oval with
+   empty felt under the board. In portrait the felt takes the height its two
+   seats need and the table and your panel are centred together between the
+   bar and the buttons. With three opponents or more the seats and the board
+   use the whole height (shrinking it put the corner seats on the cards). */
+@media (max-width: 820px) and (orientation: portrait) {
+  [data-layout='round'] .felt[data-seats='1'],
+  [data-layout='round'] .felt[data-seats='2'] {
+    flex: 0 1 auto;
+    aspect-ratio: 0.74;
+  }
+
+  [data-layout='round'] .felt[data-seats='1'],
+  [data-layout='round'] .felt[data-seats='2'] {
+    margin-top: auto;
+  }
+
+  [data-layout='round'] .felt[data-seats='1'] ~ .hero,
+  [data-layout='round'] .felt[data-seats='2'] ~ .hero {
+    margin-bottom: auto;
   }
 }

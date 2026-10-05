@@ -54,6 +54,7 @@ export function HeroZone({
   potentialOpen,
 }: HeroZoneProps) {
   const classes = ['hero', folded && 'hero-folded', isMyTurn && 'hero-turn'].filter(Boolean).join(' ')
+  const facingBet = !folded && !isAllIn && toCall > 0
 
   return (
     <div className={classes}>
@@ -69,29 +70,33 @@ export function HeroZone({
       </div>
 
       <div className="hero-info">
-        {/* The next three are only shown by layouts that seat you at the table
-            like everyone else (a chip, the chips you've committed, what you just did). */}
-        <span className="seat-avatar hero-avatar" style={avatarStyle(name)} aria-hidden="true">
-          {avatarInitial(name)}
-        </span>
-        <div className="hero-id">
-          {isMyTurn && <span className="hero-turn-chip">Your turn</span>}
-          <span className="hero-name">{name}</span>
-          {position && (
-            <span className="badge badge-pos" title={POSITION_NAMES[position]}>
-              {position}
-            </span>
-          )}
-          {isDealer && (
-            <span className="badge badge-dealer" title="Dealer button">
-              D
-            </span>
-          )}
-        </div>
+        {/* Who you are, in one row: a chip, the name, your position and your
+            stack. The avatar, the chips you've committed and the status line
+            are only shown by layouts that seat you at the table like everyone
+            else. */}
+        <div className="hero-head">
+          <span className="seat-avatar hero-avatar" style={avatarStyle(name)} aria-hidden="true">
+            {avatarInitial(name)}
+          </span>
+          <div className="hero-id">
+            {isMyTurn && <span className="hero-turn-chip">Your turn</span>}
+            <span className="hero-name">{name}</span>
+            {position && (
+              <span className="badge badge-pos" title={POSITION_NAMES[position]}>
+                {position}
+              </span>
+            )}
+            {isDealer && (
+              <span className="badge badge-dealer" title="Dealer button">
+                D
+              </span>
+            )}
+          </div>
 
-        <div className="hero-stack-row">
-          <span className="label">Stack</span>
-          <span className="hero-stack money">${stack.toLocaleString()}</span>
+          <div className="hero-stack-row">
+            <span className="label">Stack</span>
+            <span className="hero-stack money">${stack.toLocaleString()}</span>
+          </div>
         </div>
 
         {/* What the hole cards plus the board currently make. The single most
@@ -99,27 +104,32 @@ export function HeroZone({
             costs one row. */}
         {madeHand && !folded && <div className="hero-made">{madeHand}</div>}
 
-        {lastAction && !folded && <div className="hero-status">{lastAction}</div>}
+        {/* What you just did and what you have in front of you, on one line
+            under the cards. */}
+        <div className="hero-notes">
+          {lastAction && !folded && <div className="hero-status">{lastAction}</div>}
 
-        {betThisStreet > 0 && !folded && (
-          <span className="hero-bet money" aria-label={`you have bet $${betThisStreet.toLocaleString()}`}>
-            <CoinIcon className="seat-bet-icon" />
-            {betThisStreet.toLocaleString()}
-          </span>
-        )}
+          {betThisStreet > 0 && !folded && (
+            <span className="hero-bet money" aria-label={`you have bet $${betThisStreet.toLocaleString()}`}>
+              <CoinIcon className="seat-bet-icon" />
+              {betThisStreet.toLocaleString()}
+            </span>
+          )}
 
-        {folded && <div className="hero-state">Folded this hand</div>}
-        {isAllIn && !folded && <div className="hero-state">All-in</div>}
+          {folded && <div className="hero-state">Folded this hand</div>}
+          {isAllIn && !folded && <div className="hero-state">All-in</div>}
+        </div>
       </div>
 
       <div className="hero-right">
-        {!folded && !isAllIn && toCall > 0 && (
-          <div className="hero-tocall">
-            <span className="label">To call</span>
-            <span className="hero-tocall-amount money">${toCall.toLocaleString()}</span>
-            {potOdds !== null && <span className="hero-tocall-odds">{Math.round(potOdds * 100)}% of pot</span>}
-          </div>
-        )}
+        {/* Always rendered: when there is nothing to call it is only hidden, so
+            the row keeps its height and the cards and buttons don't jump
+            between checking and facing a bet. */}
+        <div className={`hero-tocall ${facingBet ? '' : 'hero-tocall-idle'}`} aria-hidden={!facingBet}>
+          <span className="label">To call</span>
+          <span className="hero-tocall-amount money">${toCall.toLocaleString()}</span>
+          <span className="hero-tocall-odds">{potOdds !== null ? `${Math.round(potOdds * 100)}% of pot` : ' '}</span>
+        </div>
 
         {onShowPotential && (
           <button

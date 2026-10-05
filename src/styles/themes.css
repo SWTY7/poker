@@ -25,7 +25,7 @@
   --line-soft: #33261a;
   --text: #f3e9d6;
   --text-dim: #b3a58c;
-  --text-faint: #8d806a;
+  --text-faint: #a09580;
 
   --accent: #d9a24a;
   --accent-mid: #bd8a36;
@@ -182,16 +182,27 @@
   --font-mono: 'Fraunces', Georgia, serif;
 }
 
-[data-font='warm'] :is(.label, .badge, .seat-status, .board-street-label, .hero-turn-chip, .street-step, .hud-dim, .menu-section, .seat-bet, .hero-tocall-odds, .pot-sub, .sizer-bounds, .segment) {
+[data-font='warm'] :is(.label, .badge, .seat-status, .board-street-label, .hero-turn-chip, .street-step, .menu-section, .sizer-bounds, .segment) {
   text-transform: none;
   letter-spacing: 0.01em;
   font-style: italic;
   font-weight: 500;
 }
 
+/* Words are italic; anything that carries an amount is upright, so a number is
+   never read through a slant. */
+[data-font='warm'] :is(.hud-dim, .seat-bet, .hero-tocall-odds, .pot-sub, .hero-stack, .hud-hand) {
+  text-transform: none;
+  letter-spacing: 0.01em;
+  font-style: normal;
+  font-weight: 500;
+  font-variant-numeric: lining-nums tabular-nums;
+}
+
 [data-font='warm'] .money {
   font-weight: 600;
   font-variant-numeric: lining-nums tabular-nums;
+  font-style: normal;
 }
 
 /* ---------- Condensed: Barlow Condensed, like TV graphics ---------- */
@@ -303,10 +314,12 @@
   --bx-danger-fg: #f6dcd6;
   --bx-danger-shadow: inset 0 1px 0 rgb(255 255 255 / 0.12), 0 0.15rem 0 #2a0a08;
 
-  --bx-accent-bg: rgb(0 0 0 / 0.3);
+  /* Raise: a filled dark-gold plate with a light label, plainly tappable and
+     plainly second to Call's bright brass. */
+  --bx-accent-bg: linear-gradient(180deg, #6f5121, #4a3414);
   --bx-accent-border: #c58c35;
-  --bx-accent-fg: #efc677;
-  --bx-accent-shadow: 0 0.15rem 0 rgb(0 0 0 / 0.5);
+  --bx-accent-fg: #fbecc8;
+  --bx-accent-shadow: inset 0 1px 0 rgb(255 255 255 / 0.16), 0 0.15rem 0 #2a1d0a;
 }
 
 /* ---------- Capitals: upper case, spaced out ---------- */

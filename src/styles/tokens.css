@@ -58,7 +58,8 @@
 
   --text: #f2efe6;
   --text-dim: #a8a293;
-  --text-faint: #857e6d;
+  /* Faint text still has to read: #8f8878 is 5.3:1 on --bg, over the 4.5:1 floor. */
+  --text-faint: #8f8878;
 
   --accent: #cdae70;
   --accent-mid: #b6935a;
@@ -95,6 +96,8 @@
   --fs-xl: 1.3rem;
   --fs-2xl: 1.7rem;
   --fs-3xl: 2.2rem;
+  /* Your own stack is the number you read most often: 1.4x an opponent's tag. */
+  --fs-stack-hero: calc(var(--fs-md) * 1.4);
 
   --track: 0.1em; /* letter-spacing for small uppercase labels */
 

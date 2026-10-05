@@ -94,6 +94,14 @@
   font-family: var(--font-mono);
 }
 
+/* Level and field size in a tournament: part of the same line on a wide
+   screen, a second line of its own on a phone (see the 820px block). */
+.hud-tourney {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
 .hud-sep {
   width: 1px;
   height: 0.9rem;
@@ -633,6 +641,21 @@
   flex: 1 1 auto;
 }
 
+/* Groups the status line, committed chips and state under the cards. It adds
+   no box here; the round table gives it a row of its own. */
+.hero-notes {
+  display: contents;
+}
+
+/* Name, position and stack. A column here (the avatar is hidden in this
+   layout); the round table lays it out as one row. */
+.hero-head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
 .hero-id {
   display: flex;
   align-items: center;
@@ -695,7 +718,13 @@
 .hero-tocall-odds {
   font-family: var(--font-mono);
   font-size: var(--fs-2xs);
-  color: var(--text-faint);
+  color: var(--text-dim);
+}
+
+/* Nothing to call: the block stays in the layout, only unseen, so the panel
+   doesn't change height between checking and facing a bet. */
+.hero-tocall-idle {
+  visibility: hidden;
 }
 
 .hero-potential-icon {
@@ -717,9 +746,12 @@
   gap: var(--sp-2);
 }
 
+/* Fold, Call/Check and Raise/Bet are one height and one corner radius. */
 .dock-row > .btn {
   flex: 1 1 0;
   min-width: 0;
+  min-height: 3.1rem;
+  border-radius: var(--r-md);
 }
 
 /* Fold is deliberately the narrowest of the three: it is the action you take
@@ -735,15 +767,17 @@
   flex: 1.2 1 0;
 }
 
+/* A filled secondary: a tinted plate and a light label, so it reads as
+   tappable (an outline on dark looked disabled) while Call stays the loudest. */
 .btn-accent {
-  --btn-bg: var(--bx-accent-bg, rgb(var(--accent-rgb) / 0.14));
+  --btn-bg: var(--bx-accent-bg, rgb(var(--accent-rgb) / 0.3));
   --btn-border: var(--bx-accent-border, var(--accent));
-  --btn-fg: var(--bx-accent-fg, var(--accent));
+  --btn-fg: var(--bx-accent-fg, var(--text));
   box-shadow: var(--bx-accent-shadow, var(--bx-shadow, none));
 }
 
 .btn-accent:hover:not(:disabled) {
-  --btn-bg: rgb(var(--accent-rgb) / 0.24);
+  --btn-bg: var(--bx-accent-bg, rgb(var(--accent-rgb) / 0.4));
 }
 
 .dock-row > .dock-back {
@@ -1049,6 +1083,23 @@
     padding: var(--sp-1) var(--sp-3);
     padding-top: max(var(--sp-1), env(safe-area-inset-top));
     gap: var(--sp-2);
+  }
+
+  /* The left group may wrap onto a second line (the tournament level and field
+     size) instead of pushing the controls off the right edge. */
+  .hud > .hud-group:first-child {
+    flex-shrink: 1;
+    min-width: 0;
+    flex-wrap: wrap;
+    row-gap: var(--sp-1);
+  }
+
+  .hud-tourney {
+    flex: 0 0 100%;
+  }
+
+  .hud-tourney > .hud-sep:first-child {
+    display: none;
   }
 
   /* The felt already announces the street in the middle of the screen;
