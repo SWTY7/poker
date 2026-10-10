@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "deny": [
+      "Bash(wrangler deploy:*)",
+      "Bash(npx wrangler deploy:*)",
+      "Bash(npx wrangler publish:*)",
+      "Bash(git push --tags:*)",
+      "Bash(git push origin v:*)",
+      "Bash(gh workflow run:*)"
+    ]
+  }
+}
