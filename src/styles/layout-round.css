@@ -844,3 +844,54 @@
     margin-bottom: auto;
   }
 }
+
+/* --- a crowded table on a phone (8-10 players) ------------------------------
+   Owner decision: no player cap; the table scrolls vertically and keeps every
+   seat. On a portrait phone the table region (.table-main) becomes the
+   scroller. The felt keeps --felt-min, the height src/ui/table-fit.ts worked
+   out so no two seats and no seat and the board overlap (at 375x667 that is
+   roughly 480px for 8 players and 740px for 9 or 10, against about 320px of
+   free space: 667 minus header ~72, hero ~120, buttons ~110, padding ~45).
+   The hero panel and the buttons (.table-actions) are sticky at the bottom,
+   so they are never scrolled away; the header is outside the scroller.
+   The ring numbers below must match RING in table-fit.ts. Seat sizes are the
+   existing 6+ opponent phone sizes (see above); 2-7 players are not touched
+   because this only matches [data-crowded], set from 7 opponents up.
+   -------------------------------------------------------------------------- */
+@media (max-width: 820px) and (orientation: portrait) {
+  [data-layout='round'] .table-main[data-crowded] {
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
+    /* The bottom padding moves onto the sticky block so nothing shows below it. */
+    padding-bottom: 0;
+    gap: 0;
+  }
+
+  [data-layout='round'] .table-main[data-crowded] .felt[data-seats] {
+    flex: 1 0 auto;
+    min-height: var(--felt-min, 480px);
+    margin-bottom: var(--sp-3);
+    --rx: 40%;
+    --ry: 40%;
+    --cy: 50%;
+    --rdrop: 6%;
+    --bshift: 0%;
+  }
+
+  [data-layout='round'] .table-main[data-crowded] .felt[data-seats]::after {
+    inset: 3% 1.5%;
+  }
+
+  [data-layout='round'] .table-main[data-crowded] .table-actions {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-3);
+    flex: none;
+    position: sticky;
+    bottom: 0;
+    z-index: 6;
+    padding: var(--sp-2) 0 max(var(--sp-4), env(safe-area-inset-bottom));
+    background: var(--table-bg);
+  }
+}
