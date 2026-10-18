@@ -8,7 +8,7 @@ const SPEEDS = ['slow', 'normal', 'fast'] as const
 /** A small, non-interactive preview of each theme: three flat colour bands. */
 const THEME_SWATCH: Record<Theme, [string, string, string]> = {
   classic: ['#1a1d24', '#26443a', '#7d8aa0'],
-  realistic: ['#1f4a31', '#4a2c1c', '#d9a24a'],
+  realistic: ['#14573a', '#1d1d22', '#c62a2a'],
 }
 
 export function SettingsScreen({ onBack }: { onBack: () => void }) {
