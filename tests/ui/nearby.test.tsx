@@ -22,7 +22,9 @@ function sheet(i: Invite): string {
 describe('nearby screens', () => {
   it('intro shows the checklist and the trust notice', () => {
     const html = renderToString(<NearbyIntro onHost={noop} onJoin={noop} onBack={noop} />)
-    expect(html).toContain('Play on a plane or anywhere offline')
+    expect(html).toContain('Play without internet')
+    expect(html).toContain('hotspot behaviour varies by phone')
+    expect(html).not.toContain('Play on a plane')
     expect(html).toContain('Host nearby')
     expect(html).toContain('Join nearby')
     expect(html).toContain('opened this app once with internet')
@@ -56,6 +58,14 @@ describe('nearby screens', () => {
     const html = renderToString(<ReplyPanel reply="P1G0123456789ABCDEFGH" />)
     expect(html).toContain('<svg class="nearby-qr"')
     expect(html).toContain('Show this to the host.')
+  })
+
+  it('the guest reply panel offers the camera only when its reply is .local only', () => {
+    const plain = renderToString(<ReplyPanel reply="P1G0123456789ABCDEFGH" mdnsOnly={false} onAllowCamera={noop} />)
+    expect(plain).not.toContain('Allow camera')
+    const local = renderToString(<ReplyPanel reply="P1G0123456789ABCDEFGH" mdnsOnly onAllowCamera={noop} />)
+    expect(local).toContain('Allow camera')
+    expect(local).toContain(P2P_MESSAGES.mdnsOnly)
   })
 
   it('has a message for every error code, and failed invites say why', () => {

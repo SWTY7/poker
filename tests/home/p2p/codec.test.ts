@@ -127,6 +127,23 @@ describe('signal codec', () => {
     expect(codeOf(() => decodeSignal(packCode('offer', bytes), 'offer'))).toBe('version')
   })
 
+  it('rejects absurdly long input as a typo', () => {
+    const code = encodeSignal(signalOf(FIXTURES[0]))
+    expect(codeOf(() => decodeSignal(code + '0'.repeat(500), 'offer'))).toBe('typo')
+    expect(codeOf(() => decodeSignal(' '.repeat(5000) + code, 'offer'))).toBe('typo')
+  })
+
+  it('rejects non-zero padding bits at the end of a login', () => {
+    const bytes = unpackCode(encodeSignal(signalOf(FIXTURES[0])), 'offer')
+    const length = bytes[5]
+    const used = length * 6
+    const padding = Math.ceil(used / 8) * 8 - used
+    if (padding === 0) return
+    expect(codeOf(() => decodeSignal(packCode('offer', bytes), 'offer'))).toBe('no error')
+    bytes[5 + Math.ceil(used / 8)] |= 1
+    expect(codeOf(() => decodeSignal(packCode('offer', bytes), 'offer'))).toBe('typo')
+  })
+
   it('carries the offer id from the host code into the reply', () => {
     const id = newOfferId()
     expect(id).toMatch(/^[0-9a-f]{8}$/)

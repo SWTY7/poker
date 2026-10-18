@@ -62,7 +62,12 @@ export function dataChannelTransport(dc: DataChannelLike, pc: PeerLike, now: () 
         finish()
         return
       }
-      for (const frame of toFrames(text, (sent++).toString(36))) dc.send(frame)
+      try {
+        for (const frame of toFrames(text, (sent++).toString(36))) dc.send(frame)
+      } catch {
+        // A channel that is closing throws here; end this line, never the caller's loop over other lines.
+        finish()
+      }
     },
     onMessage: (listener) => {
       message = listener

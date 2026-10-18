@@ -236,6 +236,7 @@ function App() {
     return code && isRoomCode(code) ? code : null
   })
   const [screen, setScreen] = useState<Screen>(() => (linkedRoom ? { kind: 'home-join', code: linkedRoom } : { kind: 'lobby' }))
+  const [pendingNearby, setPendingNearby] = useState<HostSetup | null>(null)
   const [mode, setMode] = useState<GameMode>(() => (linkedRoom ? 'home' : loadMode()))
   const [career, setCareer] = useState<CareerData>(() => loadCareer())
   const look = useSyncExternalStore(subscribeLook, getLook)
@@ -298,7 +299,13 @@ function App() {
   }
 
   /** Opens a nearby table on this phone: no server, so nothing can fail but the browser itself. */
-  const handleOpenNearby = async (setup: HostSetup): Promise<string | null> => {
+  const handleOpenNearby = async (setup: HostSetup, confirmed = false): Promise<string | null> => {
+    // A new table overwrites the saved one, so ask first when there is an unfinished table.
+    if (!confirmed && loadNearbyRoom()) {
+      setPendingNearby(setup)
+      return null
+    }
+    setPendingNearby(null)
     if (setup.hostName) saveMe({ ...loadMe(), name: setup.hostName })
     setScreen({ kind: 'nearby-host', setup, start: { config: setup.config, cards: setup.cards } })
     return null
@@ -509,7 +516,24 @@ function App() {
     case 'nearby-intro':
       return <NearbyIntro onHost={() => setScreen({ kind: 'nearby-host-setup' })} onJoin={() => setScreen({ kind: 'nearby-join' })} onBack={goLobby} />
     case 'nearby-host-setup':
-      return <HostEntry nearby initialName={loadMe().name} onOpen={handleOpenNearby} onBack={() => setScreen({ kind: 'nearby-intro' })} />
+      return (
+        <>
+          <HostEntry nearby initialName={loadMe().name} onOpen={(setup) => handleOpenNearby(setup)} onBack={() => setScreen({ kind: 'nearby-intro' })} />
+          {pendingNearby && (
+            <div className="nearby-host-bar" role="alertdialog" aria-label="Unfinished table">
+              <span className="home-leave-confirm">
+                You have an unfinished table. Starting a new one discards it.
+                <button type="button" className="lobby-reset-link" onClick={() => setPendingNearby(null)}>
+                  Cancel
+                </button>
+                <button type="button" className="lobby-reset-link" onClick={() => void handleOpenNearby(pendingNearby, true)}>
+                  Start new
+                </button>
+              </span>
+            </div>
+          )}
+        </>
+      )
     case 'nearby-host':
       return <NearbyHostScreen start={screen.start} name={screen.setup?.hostName ?? undefined} onExit={goLobby} />
     case 'nearby-join':

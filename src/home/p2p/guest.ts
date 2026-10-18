@@ -18,6 +18,8 @@ export function startNearbyGuest(deps: P2PDeps = {}): NearbyGuest {
   const settings = settingsFrom(deps)
   let channel: Channel | null = null
   let connectTimer: ReturnType<typeof setTimeout> | null = null
+  let closed = false
+  let mdnsOnly = false
 
   const connector: Connector = (hello, events) => {
     // The screens make the reply code before the table, so this is only a guard.
@@ -31,16 +33,29 @@ export function startNearbyGuest(deps: P2PDeps = {}): NearbyGuest {
   return {
     connector,
 
+    get mdnsOnly() {
+      return mdnsOnly
+    },
+
     async answer(offerCode) {
       const offer = decodeSignal(offerCode, 'offer')
+      if (closed) throw new P2PError('unreachable')
       channel?.close()
       const pc = settings.createPeer()
+      // The screen may leave while the browser is still working; a peer made after that is dropped at once.
+      const alive = () => {
+        if (closed) throw new P2PError('unreachable')
+      }
       try {
         const dc = openRoomChannel(pc)
         await pc.setRemoteDescription({ type: 'offer', sdp: signalToSdp(offer) })
+        alive()
         await pc.setLocalDescription(await pc.createAnswer())
+        alive()
         const signal = signalFromSdp(await gatheredSdp(pc, settings.gatherMs), 'answer', offer.offerId)
+        alive()
         if (signal.candidates.length === 0) throw new P2PError('no-network')
+        mdnsOnly = signal.candidates.every((c) => c.family === 'mdns')
         const line = dataChannelTransport(dc, pc, settings.now)
         channel = line
         connectTimer = setTimeout(() => {
@@ -55,6 +70,7 @@ export function startNearbyGuest(deps: P2PDeps = {}): NearbyGuest {
     },
 
     close() {
+      closed = true
       if (connectTimer) clearTimeout(connectTimer)
       channel?.close()
     },

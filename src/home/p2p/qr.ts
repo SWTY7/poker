@@ -23,6 +23,21 @@ export function qrScanSupported(): boolean {
   return detectorConstructor() !== undefined && typeof navigator !== 'undefined' && navigator.mediaDevices?.getUserMedia !== undefined
 }
 
+/**
+ * Asks for the camera and lets go of it at once: allowing it makes the browser
+ * show real addresses instead of `.local` names. Never throws; false if it was
+ * denied or isn't there.
+ */
+export async function allowCamera(): Promise<boolean> {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true })
+    stream.getTracks().forEach((t) => t.stop())
+    return true
+  } catch {
+    return false
+  }
+}
+
 const SCAN_MS = 200
 
 /**
@@ -41,8 +56,14 @@ export async function startQrScan(video: HTMLVideoElement, onCode: (text: string
   } catch {
     throw new P2PError('camera')
   }
-  const detector = new Detector({ formats: ['qr_code'] })
-  video.srcObject = stream
+  let detector: Detector
+  try {
+    detector = new Detector({ formats: ['qr_code'] })
+    video.srcObject = stream
+  } catch {
+    for (const track of stream.getTracks()) track.stop()
+    throw new P2PError('camera')
+  }
   video.muted = true
   video.setAttribute('playsinline', '')
   await video.play().catch(() => {})

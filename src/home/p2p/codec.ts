@@ -44,6 +44,8 @@ const VERSION = 1
 const MAX_CANDIDATES = 6
 /** The longest code worth typing or scanning (QR version 7, level L). Extra candidates are left out to stay inside it. */
 export const CODE_BUDGET = 224
+/** The most characters worth reading from a code box (a code is at most CODE_BUDGET plus spaces); also the inputs' maxLength. */
+export const CODE_INPUT_MAX = 400
 const ALGOS: FingerprintAlgo[] = ['sha-256', 'sha-384', 'sha-512']
 const HASH_BYTES: Record<FingerprintAlgo, number> = { 'sha-256': 32, 'sha-384': 48, 'sha-512': 64 }
 const SETUPS: Setup[] = ['actpass', 'active', 'passive']
@@ -132,7 +134,10 @@ export function packCode(kind: CodeKind, payload: number[]): string {
 
 /** The payload of a code, after the prefix, spelling and checksum are checked. Exported for the codec tests. */
 export function unpackCode(input: string, expected: CodeKind): number[] {
-  const match = /^P(\d)([HG])(.*)$/.exec(normalise(input))
+  if (input.length > CODE_INPUT_MAX * 2) throw new P2PError('typo')
+  const normal = normalise(input)
+  if (normal.length > CODE_INPUT_MAX) throw new P2PError('typo')
+  const match = /^P(\d)([HG])(.*)$/.exec(normal)
   if (!match) throw new P2PError('typo')
   if (match[1] !== String(VERSION)) throw new P2PError('version')
   const kind = match[2] === 'H' ? 'offer' : 'answer'
@@ -273,6 +278,8 @@ function unpackIce(reader: Reader): string {
     }
     acc &= (1 << bits) - 1
   }
+  // What is left over is padding; a typo can't hide in it.
+  if (acc !== 0) throw new P2PError('typo')
   return text
 }
 

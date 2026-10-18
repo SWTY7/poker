@@ -24,6 +24,8 @@ export function NearbyHostScreen({ start, name, onExit }: NearbyHostScreenProps)
 
   useEffect(() => {
     const made = startNearbyHost(start)
+    // This effect synchronises React with an external resource (the running host), which can only be made here.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setHost(made)
     return () => {
       made.close()

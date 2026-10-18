@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { groupCode, P2P_MESSAGES, qrScanSupported, type Invite } from '../../home/p2p'
+import { CODE_INPUT_MAX, groupCode, P2P_MESSAGES, qrScanSupported, type Invite } from '../../home/p2p'
 import { QrCode } from './QrCode'
 import { NearbyScan } from './NearbyScan'
 import { HOST_CODE_HINT, inviteStatusText } from './nearby-copy'
@@ -84,6 +84,7 @@ export function InviteSheet({ invite, invites, busy, problem, onNew, onReply, on
                 className="nearby-textarea"
                 value={text}
                 rows={4}
+                maxLength={CODE_INPUT_MAX}
                 autoCapitalize="characters"
                 autoComplete="off"
                 autoCorrect="off"

@@ -79,6 +79,8 @@ export interface NearbyRoomSaved {
 
 export interface NearbyGuest {
   answer(offerCode: string): Promise<string>
+  /** Set once `answer` resolves: the reply holds only `.local` names, so other phones may not find this one until the camera is allowed. */
+  readonly mdnsOnly: boolean
   readonly connector: Connector
   close(): void
 }

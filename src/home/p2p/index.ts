@@ -13,9 +13,9 @@ export type {
   PeerLike,
   RoomLine,
 } from './contract'
-export { groupCode, peekKind } from './codec'
+export { CODE_INPUT_MAX, groupCode, peekKind } from './codec'
 export { startNearbyGuest } from './guest'
 export { startNearbyHost } from './host'
 export { nearbySupported } from './peer'
-export { qrMatrix, qrScanSupported, startQrScan } from './qr'
+export { allowCamera, qrMatrix, qrScanSupported, startQrScan } from './qr'
 export { clearNearbyRoom, loadNearbyRoom } from './saved'

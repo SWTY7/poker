@@ -1,6 +1,6 @@
 import { P2PError, P2P_MESSAGES, type Invite, type P2PErrorCode } from '../../home/p2p'
 
-export const NEARBY_LINE = 'Play on a plane or anywhere offline. One phone hosts, the others join over a hotspot.'
+export const NEARBY_LINE = 'Play without internet. One phone hosts, the others join over a hotspot. Works best with an Android host; hotspot behaviour varies by phone.'
 export const TRUST_NOTICE = 'The host’s phone holds the deck and everyone’s cards. Play nearby only with people you trust.'
 export const HOST_CODE_HINT = 'Have them scan this, or type it.'
 
