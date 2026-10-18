@@ -109,6 +109,22 @@ describe('applyLook', () => {
     expect(dataset()).toEqual({ theme: 'classic', mode: 'dark', layout: 'standard' })
   })
 
+  it('sets the status bar colour to the page background of each look', () => {
+    const meta = { content: '', setAttribute(_: string, v: string) { this.content = v } }
+    // @ts-expect-error -- test-only page shim with a theme-color meta
+    document.querySelector = () => meta
+    const cases: [Parameters<typeof applyLook>[0], string][] = [
+      [{ theme: 'classic', mode: 'dark' }, '#1a1d24'],
+      [{ theme: 'classic', mode: 'light' }, '#eef1f5'],
+      [{ theme: 'realistic', mode: 'dark' }, '#0a0a0c'],
+      [{ theme: 'realistic', mode: 'light' }, '#d9d4c8'],
+    ]
+    for (const [look, color] of cases) {
+      applyLook(look)
+      expect(meta.content).toBe(color)
+    }
+  })
+
   it('shows the look on the page when it is set', () => {
     setLook({ theme: 'realistic', mode: 'dark' })
     expect(dataset().theme).toBe('realistic')

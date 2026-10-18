@@ -160,20 +160,74 @@ export function Table({
   // buttons. Seat sizes for 2-7 players are untouched.
   const crowded = opponents.length >= CROWDED_FROM
   const [viewWidth, setViewWidth] = useState(() => (typeof window === 'undefined' ? 375 : window.innerWidth))
+  // The felt's real width (the table region's padding is already taken off),
+  // measured once it is on screen; until then the phone padding (--sp-2 on
+  // each side, 0.4rem) stands in for it.
+  const [feltWidth, setFeltWidth] = useState(0)
+  const tableMainRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
     if (!crowded) return
     const onResize = () => setViewWidth(window.innerWidth)
     window.addEventListener('resize', onResize)
-    return () => window.removeEventListener('resize', onResize)
+    const felt = tableMainRef.current?.querySelector<HTMLElement>('.felt')
+    let ro: ResizeObserver | undefined
+    if (felt && typeof ResizeObserver !== 'undefined') {
+      const measure = () => setFeltWidth(felt.clientWidth)
+      measure()
+      ro = new ResizeObserver(measure)
+      ro.observe(felt)
+    }
+    return () => {
+      window.removeEventListener('resize', onResize)
+      ro?.disconnect()
+    }
   }, [crowded])
-  const feltMin = crowded ? minFeltHeight(opponents.length, Math.max(280, viewWidth - 32)) : 0
-  const tableMainRef = useRef<HTMLDivElement>(null)
-  // Keep the acting seat in view when the table scrolls (cheap: nearest edge only).
+  const feltMin = crowded ? minFeltHeight(opponents.length, Math.max(280, feltWidth || viewWidth - 12.8)) : 0
+
+  // The hero panel and buttons are a sticky block over the bottom of the
+  // scroller: publish its height so scroll-padding-bottom keeps a seat from
+  // counting as visible while it is hidden underneath.
   useEffect(() => {
-    if (!crowded) return
+    const main = tableMainRef.current
+    const actions = main?.querySelector<HTMLElement>('.table-actions')
+    if (!crowded || !main || !actions || typeof ResizeObserver === 'undefined') return
+    const set = () => main.style.setProperty('--actions-h', `${actions.offsetHeight}px`)
+    set()
+    const ro = new ResizeObserver(set)
+    ro.observe(actions)
+    return () => ro.disconnect()
+  }, [crowded])
+
+  // Keep the acting seat in view, but only when the acting player changes, only
+  // where the table really scrolls (crowded, round layout, portrait phone), and
+  // not while the player is scrolling around to look at other seats.
+  const actingId = state.handInProgress ? currentPlayer?.id : undefined
+  const prevActingId = useRef<string | number | undefined>(undefined)
+  const lastUserScroll = useRef(0)
+  const ignoreScrollUntil = useRef(0)
+  useEffect(() => {
+    const main = tableMainRef.current
+    if (!crowded || !main) return
+    const onScroll = () => {
+      if (Date.now() > ignoreScrollUntil.current) lastUserScroll.current = Date.now()
+    }
+    main.addEventListener('scroll', onScroll, { passive: true })
+    return () => main.removeEventListener('scroll', onScroll)
+  }, [crowded])
+  useEffect(() => {
+    const changed = prevActingId.current !== actingId
+    prevActingId.current = actingId
+    if (!changed || actingId === undefined || !crowded) return
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return
+    if (document.documentElement.dataset.layout !== 'round') return
+    if (!window.matchMedia('(max-width: 820px) and (orientation: portrait)').matches) return
+    if (Date.now() - lastUserScroll.current < 1500) return
     const seat = tableMainRef.current?.querySelector('.seat-active')
-    if (seat && typeof seat.scrollIntoView === 'function') seat.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
-  }, [crowded, state.handLog.length, state.handInProgress])
+    if (!seat || typeof seat.scrollIntoView !== 'function') return
+    const calm = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    ignoreScrollUntil.current = Date.now() + 900
+    seat.scrollIntoView({ block: 'nearest', behavior: calm ? 'auto' : 'smooth' })
+  }, [crowded, actingId])
   const [showPositions, setShowPositions] = useState(false)
   const [showLeave, setShowLeave] = useState(false)
   const [showPotential, setShowPotential] = useState(false)

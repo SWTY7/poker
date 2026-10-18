@@ -97,4 +97,13 @@ export function applyLook(look: Look): void {
   root.mode = look.mode
   // The round-table stylesheets still key on data-layout.
   root.layout = look.theme === 'realistic' ? 'round' : 'standard'
+  // The status bar follows the page background (the --bg of each theme and mode).
+  const meta = document.querySelector?.('meta[name="theme-color"]')
+  meta?.setAttribute('content', THEME_COLOR[look.theme][look.mode])
+}
+
+/** Page background per theme and mode; keep equal to --bg in theme-classic.css and theme-realistic.css. */
+const THEME_COLOR: Record<Look['theme'], Record<Look['mode'], string>> = {
+  classic: { dark: '#1a1d24', light: '#eef1f5' },
+  realistic: { dark: '#0a0a0c', light: '#d9d4c8' },
 }

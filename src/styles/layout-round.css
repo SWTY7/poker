@@ -863,6 +863,9 @@
     overflow-y: auto;
     overflow-x: hidden;
     overscroll-behavior: contain;
+    /* The sticky .table-actions covers the bottom of this scroller; its height is
+       published by Table.tsx, so scrollIntoView treats that strip as hidden. */
+    scroll-padding-bottom: var(--actions-h, 14rem);
     /* The bottom padding moves onto the sticky block so nothing shows below it. */
     padding-bottom: 0;
     gap: 0;
@@ -892,6 +895,8 @@
     bottom: 0;
     z-index: 6;
     padding: var(--sp-2) 0 max(var(--sp-4), env(safe-area-inset-bottom));
-    background: var(--table-bg);
+    /* Flat room colour: the table-bg gradient is anchored to its own box and
+       would show as a patch over the room. */
+    background: var(--bg);
   }
 }

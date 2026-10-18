@@ -15,6 +15,22 @@
       content="width=device-width, initial-scale=1.0, viewport-fit=cover"
     />
     <title>Poker</title>
+    <script>
+      // Apply the saved look before first paint (same mapping as applyLook in
+      // src/game/settings.ts). Only the {theme, mode} shape; anything else is
+      // left to the app, which migrates old saves.
+      try {
+        var l = JSON.parse(localStorage.getItem('poker.look'));
+        var T = { classic: { dark: '#1a1d24', light: '#eef1f5' }, realistic: { dark: '#0a0a0c', light: '#d9d4c8' } };
+        if (l && T[l.theme] && T[l.theme][l.mode]) {
+          var d = document.documentElement.dataset;
+          d.theme = l.theme;
+          d.mode = l.mode;
+          d.layout = l.theme === 'realistic' ? 'round' : 'standard';
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', T[l.theme][l.mode]);
+        }
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>
