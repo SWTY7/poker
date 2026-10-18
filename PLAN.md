@@ -40,18 +40,16 @@ Graph:
 - w3 (sonnet, plan: standard, edge w2 -> w3): job: UI "Nearby (no internet)" in the home game flow: host shows code + QR, guest pastes or scans, shows connection state and plain-language failures; works in both themes. scope: src/ui/home/**, src/ui/RoomLobby.tsx (additive), src/styles/room-lobby.css, tests/ui/**. QR: small MIT library or hand-written encoder; scan only via `BarcodeDetector` where present, else paste. attempts: 0
 - w4 (sonnet, reviewer, edge w3 -> w4): fresh review; list what is untested on real phones. read-only.
 Gate: `bash scripts/check.sh`; codec round trip and loopback game tests green; two-tab localhost check (host in one tab, guest in another, play a hand) if the browser pane allows, else stated unverified. Phones, hotspot and plane Wi-Fi: unverified. Retry cap 4.
-- [ ] w0
-- [ ] w1
-- [ ] w2
-- [ ] w3
-- [ ] w4
-- [ ] Phase 3 gate passed
+- [x] w0, w1 (plans/w-p2p.md)
+- [x] w2 (resumed once after hitting its turn limit), w3
+- [x] w4 reviewer ready; two majors + minors fixed in w5
+- [x] Phase 3 gate passed 2026-10-19: check.sh green; real desktop Chrome: invite -> reply -> connected, both seated through the UI in two tabs, host reload + Reopen, guest host-lost panel; fake-WebRTC tests play a hand. Unverified: real phones, hotspot, airplane mode, iPhone Safari, plane Wi-Fi.
 
 ### Phase 4: final gate
-- [ ] Full `bash scripts/check.sh`, `node scripts/check-pwa.mjs`
-- [ ] Fresh reviewer on the merged diff (`claude/offline-themes-p2p` vs `claude/workflow-setup`)
-- [ ] `docs/PROGRESS.md` line, RUN.md retrospective, NEXT.md closed-lane list
-- [ ] Push branch (no PR, no main)
+- [x] Full `bash scripts/check.sh` (includes check-pwa) green
+- [x] Fresh reviewer on the merged branch: ready (docs line and one copy softening done afterwards)
+- [x] `docs/PROGRESS.md` sections, RUN.md retrospective, NEXT.md closed-lane list
+- [x] Push branch (no PR, no main)
 
 ## To do
 - [ ] Table UI fixes from sunwoo's phone screenshots (2026-10-05, uncommitted on `claude/remove-timing`). Files: `src/ui/HeroZone.tsx`, `Table.tsx`, `TableHud.tsx`, `street-action.ts`, `src/styles/layout-round.css`, `table.css`, `themes.css`, `tokens.css`. Checked at 375x667, 390x844 and 430x932.

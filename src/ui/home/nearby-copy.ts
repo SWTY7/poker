@@ -6,7 +6,7 @@ export const HOST_CODE_HINT = 'Have them scan this, or type it.'
 
 export const CHECKLIST: readonly string[] = [
   'Every phone has opened this app once with internet, and has the same version.',
-  'All phones need one shared network. An Android hotspot usually works in airplane mode: turn on airplane mode, then the hotspot. An iPhone hotspot needs mobile data, so iPhones join someone else’s hotspot. Plane Wi-Fi usually stops phones seeing each other.',
+  'All phones need one shared network. An Android hotspot may work in airplane mode (untested on most phones): turn on airplane mode, then the hotspot. An iPhone hotspot needs mobile data, so iPhones join someone else’s hotspot. Plane Wi-Fi usually stops phones seeing each other.',
   'Join that network before opening the room.',
   'Keep the host’s screen on and the app open.',
 ]

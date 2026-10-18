@@ -101,4 +101,11 @@ Run notes: workers' worktrees are cut from `main`, not the working branch; every
 
 Run notes: psych-bot test `reads a wet, coordinated board differently` failed twice during busy full runs (several worktrees testing at once), passes alone and in clean full runs: likely load-sensitive flake, not fixed. Vitest also scans `.claude/worktrees` (stale copies show up as failures while a worker is mid-edit).
 
+| 2026-10-19 | 3 | w0-w5 merged (w5 = review fixes; w2 resumed once after its turn limit) | pass: check.sh, reviewer ready after fixes, real Chrome handshake + two-tab UI flow | spawns 25/40, phases 3/4 |
+| 2026-10-19 | 4 | final reviewer ready; PROGRESS.md updated; branch pushed (no PR) | pass: check.sh green | spawns 26/40, phases 4/4 |
+
 ## Retrospective (written at the end)
+Done without the owner: PWA with offline cache and update banner; Settings reduced to Theme + Light/Dark; Classic (C-C) and Realistic (R-B with textures) in both modes; crowded-table scroll; nearby WebRTC rooms (codec, QR, host/guest, UI); PROGRESS.md; branch pushed.
+What blocked autonomy: nothing needed the owner. Subagents have no browser tools, so every visual check was done by the integrator in the browser pane; that found two real defects (heavy light-mode texture, Settings overflow) after the workers' green checks. Worktrees are cut from `main`, so every brief starts with a merge of the working branch. One worker hit its turn limit and was resumed once; one reviewer hit the account usage limit and was resumed. A psych-bot test failed twice under load (flaky, not fixed).
+Caps used: spawns 26/40, phases 4/4, hours about 5 of 12, tokens about 4M of 8M (estimates). Compaction: not triggered (the 200k window was set; no compaction log checked).
+For the owner to decide: see NEXT.md.

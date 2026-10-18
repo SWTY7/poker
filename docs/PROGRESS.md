@@ -89,36 +89,64 @@ onto joining, and one table screen serves everyone, with the dealer's controls o
 
 ## Look and settings
 
-`game/settings.ts` holds the device's look, saved as JSON under `poker.look`. It is five independent choices,
-each a `data-*` attribute on `<html>` (set before the first paint in `main.tsx`): **colour** (Classic, Card
-room, Broadcast, Neon), **layout** (Standard, Round table), **font** (Classic serif, Warm serif,
-Condensed, Grotesque), **buttons** (Standard, Brass and leather, Capitals, Glow) and
-**corners** (Soft, Sharp, Square, Round). A preset is a saved set of the five (Card room is the default; Classic, the
-original look, is still a preset; Poster, Hard shadow and Rounded were dropped on 2026-10-05); someone who had chosen a single theme before gets that preset.
+`game/settings.ts` holds the device's look, saved as JSON `{theme, mode}` under `poker.look`. Settings has two
+controls: **Theme** (Classic or Realistic) and **Mode** (Light or Dark); the Settings screen also has the default
+table speed. They are `data-theme` and `data-mode` on `<html>`, plus a derived `data-layout` (`standard` for Classic,
+`round` for Realistic). They are set before first paint by an inline script in `index.html` (and by `applyLook` in
+`main.tsx`); `applyLook` also updates the `theme-color` meta. Saved looks from the old five-axis model (colour,
+layout, font, buttons, corners, presets) are migrated: a round layout or the Card room colour becomes Realistic,
+anything else Classic, always Dark. Broadcast, Neon and the font/button/corner choices were removed on 2026-10-19.
 
-- Colours, fonts, corners and buttons are in `styles/themes.css`. Colour themes override tokens, including
-  the felt, the playing cards and the `--accent-rgb`-style tints; Classic's values are the defaults in
-  `tokens.css`. A button style is a set of `--bx-*` variables that `base.css` and `table.css` read, so the
-  Settings screen can preview each style on a wrapper (variables inherit from the nearest setter).
-- The Round table layout is `styles/layout-round.css`: the oval table, seats placed by CSS trig from
-  `--seat`/`--seats` (set on each `.seat-slot` in `Table.tsx`; `display: contents` in Standard), chip-disc
-  avatars, paper stack tags, a chip pile for the pot, and your cards at the bottom edge.
-- Under the Round table layout you are a seat like the others (`HeroZone` draws a chip avatar, the stack tag,
-  your last action and the chips you've committed beside your cards; no panel), seats lean away from the
-  centre and sit slightly off the line, and the dealer button is a puck on the felt. Standard hides those
-  parts.
-- The Round table layout also has its own lobby, `ui/RoomLobby.tsx` (`styles/room-lobby.css`): three boxes, the
-  home game first and widest (Reopen / Host / Join), then Career (bankroll as a chip stack, season, daily stake)
-  and Quick Play, each with its own verb, and the lifetime numbers as one line under them. One column on a
-  phone. The Career screen carries Cash game, Tournament and recent results under "Outside the season".
-- `styles/layout-round-screens.css` brings every screen built from the menu pieces (setup, career, join/host,
-  your play, settings, the home room) into the same look under the Round table layout: no card around the
-  form, rules between sections, left-aligned, a flat brass button, the season as a row of events. Standard is
-  untouched.
-- The pot is drawn as chips (`PotChips` in `Board.tsx`, shown by the Round table layout): more chips, in more
-  stacks, as it grows, counted in big blinds with a square root. (A phone held upright once showed only the seat being
-  waited on; it was tried and dropped, all seats show.) `App` picks the lobby from `getLook()` (`useSyncExternalStore`).
-- The Settings screen (a button in the lobby) picks any of them, plus the default table speed.
+- **Classic** (`styles/theme-classic.css`, tokens in `tokens.css`): "slate and paper", cool grey-blue, flat,
+  dashed-outline seats, soft buttons, Bricolage Grotesque and DM Mono; dark and light blocks with identical
+  property sets (a test checks that and the contrast pairs).
+- **Realistic** (`styles/theme-realistic.css`, `layout-round.css`, `room-lobby.css`, `layout-round-screens.css`):
+  a casino table: textured baize, a padded leather rail with a gold inlay line and stitching, red chip seats,
+  chip-stack pot, leather action bar, Fraunces and Barlow Condensed. Every texture is a CSS gradient or an inline SVG
+  data URI of 160px or less (no image files, no large filters); the strong leather grain stays on the dark rail and
+  dock, light mode uses a much softer grain and content panels are flat so text never sits on noise.
+- The round layout: the oval table, seats placed by CSS trig from `--seat`/`--seats` (set on each `.seat-slot` in
+  `Table.tsx`), chip avatars, paper stack tags, your cards at the bottom edge, you as a seat (`HeroZone`), the
+  dealer button as a puck, the pot as chips (`PotChips` in `Board.tsx`), its own lobby `ui/RoomLobby.tsx`
+  (`room-lobby.css`) and its screens in `layout-round-screens.css`. `App` picks the lobby from `getLook()`
+  (`theme === 'realistic'`).
+- **Crowded tables.** With 8 to 10 players on a portrait phone (7+ opponents) the round-layout table scrolls
+  vertically, keeping every seat; the hero panel and the action buttons stay pinned at the bottom
+  (`.table-actions`), and the scroll follows the acting seat only when the acting player changes and the user has
+  not just scrolled (`ui/table-fit.ts` holds the seat-fit maths, tested against the CSS numbers). Landscape phones
+  and short desktop windows with 8-10 players still use the old fixed oval and are unsolved.
+
+## Offline play (PWA)
+
+The built app installs from the browser's "Add to Home Screen" and plays offline. `vite.config.ts` has a
+`poker-sw` plugin that writes `dist/sw.js` at build time: a precache list of every built file (JS, CSS, solver
+chunks, self-hosted fonts, icons, manifest), cache-first for those, network-first for navigations with the
+cached `index.html` as the fallback. A new version installs in the background and waits; `ui/UpdateBanner.tsx`
+shows "New version ready, tap to reload" and the page posts `SKIP_WAITING`, then reloads once. The cache name
+changes with the file list and with the contents of files whose names do not (manifest, icons); install
+bypasses the HTTP cache. Fonts are self-hosted (`@fontsource*`, latin subset only, `styles/fonts.css`): the old
+Google Fonts link would have broken offline use. `scripts/check-pwa.mjs` (a step in `scripts/check.sh`)
+checks the manifest, icons, that the precache lists every file in `dist/`, no external URLs and no
+`skipWaiting` on install. Verified in a browser pane (service worker active, 47 files cached, app loaded with
+the server stopped). Not verified: an install on a real phone, and the update banner in a real browser. Updates
+only arrive when the phone has internet.
+
+## Nearby rooms (WebRTC) — `src/home/p2p/`
+
+A home game that needs no internet and no server: one phone hosts (it runs `RoomCore` in its own page), friends
+join over a shared local network (a phone hotspot). The two phones swap short codes by QR (Android Chrome
+scans with `BarcodeDetector`) or by typing, since text cannot be copied between an iPhone and an Android phone
+offline. Plan and the known/unverified table: `plans/w-p2p.md`. Pieces: `codec.ts` (an SDP packed into a
+checksummed Crockford base32 code, `P1H...` for the host and `P1G...` for the guest, about 136 characters, QR
+alphanumeric), `frame.ts` (chunking), `channel.ts`, `host.ts` (`startNearbyHost`, invites, rejoin by a fresh
+invite), `guest.ts`, `saved.ts` (the host's room in `poker.home.nearby`, so a refresh keeps seats and chips),
+`qr.ts` (`uqr`, MIT; decision in `docs/decisions/2026-10-19-qr-library.md`). UI in `src/ui/home/Nearby*.tsx`,
+`InviteSheet.tsx`, with a "Nearby (no internet)" door in both lobbies. The host's phone holds the deck and every
+hand (a notice says so) and the room ends when the host leaves the page. Verified in desktop Chrome in one page and
+in two tabs: invite, reply, connected, seated through the UI, host reload + reopen, guest host-lost panel with
+Rejoin; unit tests run the whole protocol over a fake WebRTC pair and play a hand. **Not verified:** two real
+phones, a hotspot, airplane mode, iPhone Safari (no QR scanner in the browser, so typing only), whether the plane's
+Wi-Fi lets phones reach each other (usually not), an iPhone as host (Personal Hotspot needs cellular).
 
 ## The table UI — `src/ui/`
 
