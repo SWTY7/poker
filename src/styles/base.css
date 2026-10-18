@@ -15,7 +15,7 @@
 }
 
 /* --- buttons -------------------------------------------------------------
-   The look of buttons is a Settings choice. A choice sets `--bx-*` variables
+   The look of buttons comes from the theme. A theme may set `--bx-*` variables
    on <html> (or on a preview wrapper); each hook below falls back to the
    standard look when its variable isn't set. See themes.css.
 
@@ -199,7 +199,7 @@
    reads as filling in rather than as the board jumping wider each time. */
 .card-slot {
   border: 1px dashed var(--line);
-  background: rgba(255, 255, 255, 0.015);
+  background: var(--surface);
   box-shadow: none;
 }
 

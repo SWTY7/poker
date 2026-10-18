@@ -280,7 +280,7 @@
 .buyin-option.menu-option-on {
   background: var(--accent);
   border-color: var(--accent);
-  color: #241a0c;
+  color: var(--on-accent);
 }
 
 .buyin-option-chip {
@@ -604,7 +604,8 @@
   flex-shrink: 0;
   font-size: var(--fs-sm);
   font-weight: 700;
-  color: #f5f0e4;
+  color: var(--on-avatar);
+  text-shadow: var(--avatar-text-shadow);
 }
 
 .seating-text {

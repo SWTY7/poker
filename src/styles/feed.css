@@ -79,12 +79,12 @@
 
 .feed-deal {
   padding: 0.14rem 0;
-  color: #8fadc4;
+  color: var(--info);
   letter-spacing: 0.08em;
 }
 
 .feed-reveal .feed-what {
-  color: #8fadc4;
+  color: var(--info);
   letter-spacing: 0.08em;
 }
 

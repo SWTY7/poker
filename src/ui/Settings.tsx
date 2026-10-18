@@ -7,7 +7,7 @@ const SPEEDS = ['slow', 'normal', 'fast'] as const
 
 /** A small, non-interactive preview of each theme: three flat colour bands. */
 const THEME_SWATCH: Record<Theme, [string, string, string]> = {
-  classic: ['#2b303a', '#ece7dc', '#5b7fb5'],
+  classic: ['#1a1d24', '#26443a', '#7d8aa0'],
   realistic: ['#1f4a31', '#4a2c1c', '#d9a24a'],
 }
 
