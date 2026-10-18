@@ -106,6 +106,44 @@ describe('theme-realistic.css', () => {
     })
   }
 
+  // Max alpha of a grain tile = the bias of the alpha row of its feColorMatrix
+  // (conservative: the lit channel is never below 0).
+  function grain(name: string): { alpha: number; size: number } {
+    const m = css.match(new RegExp(`${name}:\\s*url\\("data:image/svg\\+xml;utf8,([^"]*)"\\)`))
+    if (!m) throw new Error(`no grain ${name}`)
+    const row = m[1].match(/values='([^']*)'/)![1].trim().split(/\s+/).map(Number)
+    const size = Number(m[1].match(/width='(\d+)'/)![1])
+    return { alpha: Math.min(1, row[19]), size }
+  }
+
+  it('keeps grain behind text and panels faint', () => {
+    for (const mode of [dark, light]) {
+      // Panels and boxes: no grain at all.
+      const box = css.match(/\.room-box \{[^}]*\}/)![0]
+      expect(box).not.toMatch(/url\(|--tex-/)
+      expect(mode.get('--panel')).toMatch(/^#/)
+    }
+    // The light bars (header and dock) use the soft leather.
+    const lightBar = light.get('--bar-bg')!
+    expect(lightBar).toContain('--tex-leather-soft')
+    expect(lightBar).not.toMatch(/--tex-leather[^-]/)
+    const soft = grain('--tex-leather-soft')
+    expect(soft.alpha).toBeLessThanOrEqual(0.3)
+    expect(soft.size).toBeLessThanOrEqual(160)
+    // At least 3x gentler than the dark rail leather.
+    expect(soft.alpha * 3).toBeLessThanOrEqual(grain('--tex-leather').alpha)
+    // Any grain used on a light-mode surface other than the bars must be <= .05.
+    expect(dark.get('--bar-bg')).toContain('--tex-leather')
+  })
+
+  it('reads header and dock text on the light bar', () => {
+    for (const fg of ['--text', '--text-dim', '--text-faint', '--accent']) {
+      for (const bg of ['--leather-1', '--leather-2', '--hud-bg']) {
+        expect(ratio(light.get(fg)!, light.get(bg)!), `${fg} on ${bg}`).toBeGreaterThanOrEqual(4.5)
+      }
+    }
+  })
+
   it('keeps the seat ring and the shared gold readable on both baizes', () => {
     // These two are the same in both modes (shared block), so check them against each baize.
     const shared = css.match(/--seat-ring:\s*(#[0-9a-fA-F]{6});/)![1]

@@ -31,6 +31,9 @@
   --tex-fibre-lit: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='128' height='128'><filter id='f' x='0' y='0' width='100%' height='100%'><feTurbulence type='fractalNoise' baseFrequency='.55 .9' numOctaves='2' seed='9' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 .9 0 0 0 .6 -.22'/></filter><rect width='128' height='128' filter='url(%23f)'/></svg>");
   /* Pebbled leather: noise lit from the top left, kept as dark pits only. */
   --tex-leather: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='128' height='128'><filter id='l' x='0' y='0' width='100%' height='100%' color-interpolation-filters='sRGB'><feTurbulence type='fractalNoise' baseFrequency='.55' numOctaves='3' seed='2' stitchTiles='stitch' result='n'/><feDiffuseLighting in='n' surfaceScale='1.7' diffuseConstant='1' lighting-color='%23fff'><feDistantLight azimuth='225' elevation='58'/></feDiffuseLighting><feColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -1.3 0 0 0 1.12'/></filter><rect width='128' height='128' filter='url(%23l)'/></svg>");
+  /* Gentle leather for the light bars: same pebble, finer (.9) and about a
+     fifth as strong (alpha 0 to .14 instead of 0 to .5). Never under body text. */
+  --tex-leather-soft: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='96' height='96'><filter id='l' x='0' y='0' width='100%' height='100%' color-interpolation-filters='sRGB'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' seed='2' stitchTiles='stitch' result='n'/><feDiffuseLighting in='n' surfaceScale='1' diffuseConstant='1' lighting-color='%23fff'><feDistantLight azimuth='225' elevation='58'/></feDiffuseLighting><feColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -.3 0 0 0 .26'/></filter><rect width='96' height='96' filter='url(%23l)'/></svg>");
   /* Paper fibres for playing cards: faint warm flecks. 96px. */
   --tex-paper: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='96' height='96'><filter id='p' x='0' y='0' width='100%' height='100%'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' seed='6' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .35 0 0 0 0 .27 0 0 0 0 .14 0 0 0 .5 -.2'/></filter><rect width='96' height='96' filter='url(%23p)'/></svg>");
 
@@ -183,8 +186,8 @@
   --pool: rgb(80 180 125 / 0.3);
   --vignette: rgb(0 0 0 / 0.38);
 
-  --leather-1: #cdc7b8;
-  --leather-2: #b6b0a0;
+  --leather-1: #d8d2c4;
+  --leather-2: #cdc7b9;
   --bar-edge: #b3862f;
   --btn-1: #5a5a63;
   --btn-2: #34343b;
@@ -209,7 +212,7 @@
     repeating-linear-gradient(-60deg, var(--floor-ink) 0 1px, transparent 1px 15px),
     radial-gradient(110% 70% at 50% 28%, #e3dfd3 0%, #d9d4c8 62%, #cfc9bb 100%);
   --bar-bg:
-    var(--tex-leather) 0 0 / 128px 128px,
+    var(--tex-leather-soft) 0 0 / 96px 96px,
     linear-gradient(180deg, var(--leather-1), var(--leather-2));
   --felt-bg:
     var(--tex-weave-a),
@@ -516,8 +519,8 @@
 
 :root[data-theme='realistic'] .room-box {
   background-color: var(--panel);
-  background-image: var(--tex-leather);
-  background-size: 128px 128px;
+  /* Boxes carry body text: flat, no grain. */
+  background-image: none;
   border-color: var(--line);
 }
 
