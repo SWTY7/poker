@@ -1,1 +1,540 @@
-/* Realistic theme: casino with textures (dark and light). Owned by node u3. */
+/* ==========================================================================
+   Theme: Realistic ("R-B Casino"), dark and light
+   --------------------------------------------------------------------------
+   <html data-theme="realistic" data-mode="dark|light" data-layout="round">.
+   A casino table: textured baize in a black padded rail with a gold inlay and
+   stitching, red casino chips for seats, dark leather bars, gold-edged
+   buttons. Light mode is the same room by day: bright floor, lighter leather.
+
+   Every texture is generated here, as CSS gradients or small inline SVG tiles
+   (feTurbulence noise, 96-160px, repeated). No image files. Nothing is
+   animated or blurred over a large area, so it stays smooth on a phone.
+
+   Type: Fraunces for headings and the wordmark; Barlow Condensed for every
+   number (stacks, pot, bets) and label, which keeps a tag narrow on a small
+   chip. Body copy stays Source Serif 4.
+
+   The two mode blocks define the same set of custom properties (a test checks
+   that, and the contrast of the pairs that matter). Structure is shared in
+   layout-round*.css; this file only supplies values and the textured paint.
+   ========================================================================== */
+
+/* --- textures (the same in both modes) ----------------------------------- */
+
+:root[data-theme='realistic'] {
+  --font-wordmark: 'Fraunces', Georgia, serif;
+  --font-mono: 'Barlow Condensed', 'Arial Narrow', ui-monospace, sans-serif;
+
+  /* Dark fibres, for felt. 160px, seamless. */
+  --tex-fibre: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='f' x='0' y='0' width='100%' height='100%'><feTurbulence type='fractalNoise' baseFrequency='.8 .6' numOctaves='2' seed='4' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .75 -.24'/></filter><rect width='160' height='160' filter='url(%23f)'/></svg>");
+  /* Pale fibres, so the baize is not a flat dark speckle. */
+  --tex-fibre-lit: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='128' height='128'><filter id='f' x='0' y='0' width='100%' height='100%'><feTurbulence type='fractalNoise' baseFrequency='.55 .9' numOctaves='2' seed='9' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 .9 0 0 0 .6 -.22'/></filter><rect width='128' height='128' filter='url(%23f)'/></svg>");
+  /* Pebbled leather: noise lit from the top left, kept as dark pits only. */
+  --tex-leather: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='128' height='128'><filter id='l' x='0' y='0' width='100%' height='100%' color-interpolation-filters='sRGB'><feTurbulence type='fractalNoise' baseFrequency='.55' numOctaves='3' seed='2' stitchTiles='stitch' result='n'/><feDiffuseLighting in='n' surfaceScale='1.7' diffuseConstant='1' lighting-color='%23fff'><feDistantLight azimuth='225' elevation='58'/></feDiffuseLighting><feColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -1.3 0 0 0 1.12'/></filter><rect width='128' height='128' filter='url(%23l)'/></svg>");
+  /* Paper fibres for playing cards: faint warm flecks. 96px. */
+  --tex-paper: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='96' height='96'><filter id='p' x='0' y='0' width='100%' height='100%'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' seed='6' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .35 0 0 0 0 .27 0 0 0 0 .14 0 0 0 .5 -.2'/></filter><rect width='96' height='96' filter='url(%23p)'/></svg>");
+
+  /* The weave of the baize: two fine diagonal thread directions. */
+  --tex-weave-a: repeating-linear-gradient(45deg, rgb(0 0 0 / 0.14) 0 1px, transparent 1px 3px);
+  --tex-weave-b: repeating-linear-gradient(-45deg, rgb(255 255 255 / 0.045) 0 1px, transparent 1px 3px);
+
+  --inlay: #b3862f;
+  --stitch: rgb(255 255 255 / 0.3);
+
+  /* The seat-ring and glow of whoever is to act (bright gold on the baize). */
+  --seat-ring: #ffd873;
+  --ring-rgb: 255 216 115;
+
+  /* Cards: ivory with a paper grain, a deep red back with a lattice. */
+  --card-face:
+    var(--tex-paper) 0 0 / 96px 96px,
+    linear-gradient(170deg, #fffaf0, #efe6d0);
+  --card-red: #b3261e;
+  --card-black: #1d1a17;
+  --card-back:
+    repeating-linear-gradient(45deg, rgb(255 255 255 / 0.13) 0 2px, transparent 2px 7px),
+    repeating-linear-gradient(-45deg, rgb(255 255 255 / 0.13) 0 2px, transparent 2px 7px),
+    linear-gradient(160deg, #a81c1c, #5f0d0d);
+  --card-back-edge: #f0e8d2;
+}
+
+/* --- dark: near-black room, green baize, black leather -------------------- */
+
+:root[data-theme='realistic'][data-mode='dark'] {
+  color-scheme: dark;
+
+  --bg: #0a0a0c;
+  --panel: #15151a;
+  --hud-bg: #0e0e12;
+  --scrim: rgba(4, 4, 6, 0.78);
+  --surface: rgba(255, 255, 255, 0.04);
+  --surface-strong: rgba(255, 255, 255, 0.08);
+  --line: #34343c;
+  --line-soft: #26262d;
+  --text: #eeeeee;
+  --text-dim: #adadb5;
+  --text-faint: #8f8f98;
+
+  --accent: #d4a64a;
+  --accent-mid: #b8892f;
+  --accent-deep: #8a6a22;
+  --accent-rgb: 212 166 74;
+  --accent-tint: rgba(212, 166, 74, 0.14);
+  --on-accent: #1a1306;
+  --gold: #e0b458;
+  --gold-rgb: 224 180 88;
+  --green: #6fc08a;
+  --win-rgb: 111 192 138;
+  --red: #ea8a95;
+  --lose-rgb: 234 138 149;
+  --red-deep: #5a1f26;
+  --warn: #e0b060;
+  --focus: #f0d28a;
+
+  /* Baize, its lit centre, and the rail around it. */
+  --felt: #14573a;
+  --felt-rim: #1d1d22;
+  --baize: #14573a;
+  --baize-hi: #1f6b48;
+  --rail: #1d1d22;
+  --rail-hi: rgb(255 255 255 / 0.2);
+  --rail-lo: rgb(0 0 0 / 0.45);
+  --pool: rgb(70 160 110 / 0.34);
+  --vignette: rgb(0 0 0 / 0.5);
+
+  /* Leather bars (HUD and dock) and the plates on them. */
+  --leather-1: #1d1d23;
+  --leather-2: #0b0b0e;
+  --bar-edge: #b3862f;
+  --btn-1: #31313a;
+  --btn-2: #17171c;
+  --btn-hover-1: #3d3d47;
+  --btn-hover-2: #202026;
+  --plate-text: #f2f0ea;
+  --plate-fg: #1b1305;
+
+  --pill-bg: #121216;
+  --pill-fg: #eeeeee;
+  --pill-line: rgb(179 134 47 / 0.6);
+  --stack-bg: #121216;
+
+  --ivory: #f7f1e2;
+  --ivory-ink: #2a1d10;
+  --ivory-dim: #d9cfb6;
+  --ivory-soft: rgb(247 241 226 / 0.86);
+
+  --floor-ink: rgb(255 255 255 / 0.022);
+  --table-bg:
+    repeating-linear-gradient(60deg, var(--floor-ink) 0 1px, transparent 1px 15px),
+    repeating-linear-gradient(-60deg, var(--floor-ink) 0 1px, transparent 1px 15px),
+    radial-gradient(110% 70% at 50% 28%, #17171d 0%, #0a0a0c 68%);
+  --bar-bg:
+    var(--tex-leather) 0 0 / 128px 128px,
+    linear-gradient(180deg, var(--leather-1), var(--leather-2));
+  --felt-bg:
+    var(--tex-weave-a),
+    var(--tex-weave-b),
+    linear-gradient(var(--baize), var(--baize));
+  --felt-border: 0.85rem solid var(--rail);
+  --felt-shadow: inset 0 0 0 2px var(--inlay), inset 0 0 1.6rem rgb(0 0 0 / 0.7);
+  --felt-ring: rgb(247 241 226 / 0.16);
+}
+
+/* --- light: bright casino floor, brighter baize, grey leather -------------- */
+
+:root[data-theme='realistic'][data-mode='light'] {
+  color-scheme: light;
+
+  --bg: #d9d4c8;
+  --panel: #e6e1d5;
+  --hud-bg: #cbc5b6;
+  --scrim: rgba(30, 28, 22, 0.55);
+  --surface: rgba(0, 0, 0, 0.05);
+  --surface-strong: rgba(0, 0, 0, 0.09);
+  --line: #7b7669;
+  --line-soft: #a9a495;
+  --text: #1b1b1f;
+  --text-dim: #3a3a42;
+  --text-faint: #3f3f47;
+
+  --accent: #6e4a0c;
+  --accent-mid: #8c6212;
+  --accent-deep: #5a3c08;
+  --accent-rgb: 110 74 12;
+  --accent-tint: rgba(110, 74, 12, 0.14);
+  --on-accent: #fff6dc;
+  --gold: #f2cb68;
+  --gold-rgb: 242 203 104;
+  --green: #176338;
+  --win-rgb: 23 99 56;
+  --red: #a3263a;
+  --lose-rgb: 163 38 58;
+  --red-deep: #c98d95;
+  --warn: #7a4a00;
+  --focus: #4a3206;
+
+  --felt: #1d7350;
+  --felt-rim: #4a4a52;
+  --baize: #1d7350;
+  --baize-hi: #218059;
+  --rail: #4a4a52;
+  --rail-hi: rgb(255 255 255 / 0.28);
+  --rail-lo: rgb(0 0 0 / 0.4);
+  --pool: rgb(80 180 125 / 0.3);
+  --vignette: rgb(0 0 0 / 0.38);
+
+  --leather-1: #cdc7b8;
+  --leather-2: #b6b0a0;
+  --bar-edge: #b3862f;
+  --btn-1: #5a5a63;
+  --btn-2: #34343b;
+  --btn-hover-1: #686872;
+  --btn-hover-2: #40404a;
+  --plate-text: #f6f3ea;
+  --plate-fg: #1b1305;
+
+  --pill-bg: #d3cdbd;
+  --pill-fg: #1b1b1f;
+  --pill-line: rgb(110 74 12 / 0.55);
+  --stack-bg: #15130e;
+
+  --ivory: #fffaf0;
+  --ivory-ink: #2a1d10;
+  --ivory-dim: #e6dcc4;
+  --ivory-soft: rgb(255 250 240 / 0.92);
+
+  --floor-ink: rgb(0 0 0 / 0.03);
+  --table-bg:
+    repeating-linear-gradient(60deg, var(--floor-ink) 0 1px, transparent 1px 15px),
+    repeating-linear-gradient(-60deg, var(--floor-ink) 0 1px, transparent 1px 15px),
+    radial-gradient(110% 70% at 50% 28%, #e3dfd3 0%, #d9d4c8 62%, #cfc9bb 100%);
+  --bar-bg:
+    var(--tex-leather) 0 0 / 128px 128px,
+    linear-gradient(180deg, var(--leather-1), var(--leather-2));
+  --felt-bg:
+    var(--tex-weave-a),
+    var(--tex-weave-b),
+    linear-gradient(var(--baize), var(--baize));
+  --felt-border: 0.85rem solid var(--rail);
+  --felt-shadow: inset 0 0 0 2px var(--inlay), inset 0 0 1.4rem rgb(0 0 0 / 0.5);
+  --felt-ring: rgb(255 250 240 / 0.2);
+}
+
+/* --- the table: baize in a padded rail ------------------------------------ */
+
+/* One element, ten layers. The first seven are the baize and are clipped to the
+   inside of the rail; the last three are the rail and fill the whole oval
+   (the border is transparent, so the rail shows through it). */
+:root[data-theme='realistic'] .felt::after {
+  border-color: transparent;
+  background-image:
+    var(--tex-fibre),
+    var(--tex-fibre-lit),
+    var(--tex-weave-a),
+    var(--tex-weave-b),
+    radial-gradient(ellipse 58% 52% at 50% 46%, var(--pool), transparent 100%),
+    radial-gradient(ellipse 75% 70% at 50% 48%, transparent 58%, var(--vignette) 100%),
+    linear-gradient(var(--baize), var(--baize)),
+    linear-gradient(180deg, var(--rail-hi), transparent 30%, transparent 62%, var(--rail-lo)),
+    var(--tex-leather),
+    linear-gradient(var(--rail), var(--rail));
+  background-size:
+    160px 160px,
+    128px 128px,
+    auto,
+    auto,
+    auto,
+    auto,
+    auto,
+    auto,
+    128px 128px,
+    auto;
+  background-origin:
+    padding-box, padding-box, padding-box, padding-box, padding-box, padding-box, padding-box,
+    border-box, border-box, border-box;
+  background-clip:
+    padding-box, padding-box, padding-box, padding-box, padding-box, padding-box, padding-box,
+    border-box, border-box, border-box;
+  box-shadow:
+    inset 0 0 0 2px var(--inlay),
+    inset 0 0 0 3px rgb(0 0 0 / 0.55),
+    inset 0 0 2.2rem rgb(0 0 0 / 0.65),
+    0 0 0 1px #000,
+    0 0.9rem 1.4rem rgb(0 0 0 / 0.5);
+  /* Stitching: a dashed line sewn into the middle of the rail. */
+  outline: 2px dashed var(--stitch);
+  outline-offset: -0.5rem;
+}
+
+@media (max-width: 820px) {
+  :root[data-theme='realistic'] .felt::after {
+    outline-offset: -0.38rem;
+    box-shadow:
+      inset 0 0 0 2px var(--inlay),
+      inset 0 0 0 3px rgb(0 0 0 / 0.55),
+      inset 0 0 1.6rem rgb(0 0 0 / 0.6),
+      0 0 0 1px #000,
+      0 0.5rem 0.9rem rgb(0 0 0 / 0.5);
+  }
+}
+
+:root[data-theme='realistic'] .felt::before {
+  border-color: rgb(247 241 226 / 0.18);
+}
+
+:root[data-theme='realistic'] .card-slot {
+  border-color: rgb(247 241 226 / 0.34);
+  background: rgb(0 0 0 / 0.16);
+}
+
+/* --- bars: leather, with a gold edge -------------------------------------- */
+
+:root[data-theme='realistic'] .hud {
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.1),
+    0 0.4rem 0.8rem rgb(0 0 0 / 0.3);
+}
+
+:root[data-theme='realistic'] .dock {
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.12),
+    inset 0 0.6rem 1rem rgb(0 0 0 / 0.28);
+}
+
+/* --- buttons: leather plates with a gold edge ----------------------------- */
+
+:root[data-theme='realistic'] {
+  --bx-weight: 700;
+  --bx-press: translateY(0.1rem);
+  --bx-press-shadow: none;
+
+  /* Call: a gold plate with a dark label. */
+  --bx-primary-bg: linear-gradient(180deg, #f0cd77, #c99a3c 55%, #a77c28);
+  --bx-primary-hover-bg: linear-gradient(180deg, #f6d98d, #d6a748 55%, #b38630);
+  --bx-primary-border: #6d4f12;
+  --bx-primary-fg: var(--plate-fg);
+  --bx-primary-shadow: inset 0 1px 0 rgb(255 255 255 / 0.5), 0 0.15rem 0 rgb(0 0 0 / 0.55);
+
+  /* Fold: oxblood. */
+  --bx-danger-bg: linear-gradient(180deg, #7f1f1f, #4a0d0d);
+  --bx-danger-hover-bg: linear-gradient(180deg, #8f2828, #561212);
+  --bx-danger-border: #b04a4a;
+  --bx-danger-fg: #fbe6e2;
+  --bx-danger-shadow: inset 0 1px 0 rgb(255 255 255 / 0.14), 0 0.15rem 0 rgb(0 0 0 / 0.55);
+
+  /* Raise: a dark leather plate with a gold edge and a light label. */
+  --bx-accent-bg: linear-gradient(180deg, #4a3f26, #2a2415);
+  --bx-accent-border: #d4a64a;
+  --bx-accent-fg: #fbecc8;
+  --bx-accent-shadow: inset 0 1px 0 rgb(255 255 255 / 0.16), 0 0.15rem 0 rgb(0 0 0 / 0.55);
+}
+
+/* A plain button is always a plate with a light label, in both modes. Ghost
+   buttons stay see-through and follow the page text colour. */
+:root[data-theme='realistic'] .btn:not(.btn-primary, .btn-danger, .btn-accent, .btn-ghost) {
+  --btn-bg: linear-gradient(180deg, var(--btn-1), var(--btn-2));
+  --btn-border: var(--inlay);
+  --btn-fg: var(--plate-text);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.14), 0 0.15rem 0 rgb(0 0 0 / 0.5);
+}
+
+@media (hover: hover) {
+  :root[data-theme='realistic'] .btn:hover:not(:disabled, .btn-primary, .btn-danger, .btn-accent, .btn-ghost) {
+    --btn-bg: linear-gradient(180deg, var(--btn-hover-1), var(--btn-hover-2));
+    --btn-border: #d4a64a;
+  }
+}
+
+:root[data-theme='realistic'] .menu-start {
+  background: linear-gradient(180deg, #f0cd77, #c99a3c 55%, #a77c28);
+  color: var(--plate-fg);
+  border: 1px solid #6d4f12;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.5), 0 0.15rem 0 rgb(0 0 0 / 0.5);
+}
+
+:root[data-theme='realistic'] :is(.menu-wordmark-text, .room-title) {
+  font-family: var(--font-wordmark);
+  letter-spacing: 0.01em;
+}
+
+/* --- seats: casino chips -------------------------------------------------- */
+
+/* The inline per-player colour is replaced by chip red. The rim marks are the
+   existing ::before (white dashes round the edge); ::after adds a gloss and an
+   inner ring, behind the initial. */
+:root[data-theme='realistic'] .seat-avatar {
+  isolation: isolate;
+  color: #fff;
+  background: radial-gradient(circle at 35% 30%, #d83131, #7a0f0f) !important;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  box-shadow:
+    0 0 0 0.14rem #f2f0ea,
+    0 0 0 0.2rem rgb(0 0 0 / 0.55),
+    inset 0 -0.3rem 0.4rem rgb(0 0 0 / 0.3),
+    0 0.35rem 0.55rem rgb(0 0 0 / 0.65);
+}
+
+:root[data-theme='realistic'] .seat-avatar::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: 50%;
+  background:
+    radial-gradient(ellipse 60% 40% at 36% 22%, rgb(255 255 255 / 0.4), transparent 70%),
+    radial-gradient(circle closest-side, transparent 59%, rgb(255 255 255 / 0.5) 60% 62%, transparent 63%);
+}
+
+:root[data-theme='realistic'] .seat-active .seat-avatar,
+:root[data-theme='realistic'] .hero-turn .hero-avatar {
+  box-shadow:
+    0 0 0 0.14rem #f2f0ea,
+    0 0 0 0.3rem var(--seat-ring),
+    0 0 1.3rem rgb(var(--ring-rgb) / 0.75),
+    0 0.35rem 0.55rem rgb(0 0 0 / 0.65);
+}
+
+:root[data-theme='realistic'] .seat-winner .seat-avatar {
+  box-shadow:
+    0 0 0 0.14rem #f2f0ea,
+    0 0 0 0.3rem #8fe3a8,
+    0 0 1.3rem rgb(143 227 168 / 0.7),
+    0 0.35rem 0.55rem rgb(0 0 0 / 0.65);
+}
+
+:root[data-theme='realistic'] .seat-name,
+:root[data-theme='realistic'] .hero-name {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+:root[data-theme='realistic'] .seat-name {
+  color: var(--ivory);
+}
+
+/* The stack tag: a card of paper with fibre. */
+:root[data-theme='realistic'] .seat-stack {
+  background:
+    var(--tex-paper) 0 0 / 96px 96px,
+    linear-gradient(var(--ivory-dim), var(--ivory-dim));
+  font-weight: 700;
+}
+
+:root[data-theme='realistic'] .seat-status-won {
+  color: #c8f5d4;
+}
+
+:root[data-theme='realistic'] .seat-status {
+  font-weight: 600;
+}
+
+/* --- the dealer button: a glossy puck ------------------------------------- */
+
+:root[data-theme='realistic'] .seat-dealer-puck {
+  isolation: isolate;
+  color: var(--ivory-ink);
+  font-family: var(--font-mono);
+  font-weight: 800;
+  background: radial-gradient(circle at 34% 28%, #ffffff 0%, #f1e8d0 46%, #c3b794 100%);
+  box-shadow:
+    inset 0 0 0 0.1rem rgb(0 0 0 / 0.14),
+    inset 0 -0.18rem 0.25rem rgb(0 0 0 / 0.28),
+    0 0.12rem 0 #8e8468,
+    0 0.3rem 0.45rem rgb(0 0 0 / 0.65);
+}
+
+/* Edge marks round the rim. */
+:root[data-theme='realistic'] .seat-dealer-puck::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: 50%;
+  background: repeating-conic-gradient(rgb(42 29 16 / 0.6) 0 11deg, transparent 11deg 30deg);
+  -webkit-mask: radial-gradient(circle closest-side, transparent 74%, #000 75%);
+  mask: radial-gradient(circle closest-side, transparent 74%, #000 75%);
+}
+
+/* Gloss across the top. */
+:root[data-theme='realistic'] .seat-dealer-puck::after {
+  content: '';
+  position: absolute;
+  inset: 7% 16% 52%;
+  z-index: -1;
+  border-radius: 50%;
+  background: linear-gradient(rgb(255 255 255 / 0.75), transparent);
+}
+
+/* --- the pot and the bets ------------------------------------------------- */
+
+:root[data-theme='realistic'] .pot-amount {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+:root[data-theme='realistic'] .seat-bet,
+:root[data-theme='realistic'] .pot-sub {
+  font-family: var(--font-mono);
+  font-weight: 700;
+}
+
+/* --- your panel ----------------------------------------------------------- */
+
+:root[data-theme='realistic'] .hero-stack,
+:root[data-theme='realistic'] .hero-tocall-amount {
+  font-family: var(--font-mono);
+  font-weight: 700;
+}
+
+:root[data-theme='realistic'] .hero-stack {
+  background:
+    var(--tex-leather) 0 0 / 128px 128px,
+    var(--stack-bg);
+  box-shadow: inset 0 0.1rem 0.25rem rgb(0 0 0 / 0.6), 0 1px 0 rgb(255 255 255 / 0.18);
+}
+
+/* --- playing cards: ivory paper with a soft shadow ------------------------ */
+
+:root[data-theme='realistic'] .card-face {
+  box-shadow:
+    inset 0 0 0 1px rgb(60 40 10 / 0.12),
+    0 0.12rem 0.2rem rgb(0 0 0 / 0.4),
+    0 0.35rem 0.6rem rgb(0 0 0 / 0.22);
+}
+
+:root[data-theme='realistic'] .card-back {
+  box-shadow:
+    inset 0 0 0 0.16rem #a81c1c,
+    0 0.12rem 0.2rem rgb(0 0 0 / 0.45),
+    0 0.35rem 0.6rem rgb(0 0 0 / 0.22);
+}
+
+/* --- screens other than the table ----------------------------------------- */
+
+:root[data-theme='realistic'] .room-box {
+  background-color: var(--panel);
+  background-image: var(--tex-leather);
+  background-size: 128px 128px;
+  border-color: var(--line);
+}
+
+:root[data-theme='realistic'] .room-box-main {
+  border-color: var(--inlay);
+  box-shadow: inset 0 0 0 1px rgb(179 134 47 / 0.35);
+}
+
+:root[data-theme='realistic'] .room-table-felt {
+  fill: var(--baize);
+  stroke: var(--rail);
+}
+
+/* --- motion and weight ---------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  :root[data-theme='realistic'] .pot-stack i {
+    animation: none;
+  }
+}
