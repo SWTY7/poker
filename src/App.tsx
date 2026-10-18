@@ -13,6 +13,10 @@ import { TableSeating } from './ui/TableSeating'
 import { CareerHub } from './ui/CareerHub'
 import { HostEntry, JoinEntry, type HostSetup } from './ui/home/HomeEntry'
 import { RoomScreen } from './ui/home/HomeScreens'
+import { NearbyIntro } from './ui/home/NearbyIntro'
+import { NearbyHostScreen } from './ui/home/NearbyHostScreen'
+import { NearbyJoin } from './ui/home/NearbyJoin'
+import { loadNearbyRoom, type NearbyStart } from './home/p2p'
 import { isRoomCode } from './home/room'
 import { loadHost, loadMe, saveHost, saveMe } from './home/saved'
 import { createRoom, roomStatus, type RoomInfo } from './home/socket'
@@ -92,6 +96,10 @@ type Screen =
   | { kind: 'home-host-setup' }
   | { kind: 'home-join'; code: string }
   | { kind: 'home-room'; code: string; playerId: string; seatKey: string; name?: string; hostToken?: string }
+  | { kind: 'nearby-intro' }
+  | { kind: 'nearby-host-setup' }
+  | { kind: 'nearby-host'; resume?: boolean; setup?: HostSetup; start: NearbyStart }
+  | { kind: 'nearby-join' }
   | { kind: 'your-play' }
   | { kind: 'settings' }
 
@@ -289,6 +297,18 @@ function App() {
     setScreen({ kind: 'home-room', code, playerId: me.playerId, seatKey: me.seatKey, name })
   }
 
+  /** Opens a nearby table on this phone: no server, so nothing can fail but the browser itself. */
+  const handleOpenNearby = async (setup: HostSetup): Promise<string | null> => {
+    if (setup.hostName) saveMe({ ...loadMe(), name: setup.hostName })
+    setScreen({ kind: 'nearby-host', setup, start: { config: setup.config, cards: setup.cards } })
+    return null
+  }
+
+  const handleResumeNearby = () => {
+    const saved = loadNearbyRoom()
+    if (saved) setScreen({ kind: 'nearby-host', resume: true, start: { resume: saved } })
+  }
+
   const leaveHome = () => {
     // Drop a ?room= link from the address bar, so a reload lands in the lobby rather than rejoining.
     if (location.search) history.replaceState(null, '', location.pathname)
@@ -459,6 +479,8 @@ function App() {
           onHostGame={() => setScreen({ kind: 'home-host-setup' })}
           onResumeRoom={handleResumeRoom}
           onJoinGame={() => setScreen({ kind: 'home-join', code: '' })}
+          onNearby={() => setScreen({ kind: 'nearby-intro' })}
+          onResumeNearby={handleResumeNearby}
           onOpenYourPlay={() => setScreen({ kind: 'your-play' })}
           onOpenSettings={() => setScreen({ kind: 'settings' })}
         />
@@ -484,6 +506,14 @@ function App() {
       return <HostEntry initialName={loadMe().name} onOpen={handleOpenRoom} onBack={goLobby} />
     case 'home-join':
       return <JoinEntry initialName={loadMe().name} initialCode={screen.code} lastCode={loadMe().code} onJoin={handleJoinRoom} onBack={leaveHome} />
+    case 'nearby-intro':
+      return <NearbyIntro onHost={() => setScreen({ kind: 'nearby-host-setup' })} onJoin={() => setScreen({ kind: 'nearby-join' })} onBack={goLobby} />
+    case 'nearby-host-setup':
+      return <HostEntry nearby initialName={loadMe().name} onOpen={handleOpenNearby} onBack={() => setScreen({ kind: 'nearby-intro' })} />
+    case 'nearby-host':
+      return <NearbyHostScreen start={screen.start} name={screen.setup?.hostName ?? undefined} onExit={goLobby} />
+    case 'nearby-join':
+      return <NearbyJoin initialName={loadMe().name} onBack={goLobby} />
     case 'home-room':
       return (
         <RoomScreen

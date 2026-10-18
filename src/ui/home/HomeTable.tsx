@@ -83,7 +83,7 @@ export function HomeTable({ view, status, detail, error, onClearError, myId, isH
       <div className="menu-content home-content">
         <header className="home-header">
           <div>
-            <div className="home-room-label">Room</div>
+            <div className="home-room-label">{code ? 'Room' : 'Nearby'}</div>
             <div className="home-room-code">{code ?? '····'}</div>
           </div>
           <div className="home-header-right">

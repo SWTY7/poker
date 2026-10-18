@@ -266,3 +266,191 @@
     margin-left: 0;
   }
 }
+
+/* ---------- nearby (no internet) ---------- */
+
+.room-nearby {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  margin-top: var(--sp-3);
+  padding-top: var(--sp-3);
+  border-top: 1px dotted var(--line);
+}
+
+.nearby-checklist {
+  margin: 0;
+  padding-left: 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  color: var(--text-dim);
+  font-size: var(--fs-md);
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.nearby-checklist li::marker {
+  color: var(--accent);
+  font-family: var(--font-mono);
+}
+
+.nearby-trust {
+  margin: var(--sp-3) 0;
+  padding-left: var(--sp-3);
+  border-left: 2px solid var(--accent);
+  color: var(--text);
+  font-size: var(--fs-md);
+  line-height: 1.45;
+}
+
+.nearby-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-3);
+  margin: var(--sp-3) 0;
+}
+
+.nearby-btn {
+  min-height: 2.75rem; /* 44px: a thumb on a phone */
+}
+
+.nearby-host-bar {
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: var(--sp-3) var(--sp-4) calc(var(--sp-5) + env(safe-area-inset-bottom, 0px));
+  border-top: 1px dotted var(--line);
+  background: var(--bg);
+  color: var(--text);
+}
+
+.nearby-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+
+.nearby-sheet-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--sp-3);
+}
+
+.nearby-invite {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--sp-4);
+}
+
+/* The one place theme colours do not apply: scanners need dark on white, in light and dark mode alike. */
+.nearby-qr {
+  flex: 0 0 auto;
+  width: min(14rem, 100%);
+  height: auto;
+  background: #fff;
+  color: #000;
+  border-radius: var(--r-sm);
+}
+
+.nearby-invite-side {
+  flex: 1 1 10rem;
+  min-width: 0;
+}
+
+.nearby-code {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--fs-md);
+  letter-spacing: 0.06em;
+  line-height: 1.5;
+  color: var(--text);
+  overflow-wrap: anywhere;
+  word-break: break-all;
+  user-select: all;
+}
+
+.nearby-hint {
+  margin-left: 0;
+}
+
+.nearby-mdns {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--sp-2);
+}
+
+.nearby-type {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--sp-3);
+}
+
+.nearby-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  min-width: 0;
+  padding: 0.45rem 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  color: var(--text);
+  font-family: var(--font-mono);
+  /* 16px or more, so iOS doesn't zoom the page when it is tapped. */
+  font-size: 1rem;
+  letter-spacing: 0.04em;
+  resize: vertical;
+}
+
+.nearby-problem {
+  margin: 0;
+  color: var(--red);
+  font-size: var(--fs-md);
+  line-height: 1.4;
+}
+
+.nearby-invites {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.nearby-invite-row {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  padding: var(--sp-2) 0;
+  border-top: 1px dotted var(--line);
+  color: var(--text-dim);
+  font-size: var(--fs-sm);
+}
+
+.nearby-invite-row.nearby-connected > span:last-child {
+  color: var(--green);
+}
+
+.nearby-invite-row.nearby-failed > span:last-child {
+  color: var(--red);
+}
+
+.nearby-scan {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--sp-3);
+}
+
+.nearby-video {
+  width: 100%;
+  max-height: 60vh;
+  border-radius: var(--r-sm);
+  background: #000;
+}
+
+.nearby-video[hidden] {
+  display: none;
+}

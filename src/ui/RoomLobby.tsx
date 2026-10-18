@@ -3,6 +3,8 @@ import { TIERS } from '../game/career'
 import { canClaimDailyStake, DAILY_STAKE_AMOUNT, DAILY_STAKE_THRESHOLD } from '../game/profile'
 import { ordinal } from '../utils/format'
 import type { LobbyProps } from './Lobby'
+import { loadNearbyRoom, nearbySupported } from '../home/p2p'
+import { NEARBY_LINE } from './home/nearby-copy'
 
 /**
  * The lobby as a poker room: three tables, the home game first and widest
@@ -58,8 +60,12 @@ export function RoomLobby({
   onJoinGame,
   onOpenSettings,
   onOpenYourPlay,
+  onNearby,
+  onResumeNearby,
 }: LobbyProps) {
   const [confirmingReset, setConfirmingReset] = useState(false)
+  const nearbyOn = !!onNearby && nearbySupported()
+  const nearbySaved = nearbyOn && !!onResumeNearby && loadNearbyRoom() !== null
   const canClaim = canClaimDailyStake(profile)
   const tier = TIERS[career.tier]
   const { lifetime } = profile
@@ -108,6 +114,21 @@ export function RoomLobby({
               Join
             </button>
           </div>
+          {nearbyOn && (
+            <div className="room-nearby">
+              <p className="room-fine">{NEARBY_LINE}</p>
+              <div className="room-acts">
+                {nearbySaved && (
+                  <button type="button" className="room-go" onClick={onResumeNearby}>
+                    Reopen nearby table
+                  </button>
+                )}
+                <button type="button" className="room-go" onClick={onNearby}>
+                  Nearby (no internet)
+                </button>
+              </div>
+            </div>
+          )}
         </section>
 
         <section className="room-box" aria-labelledby="room-career">

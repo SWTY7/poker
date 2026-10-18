@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { connectRoom, type RoomLine, type RoomStatus } from '../../home/socket'
+import type { Connector } from '../../home/p2p'
 import type { TableView } from '../../home/room'
 import type { Command } from '../../home/table'
 
@@ -19,7 +20,7 @@ export interface RoomConnection {
  * This phone's seat at room `code`. The same for the host and everyone else:
  * the server decides who may deal from the host token, and says so in the view.
  */
-export function useRoom(code: string, playerId: string, seatKey: string, name: string | undefined, hostToken: string | undefined): RoomConnection {
+export function useRoom(code: string, playerId: string, seatKey: string, name: string | undefined, hostToken: string | undefined, connector?: Connector): RoomConnection {
   const [view, setView] = useState<TableView | null>(null)
   const [status, setStatus] = useState<RoomStatus>('connecting')
   const [detail, setDetail] = useState<string | null>(null)
@@ -27,8 +28,8 @@ export function useRoom(code: string, playerId: string, seatKey: string, name: s
   const lineRef = useRef<RoomLine | null>(null)
 
   useEffect(() => {
-    const line = connectRoom(
-      code,
+    const connect: Connector = connector ?? ((hello, events) => connectRoom(code, hello, events))
+    const line = connect(
       { playerId, seatKey, name, hostToken },
       {
         onStatus: (s, d) => {
@@ -44,7 +45,7 @@ export function useRoom(code: string, playerId: string, seatKey: string, name: s
     )
     lineRef.current = line
     return () => line.close()
-  }, [code, playerId, seatKey, name, hostToken])
+  }, [code, playerId, seatKey, name, hostToken, connector])
 
   const send = useCallback((command: Command) => lineRef.current?.send(command), [])
   const close = useCallback(() => lineRef.current?.close(), [])
