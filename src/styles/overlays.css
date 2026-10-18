@@ -519,3 +519,50 @@
 .review-dim {
   color: var(--text-faint);
 }
+
+/* ---------- update banner: top edge, clear of the action buttons ---------- */
+.update-banner {
+  position: fixed;
+  top: max(0.5rem, env(safe-area-inset-top));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  max-width: calc(100vw - 1rem);
+  padding: 0.35rem 0.4rem 0.35rem 0.8rem;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--text);
+  font-size: 0.85rem;
+  box-shadow: 0 4px 16px rgb(0 0 0 / 0.45);
+}
+
+.update-banner__go {
+  background: var(--accent);
+  color: var(--on-accent);
+  border: 0;
+  border-radius: 999px;
+  padding: 0.35rem 0.8rem;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.update-banner__x {
+  background: transparent;
+  border: 0;
+  color: var(--text-dim);
+  font-size: 1.2rem;
+  line-height: 1;
+  padding: 0.2rem 0.5rem;
+  cursor: pointer;
+}
+
+.update-banner__go:focus-visible,
+.update-banner__x:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}

@@ -11,6 +11,7 @@ STEPS=(
   "lint::npm run lint --silent"
   "tests::npm test --silent"
   "slow:build::npm run build --silent"
+  "slow:pwa::node scripts/check-pwa.mjs"
 )
 # ---------------------------------------------------------------------------
 
