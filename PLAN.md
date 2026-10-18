@@ -23,14 +23,14 @@ Graph:
 - u5 (sonnet, plan: light, edge u4 -> u5): job: 8-10 players on a short phone: table area scrolls vertically, all seats kept, hero controls stay reachable; check 667px-tall at 8, 9, 10 players in both themes. scope: src/ui/Table.tsx, src/ui/TableSeating.tsx, src/styles/table.css, src/styles/layout-round.css. attempts: 0
 - u6 (sonnet, reviewer, edge u5 -> u6): fresh-context review of the Phase 2 diff against design.md, DECISIONS.md and RUN.md decisions, plus screenshots at 375x667, 390x844, 430x932 for both themes and both modes. read-only.
 Gate: `bash scripts/check.sh` (full), `grep` shows no `broadcast|neon|data-font|data-buttons|data-corners`, u6 says ready. Retry cap 4.
-- [ ] u0
-- [ ] u1
-- [ ] u2
-- [ ] u3
-- [ ] u4
-- [ ] u5
-- [ ] u6
-- [ ] Phase 2 gate passed
+- [x] u0
+- [x] u1
+- [x] u2
+- [x] u3
+- [x] u4
+- [x] u5
+- [x] u6
+- [x] Phase 2 gate passed 2026-10-19: check.sh green; reviewer u6 ready (2 majors + minors fixed in u8); browser checks at 375x667/390x844: classic dark+light, realistic dark+light, 10-player scroll, Settings no overflow, first-paint attrs. Extra nodes: u3b (tame light textures), u7 (Settings overflow), u8 (review fixes). Unverified: iOS Safari, real phone, 8-10 players in landscape (still old layout), update banner position at 375.
 
 ### Phase 3: WebRTC phone-hosted rooms
 Graph:
@@ -63,7 +63,7 @@ Gate: `bash scripts/check.sh`; codec round trip and loopback game tests green; t
   - [x] 6. Seat tags on the felt (betting line hidden on phones)
   - [x] 7. Table height by player count (heads-up and 3-handed shorter, ring and arc by count)
   - [x] 8. Action buttons: Raise filled, equal height and radius
-  - [ ] Not solved: 8-10 players on a 667px-tall phone are still crowded (see summary); decide whether to cap or scroll
+  - [x] 8-10 players on a 667px-tall phone: scroll, all seats kept (autopilot u5, 2026-10-19; landscape still unsolved)
   - [ ] Branch/worktree cleanup (blocked by the permission classifier; sunwoo to run or approve)
 - [ ] Psychology track, Phase 3a: recover bot personality from play (branch `claude/personality-lab-3a`, spec in `docs/plans/psychology-lab.md`). Offline scripts only, no bot behaviour change.
   - [x] Session generator: bot-vs-bot sessions with parameters drawn from wide ranges (not just `CAST`), every seat logged like the human

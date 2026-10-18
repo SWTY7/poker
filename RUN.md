@@ -80,12 +80,12 @@ On a cap: write the record, list unfinished items, exit with a recap.
 - Commits on `claude/offline-themes-p2p` after each passed gate.
 
 ## Compaction hand-off (refreshed by the main agent at every gate, before compacting)
-- Goal: PWA offline, two themes + light/dark, WebRTC phone rooms; current phase: 2, UI
-- Open nodes: u0..u6 (0 attempts)
+- Goal: PWA offline, two themes + light/dark, WebRTC phone rooms; current phase: 3, WebRTC
+- Open nodes: w0..w4 (0 attempts)
 - Decisions in force: see "Decisions made up front"
-- Caps used so far: spawns 4/40, phases 1/4, tokens ~0.6M, hours ~0.5
+- Caps used so far: spawns 17/40, phases 2/4, tokens ~2.5M, hours ~2
 - STOP file present: no
-- Next action: dispatch u0 (explorer inventory of how Settings reaches the DOM)
+- Next action: dispatch w0 (explorer map of the room transport seam)
 After compaction: reread this file, PLAN.md and NEXT.md before doing anything.
 
 ## Progress log (main agent only, append-only)
@@ -96,5 +96,9 @@ After compaction: reread this file, PLAN.md and NEXT.md before doing anything.
 | 2026-10-19 | 1 | p1a, p1b merged; reviewer found stale-index-on-install (major) + 2 minors, fixed inline | pass: check.sh 4 steps, SW active, offline load with server stopped | spawns 4/40, phases 1/4 |
 
 Run notes: workers' worktrees are cut from `main`, not the working branch; every worker brief starts with `git merge --no-edit claude/offline-themes-p2p`. One unexplained flaky test failure on the first post-merge check (rerun green).
+
+| 2026-10-19 | 2 | u0-u8 merged (u3b, u7, u8 added after browser check and review) | pass: check.sh, reviewer ready after fixes, browser checks both themes/modes at phone sizes | spawns 17/40, phases 2/4 |
+
+Run notes: psych-bot test `reads a wet, coordinated board differently` failed twice during busy full runs (several worktrees testing at once), passes alone and in clean full runs: likely load-sensitive flake, not fixed. Vitest also scans `.claude/worktrees` (stale copies show up as failures while a worker is mid-edit).
 
 ## Retrospective (written at the end)

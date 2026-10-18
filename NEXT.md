@@ -1,6 +1,6 @@
 # Next
 
-Current phase: 2, UI. Next action: dispatch u0 (read-only inventory), then u1 (settings model).
+Current phase: 3, WebRTC. Next action: dispatch w0 (read-only), then w1 (Opus planner).
 
 ## Queued closed-lane items (autopilot never runs these; sunwoo runs them together at the end)
 1. Make `SWTY7/poker` private. Warning: GitHub Pages on a private repo usually needs a paid plan, so swty7.github.io/poker would go down until step 2.
