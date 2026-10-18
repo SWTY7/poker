@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ActionType, GameState, HandLogEntry } from '../poker/game-state'
 import { getLegalActions, minRaiseTargetAmount, maxRaiseTargetAmount } from '../poker/betting'
 import { committedPot, streetBetTotal, totalPot } from '../poker/pot'
@@ -18,6 +18,7 @@ import type { TournamentHudInfo } from '../game/tournament'
 import { PositionLegend } from './PositionLegend'
 import { LeaveDialog } from './LeaveDialog'
 import { useMediaQuery } from './useMediaQuery'
+import { CROWDED_FROM, minFeltHeight } from './table-fit'
 import type { Hint, SessionStats, Speed } from './useHoldemGame'
 import type { HandRecord } from '../review/log'
 import { reviewHand } from '../review/hand-review'
@@ -153,6 +154,26 @@ export function Table({
   // The hand log is opt-in — most players only want the table itself in
   // front of them, not a running transcript, so it starts closed.
   const [showLog, setShowLog] = useState(false)
+
+  // 8-10 players on a phone: the felt keeps the height every seat needs (see
+  // table-fit.ts) and the table region scrolls above the sticky hero and
+  // buttons. Seat sizes for 2-7 players are untouched.
+  const crowded = opponents.length >= CROWDED_FROM
+  const [viewWidth, setViewWidth] = useState(() => (typeof window === 'undefined' ? 375 : window.innerWidth))
+  useEffect(() => {
+    if (!crowded) return
+    const onResize = () => setViewWidth(window.innerWidth)
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [crowded])
+  const feltMin = crowded ? minFeltHeight(opponents.length, Math.max(280, viewWidth - 32)) : 0
+  const tableMainRef = useRef<HTMLDivElement>(null)
+  // Keep the acting seat in view when the table scrolls (cheap: nearest edge only).
+  useEffect(() => {
+    if (!crowded) return
+    const seat = tableMainRef.current?.querySelector('.seat-active')
+    if (seat && typeof seat.scrollIntoView === 'function') seat.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+  }, [crowded, state.handLog.length, state.handInProgress])
   const [showPositions, setShowPositions] = useState(false)
   const [showLeave, setShowLeave] = useState(false)
   const [showPotential, setShowPotential] = useState(false)
@@ -302,7 +323,12 @@ export function Table({
       />
 
       <div className="table-body">
-        <div className="table-main">
+        <div
+          className="table-main"
+          ref={tableMainRef}
+          data-crowded={crowded ? '' : undefined}
+          style={crowded ? ({ '--felt-min': `${feltMin}px` } as React.CSSProperties) : undefined}
+        >
           {/* The felt is a real object, not a background: everything that
               belongs to the table — the seats around it and the board in the
               middle — lives inside this one bounded surface, which is what
@@ -369,6 +395,10 @@ export function Table({
             {paused && <div className="paused-badge">Paused — S to step, P to resume</div>}
           </section>
 
+          {/* The hero panel and the action dock travel together: on a crowded
+              phone table they stay pinned to the bottom while the table
+              scrolls. Elsewhere this wrapper adds no box. */}
+          <div className="table-actions">
           {activePlayer && (
             <HeroZone
               name={activePlayer.name}
@@ -482,6 +512,7 @@ export function Table({
           ) : state.handInProgress ? (
             <IdleBar label={currentPlayer ? `${currentPlayer.name} is deciding…` : 'Waiting…'} />
           ) : null}
+          </div>
         </div>
 
         {/* On a wide screen the log is a side panel beside the table. On a

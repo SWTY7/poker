@@ -239,6 +239,12 @@
   box-sizing: border-box;
 }
 
+/* Hero panel and action dock, grouped so a crowded phone table can pin them to
+   the bottom (see layout-round.css). Everywhere else the wrapper has no box. */
+.table-actions {
+  display: contents;
+}
+
 /* ---------- the felt ---------- */
 
 .felt {
