@@ -441,7 +441,7 @@ function App() {
   function renderScreen() {
   switch (screen.kind) {
     case 'lobby': {
-      const LobbyView = look.layout === 'round' ? RoomLobby : Lobby
+      const LobbyView = look.theme === 'realistic' ? RoomLobby : Lobby
       return (
         <LobbyView
           profile={profile}

@@ -1,16 +1,12 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import {
-  BUTTONS,
-  COLORS,
-  CORNERS,
   DEFAULT_LOOK,
-  FONTS,
-  LAYOUTS,
   LOOK_STORAGE_KEY,
-  PRESETS,
+  MODES,
+  THEMES,
+  applyLook,
   getLook,
   loadLook,
-  sameLook,
   setLook,
   subscribeLook,
 } from '../../src/game/settings'
@@ -35,69 +31,95 @@ beforeEach(() => {
   globalThis.document = { documentElement: { dataset: {} as Record<string, string> } }
 })
 
+const dataset = () => document.documentElement.dataset as Record<string, string>
+
 describe('the look', () => {
-  it('opens on the Card room: round table, warm serif, brass buttons, soft corners', () => {
+  it('opens on Classic, dark', () => {
     expect(loadLook()).toEqual(DEFAULT_LOOK)
-    expect(DEFAULT_LOOK).toEqual({ color: 'cardroom', layout: 'round', font: 'warm', buttons: 'brass', corners: 'soft' })
+    expect(DEFAULT_LOOK).toEqual({ theme: 'classic', mode: 'dark' })
   })
 
-  it('remembers each choice, and shows them all on the page', () => {
-    const look = { color: 'neon', layout: 'standard', font: 'condensed', buttons: 'glow', corners: 'sharp' } as const
-    setLook(look)
-    expect(loadLook()).toEqual(look)
-    expect(document.documentElement.dataset).toMatchObject(look)
+  it('remembers both choices as {theme, mode}', () => {
+    setLook({ theme: 'realistic', mode: 'light' })
+    expect(loadLook()).toEqual({ theme: 'realistic', mode: 'light' })
+    expect(JSON.parse(localStorage.getItem(LOOK_STORAGE_KEY)!)).toEqual({ theme: 'realistic', mode: 'light' })
   })
 
-  it('tells anything listening when the look changes, so a screen can switch layout', () => {
+  it('tells anything listening when the look changes', () => {
     let calls = 0
     const stop = subscribeLook(() => calls++)
-    setLook({ ...DEFAULT_LOOK, layout: 'standard' })
+    setLook({ theme: 'realistic', mode: 'dark' })
     expect(calls).toBe(1)
-    expect(getLook().layout).toBe('standard')
+    expect(getLook().theme).toBe('realistic')
     stop()
     setLook(DEFAULT_LOOK)
     expect(calls).toBe(1)
   })
 
-  it('lets one choice change without touching the others', () => {
-    setLook({ ...DEFAULT_LOOK, color: 'broadcast' })
-    expect(loadLook()).toEqual({ ...DEFAULT_LOOK, color: 'broadcast' })
-  })
-
-  it('falls back to the default for any one choice it does not recognise', () => {
-    localStorage.setItem(LOOK_STORAGE_KEY, JSON.stringify({ color: 'neon', layout: 'hexagon', font: 7, buttons: 'hard' }))
-    expect(loadLook()).toEqual({ ...DEFAULT_LOOK, color: 'neon' })
-  })
-
-  it('carries over the single theme chosen before the look was split up', () => {
-    localStorage.setItem('poker.theme', 'cardroom')
-    expect(loadLook()).toEqual(PRESETS.find((p) => p.id === 'cardroom')!.look)
+  it('falls back per field for a value it does not recognise', () => {
+    localStorage.setItem(LOOK_STORAGE_KEY, JSON.stringify({ theme: 'realistic', mode: 'sepia' }))
+    expect(loadLook()).toEqual({ theme: 'realistic', mode: 'dark' })
+    localStorage.setItem(LOOK_STORAGE_KEY, JSON.stringify({ theme: 7, mode: 'light' }))
+    expect(loadLook()).toEqual({ theme: 'classic', mode: 'light' })
+    localStorage.setItem(LOOK_STORAGE_KEY, '"nonsense"')
+    expect(loadLook()).toEqual(DEFAULT_LOOK)
+    localStorage.setItem(LOOK_STORAGE_KEY, 'not json')
+    expect(loadLook()).toEqual(DEFAULT_LOOK)
   })
 })
 
-describe('the presets and options', () => {
-  it('start with the default, and every preset uses only options that exist', () => {
-    expect(PRESETS[0].look).toEqual(DEFAULT_LOOK)
-    expect(PRESETS.some((p) => p.id === 'classic')).toBe(true)
-    for (const { look } of PRESETS) {
-      expect(COLORS.some((o) => o.id === look.color)).toBe(true)
-      expect(LAYOUTS.some((o) => o.id === look.layout)).toBe(true)
-      expect(FONTS.some((o) => o.id === look.font)).toBe(true)
-      expect(BUTTONS.some((o) => o.id === look.buttons)).toBe(true)
-      expect(CORNERS.some((o) => o.id === look.corners)).toBe(true)
-    }
+describe('migration from older saved looks', () => {
+  const old = (color: string, layout: string) =>
+    JSON.stringify({ color, layout, font: 'warm', buttons: 'brass', corners: 'soft' })
+
+  it('turns the round layout into Realistic, dark', () => {
+    localStorage.setItem(LOOK_STORAGE_KEY, old('neon', 'round'))
+    expect(loadLook()).toEqual({ theme: 'realistic', mode: 'dark' })
   })
 
-  it('are told apart by sameLook, and the presets are all different', () => {
-    expect(sameLook(DEFAULT_LOOK, { ...DEFAULT_LOOK })).toBe(true)
-    expect(sameLook(DEFAULT_LOOK, { ...DEFAULT_LOOK, corners: 'round' })).toBe(false)
-    const keys = PRESETS.map((p) => JSON.stringify(p.look))
-    expect(new Set(keys).size).toBe(PRESETS.length)
+  it('turns the Card room colours into Realistic, dark', () => {
+    localStorage.setItem(LOOK_STORAGE_KEY, old('cardroom', 'standard'))
+    expect(loadLook()).toEqual({ theme: 'realistic', mode: 'dark' })
   })
 
-  it('have unique ids within each choice', () => {
-    for (const options of [COLORS, LAYOUTS, FONTS, BUTTONS, CORNERS]) {
-      expect(new Set(options.map((o) => o.id)).size).toBe(options.length)
-    }
+  it('turns anything else into Classic, dark', () => {
+    localStorage.setItem(LOOK_STORAGE_KEY, old('broadcast', 'standard'))
+    expect(loadLook()).toEqual({ theme: 'classic', mode: 'dark' })
+  })
+
+  it('reads the single legacy poker.theme', () => {
+    localStorage.setItem('poker.theme', 'cardroom')
+    expect(loadLook()).toEqual({ theme: 'realistic', mode: 'dark' })
+    localStorage.setItem('poker.theme', 'neon')
+    expect(loadLook()).toEqual({ theme: 'classic', mode: 'dark' })
+  })
+
+  it('prefers poker.look over the legacy key', () => {
+    localStorage.setItem('poker.theme', 'cardroom')
+    localStorage.setItem(LOOK_STORAGE_KEY, JSON.stringify({ theme: 'classic', mode: 'light' }))
+    expect(loadLook()).toEqual({ theme: 'classic', mode: 'light' })
+  })
+})
+
+describe('applyLook', () => {
+  it('writes data-theme and data-mode, and a data-layout derived from the theme', () => {
+    applyLook({ theme: 'realistic', mode: 'light' })
+    expect(dataset()).toEqual({ theme: 'realistic', mode: 'light', layout: 'round' })
+    applyLook({ theme: 'classic', mode: 'dark' })
+    expect(dataset()).toEqual({ theme: 'classic', mode: 'dark', layout: 'standard' })
+  })
+
+  it('shows the look on the page when it is set', () => {
+    setLook({ theme: 'realistic', mode: 'dark' })
+    expect(dataset().theme).toBe('realistic')
+  })
+})
+
+describe('the options', () => {
+  it('list both themes and both modes with unique ids', () => {
+    expect(THEMES.map((t) => t.id)).toEqual(['classic', 'realistic'])
+    expect(MODES.map((m) => m.id)).toEqual(['light', 'dark'])
+    expect(THEMES[0].description).toBe('Slate and paper, plain and flat')
+    expect(THEMES[1].description).toBe('A casino table with felt, leather and chips')
   })
 })
