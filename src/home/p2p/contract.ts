@@ -45,15 +45,6 @@ export const P2P_MESSAGES: Record<P2PErrorCode | 'hostLost' | 'mdnsOnly', string
 }
 
 export type CodeKind = 'offer' | 'answer'
-export function peekKind(_input: string): CodeKind | null {
-  throw new Error('not implemented')
-}
-export function groupCode(_code: string): string {
-  throw new Error('not implemented')
-}
-export function nearbySupported(): boolean {
-  throw new Error('not implemented')
-}
 
 export interface Invite {
   id: string
@@ -75,6 +66,8 @@ export interface NearbyHost {
   onInvites(cb: (list: Invite[]) => void): () => void
   close(): void
 }
+/** What `startNearbyHost` starts from: a new table, or one saved by an earlier visit. */
+export type NearbyStart = { config: HomeConfig; cards: CardMode } | { resume: NearbyRoomSaved }
 export interface NearbyRoomSaved {
   v: 1
   roomId: string
@@ -83,35 +76,14 @@ export interface NearbyRoomSaved {
   keys: SeatKeys
   savedAt: number
 }
-export function startNearbyHost(_from: { config: HomeConfig; cards: CardMode } | { resume: NearbyRoomSaved }, _deps?: P2PDeps): NearbyHost {
-  throw new Error('not implemented')
-}
-export function loadNearbyRoom(): NearbyRoomSaved | null {
-  throw new Error('not implemented')
-}
-export function clearNearbyRoom(): void {
-  throw new Error('not implemented')
-}
 
 export interface NearbyGuest {
   answer(offerCode: string): Promise<string>
   readonly connector: Connector
   close(): void
 }
-export function startNearbyGuest(_deps?: P2PDeps): NearbyGuest {
-  throw new Error('not implemented')
-}
 
-export function qrMatrix(_text: string): boolean[][] {
-  throw new Error('not implemented')
-}
-export function qrScanSupported(): boolean {
-  throw new Error('not implemented')
-}
 /** Rejects P2PError camera. Resolves to a function that stops the scan and the camera. */
-export function startQrScan(_video: HTMLVideoElement, _onCode: (text: string) => void): Promise<() => void> {
-  throw new Error('not implemented')
-}
 
 /** A data channel, as much of `RTCDataChannel` as the transport uses. */
 export interface DataChannelLike {
