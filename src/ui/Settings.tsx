@@ -39,7 +39,7 @@ export function SettingsScreen({ onBack }: { onBack: () => void }) {
           </div>
         </div>
 
-        <div className="menu-card lobby-card">
+        <div className="menu-card lobby-card settings-card">
           <section>
             <h2 className="menu-section">Theme</h2>
             <div className="theme-grid" role="radiogroup" aria-label="Theme">
@@ -104,7 +104,7 @@ export function SettingsScreen({ onBack }: { onBack: () => void }) {
                 </button>
               ))}
             </div>
-            <p className="menu-hint">How fast the bots act and the cards come. You can change it at the table too.</p>
+            <p className="menu-hint settings-hint">How fast the bots act and the cards come. You can change it at the table too.</p>
           </section>
         </div>
       </div>
