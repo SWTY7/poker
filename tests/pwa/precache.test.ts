@@ -22,6 +22,10 @@ describe('cacheNameFor', () => {
     expect(cacheNameFor(['a', 'b'])).not.toBe(cacheNameFor(['a', 'c']))
     expect(cacheNameFor(['a'])).toMatch(/^poker-[0-9a-f]{12}$/)
   })
+
+  it('changes when the salt (contents of unhashed files) changes', () => {
+    expect(cacheNameFor(['a'], 'one')).not.toBe(cacheNameFor(['a'], 'two'))
+  })
 })
 
 describe('renderSw', () => {

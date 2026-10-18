@@ -14,9 +14,10 @@ export function buildPrecacheList(files: readonly string[]): string[] {
 }
 
 /** Cache name that changes whenever the file list (names include content hashes) changes. */
-export function cacheNameFor(list: readonly string[]): string {
+export function cacheNameFor(list: readonly string[], salt = ''): string {
   // Two 32-bit FNV-1a style passes (different seeds) -> 12 hex chars. No node deps.
-  const s = list.join('\n')
+  // `salt` carries the contents of files whose names do not change when they do (manifest, icons).
+  const s = list.join('\n') + '\n' + salt
   let a = 0x811c9dc5
   let b = 0x01000193
   for (let i = 0; i < s.length; i++) {
@@ -30,8 +31,8 @@ export function cacheNameFor(list: readonly string[]): string {
 }
 
 /** Fill the template placeholders. */
-export function renderSw(template: string, list: readonly string[]): string {
+export function renderSw(template: string, list: readonly string[], salt = ''): string {
   return template
-    .replace('__CACHE_NAME__', () => cacheNameFor(list))
+    .replace('__CACHE_NAME__', () => cacheNameFor(list, salt))
     .replace('__PRECACHE__', () => JSON.stringify(list))
 }

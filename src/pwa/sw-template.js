@@ -8,7 +8,12 @@ const PRECACHED = new Set(PRECACHE.map(abs))
 
 // No skipWaiting here: a new version waits until the page asks for it.
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(PRECACHE.map(abs))))
+  // cache: 'reload' skips the HTTP cache, so a fresh deploy never installs a stale index.html.
+  event.waitUntil(
+    caches
+      .open(CACHE)
+      .then((cache) => cache.addAll(PRECACHE.map((p) => new Request(abs(p), { cache: 'reload' })))),
+  )
 })
 
 self.addEventListener('activate', (event) => {
@@ -31,18 +36,11 @@ self.addEventListener('fetch', (event) => {
   if (url.origin !== self.location.origin) return
 
   if (req.mode === 'navigate') {
+    // Network first; offline falls back to this version's own precached index.html.
     event.respondWith(
-      fetch(req)
-        .then((res) => {
-          if (res.ok) {
-            const copy = res.clone()
-            caches.open(CACHE).then((c) => c.put(abs('./index.html'), copy))
-          }
-          return res
-        })
-        .catch(() =>
-          caches.match(abs('./index.html')).then((hit) => hit || caches.match(abs('./'))),
-        ),
+      fetch(req).catch(() =>
+        caches.match(abs('./index.html')).then((hit) => hit || caches.match(abs('./'))),
+      ),
     )
     return
   }

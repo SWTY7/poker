@@ -80,17 +80,21 @@ On a cap: write the record, list unfinished items, exit with a recap.
 - Commits on `claude/offline-themes-p2p` after each passed gate.
 
 ## Compaction hand-off (refreshed by the main agent at every gate, before compacting)
-- Goal: PWA offline, two themes + light/dark, WebRTC phone rooms; current phase: 1, PWA
-- Open nodes: p1a, p1b (0 attempts)
+- Goal: PWA offline, two themes + light/dark, WebRTC phone rooms; current phase: 2, UI
+- Open nodes: u0..u6 (0 attempts)
 - Decisions in force: see "Decisions made up front"
-- Caps used so far: spawns 0/40, phases 0/4, tokens ~0.2M, hours ~0
+- Caps used so far: spawns 4/40, phases 1/4, tokens ~0.6M, hours ~0.5
 - STOP file present: no
-- Next action: dispatch p1a
+- Next action: dispatch u0 (explorer inventory of how Settings reaches the DOM)
 After compaction: reread this file, PLAN.md and NEXT.md before doing anything.
 
 ## Progress log (main agent only, append-only)
 | Date/time | Phase | Event | Gate result | Caps used |
 |---|---|---|---|---|
 | 2026-10-19 | 0 | Charter written, baseline `scripts/check.sh` green on claude/workflow-setup, branch claude/offline-themes-p2p cut | pass | 0/40, 0/4 |
+
+| 2026-10-19 | 1 | p1a, p1b merged; reviewer found stale-index-on-install (major) + 2 minors, fixed inline | pass: check.sh 4 steps, SW active, offline load with server stopped | spawns 4/40, phases 1/4 |
+
+Run notes: workers' worktrees are cut from `main`, not the working branch; every worker brief starts with `git merge --no-edit claude/offline-themes-p2p`. One unexplained flaky test failure on the first post-merge check (rerun green).
 
 ## Retrospective (written at the end)

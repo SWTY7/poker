@@ -26,7 +26,12 @@ function serviceWorker(): Plugin {
       const files = walk(dist).map((f) => relative(dist, f))
       const list = buildPrecacheList(files)
       const template = readFileSync(join(root, 'src/pwa/sw-template.js'), 'utf8')
-      writeFileSync(join(dist, 'sw.js'), renderSw(template, list))
+      // Files outside assets/ keep their name when their content changes, so their bytes go in the cache name.
+      const salt = list
+        .filter((f) => !f.startsWith('assets/'))
+        .map((f) => readFileSync(join(dist, f), 'latin1'))
+        .join('\n')
+      writeFileSync(join(dist, 'sw.js'), renderSw(template, list, salt))
     },
   }
 }

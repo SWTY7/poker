@@ -9,6 +9,13 @@
       "autoPort": true
     },
     {
+      "name": "poker-preview",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["vite", "preview", "--port", "4173", "--strictPort"],
+      "port": 4173,
+      "autoPort": false
+    },
+    {
       "name": "rooms-server",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "server:dev"],
