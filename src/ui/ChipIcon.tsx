@@ -44,6 +44,9 @@ export function ChipIcon({ amount, className }: ChipIconProps) {
         <rect key={angle} x="14.5" y="1.5" width="3" height="7" fill={edge} transform={`rotate(${angle} 16 16)`} />
       ))}
       <circle cx="16" cy="16" r="10.5" fill={face} stroke={rim} strokeWidth="1.4" />
+      {/* Inner ring and a soft gloss, so it reads as a moulded chip. */}
+      <circle cx="16" cy="16" r="8.2" fill="none" stroke={edge} strokeWidth="0.6" strokeDasharray="1.6 1.4" opacity="0.55" />
+      <ellipse cx="12.5" cy="9.6" rx="6.2" ry="3.4" fill="#fff" opacity="0.2" transform="rotate(-24 12.5 9.6)" />
     </svg>
   )
 }

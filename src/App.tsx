@@ -13,6 +13,10 @@ import { TableSeating } from './ui/TableSeating'
 import { CareerHub } from './ui/CareerHub'
 import { HostEntry, JoinEntry, type HostSetup } from './ui/home/HomeEntry'
 import { RoomScreen } from './ui/home/HomeScreens'
+import { NearbyIntro } from './ui/home/NearbyIntro'
+import { NearbyHostScreen } from './ui/home/NearbyHostScreen'
+import { NearbyJoin } from './ui/home/NearbyJoin'
+import { loadNearbyRoom, type NearbyStart } from './home/p2p'
 import { isRoomCode } from './home/room'
 import { loadHost, loadMe, saveHost, saveMe } from './home/saved'
 import { createRoom, roomStatus, type RoomInfo } from './home/socket'
@@ -92,6 +96,10 @@ type Screen =
   | { kind: 'home-host-setup' }
   | { kind: 'home-join'; code: string }
   | { kind: 'home-room'; code: string; playerId: string; seatKey: string; name?: string; hostToken?: string }
+  | { kind: 'nearby-intro' }
+  | { kind: 'nearby-host-setup' }
+  | { kind: 'nearby-host'; resume?: boolean; setup?: HostSetup; start: NearbyStart }
+  | { kind: 'nearby-join' }
   | { kind: 'your-play' }
   | { kind: 'settings' }
 
@@ -228,6 +236,7 @@ function App() {
     return code && isRoomCode(code) ? code : null
   })
   const [screen, setScreen] = useState<Screen>(() => (linkedRoom ? { kind: 'home-join', code: linkedRoom } : { kind: 'lobby' }))
+  const [pendingNearby, setPendingNearby] = useState<HostSetup | null>(null)
   const [mode, setMode] = useState<GameMode>(() => (linkedRoom ? 'home' : loadMode()))
   const [career, setCareer] = useState<CareerData>(() => loadCareer())
   const look = useSyncExternalStore(subscribeLook, getLook)
@@ -287,6 +296,24 @@ function App() {
     const me = { ...loadMe(), name, code }
     saveMe(me)
     setScreen({ kind: 'home-room', code, playerId: me.playerId, seatKey: me.seatKey, name })
+  }
+
+  /** Opens a nearby table on this phone: no server, so nothing can fail but the browser itself. */
+  const handleOpenNearby = async (setup: HostSetup, confirmed = false): Promise<string | null> => {
+    // A new table overwrites the saved one, so ask first when there is an unfinished table.
+    if (!confirmed && loadNearbyRoom()) {
+      setPendingNearby(setup)
+      return null
+    }
+    setPendingNearby(null)
+    if (setup.hostName) saveMe({ ...loadMe(), name: setup.hostName })
+    setScreen({ kind: 'nearby-host', setup, start: { config: setup.config, cards: setup.cards } })
+    return null
+  }
+
+  const handleResumeNearby = () => {
+    const saved = loadNearbyRoom()
+    if (saved) setScreen({ kind: 'nearby-host', resume: true, start: { resume: saved } })
   }
 
   const leaveHome = () => {
@@ -441,7 +468,7 @@ function App() {
   function renderScreen() {
   switch (screen.kind) {
     case 'lobby': {
-      const LobbyView = look.layout === 'round' ? RoomLobby : Lobby
+      const LobbyView = look.theme === 'realistic' ? RoomLobby : Lobby
       return (
         <LobbyView
           profile={profile}
@@ -459,6 +486,8 @@ function App() {
           onHostGame={() => setScreen({ kind: 'home-host-setup' })}
           onResumeRoom={handleResumeRoom}
           onJoinGame={() => setScreen({ kind: 'home-join', code: '' })}
+          onNearby={() => setScreen({ kind: 'nearby-intro' })}
+          onResumeNearby={handleResumeNearby}
           onOpenYourPlay={() => setScreen({ kind: 'your-play' })}
           onOpenSettings={() => setScreen({ kind: 'settings' })}
         />
@@ -484,6 +513,31 @@ function App() {
       return <HostEntry initialName={loadMe().name} onOpen={handleOpenRoom} onBack={goLobby} />
     case 'home-join':
       return <JoinEntry initialName={loadMe().name} initialCode={screen.code} lastCode={loadMe().code} onJoin={handleJoinRoom} onBack={leaveHome} />
+    case 'nearby-intro':
+      return <NearbyIntro onHost={() => setScreen({ kind: 'nearby-host-setup' })} onJoin={() => setScreen({ kind: 'nearby-join' })} onBack={goLobby} />
+    case 'nearby-host-setup':
+      return (
+        <>
+          <HostEntry nearby initialName={loadMe().name} onOpen={(setup) => handleOpenNearby(setup)} onBack={() => setScreen({ kind: 'nearby-intro' })} />
+          {pendingNearby && (
+            <div className="nearby-host-bar" role="alertdialog" aria-label="Unfinished table">
+              <span className="home-leave-confirm">
+                You have an unfinished table. Starting a new one discards it.
+                <button type="button" className="lobby-reset-link" onClick={() => setPendingNearby(null)}>
+                  Cancel
+                </button>
+                <button type="button" className="lobby-reset-link" onClick={() => void handleOpenNearby(pendingNearby, true)}>
+                  Start new
+                </button>
+              </span>
+            </div>
+          )}
+        </>
+      )
+    case 'nearby-host':
+      return <NearbyHostScreen start={screen.start} name={screen.setup?.hostName ?? undefined} onExit={goLobby} />
+    case 'nearby-join':
+      return <NearbyJoin initialName={loadMe().name} onBack={goLobby} />
     case 'home-room':
       return (
         <RoomScreen

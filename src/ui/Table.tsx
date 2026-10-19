@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ActionType, GameState, HandLogEntry } from '../poker/game-state'
 import { getLegalActions, minRaiseTargetAmount, maxRaiseTargetAmount } from '../poker/betting'
 import { committedPot, streetBetTotal, totalPot } from '../poker/pot'
@@ -18,6 +18,7 @@ import type { TournamentHudInfo } from '../game/tournament'
 import { PositionLegend } from './PositionLegend'
 import { LeaveDialog } from './LeaveDialog'
 import { useMediaQuery } from './useMediaQuery'
+import { CROWDED_FROM, minFeltHeight } from './table-fit'
 import type { Hint, SessionStats, Speed } from './useHoldemGame'
 import type { HandRecord } from '../review/log'
 import { reviewHand } from '../review/hand-review'
@@ -153,6 +154,80 @@ export function Table({
   // The hand log is opt-in — most players only want the table itself in
   // front of them, not a running transcript, so it starts closed.
   const [showLog, setShowLog] = useState(false)
+
+  // 8-10 players on a phone: the felt keeps the height every seat needs (see
+  // table-fit.ts) and the table region scrolls above the sticky hero and
+  // buttons. Seat sizes for 2-7 players are untouched.
+  const crowded = opponents.length >= CROWDED_FROM
+  const [viewWidth, setViewWidth] = useState(() => (typeof window === 'undefined' ? 375 : window.innerWidth))
+  // The felt's real width (the table region's padding is already taken off),
+  // measured once it is on screen; until then the phone padding (--sp-2 on
+  // each side, 0.4rem) stands in for it.
+  const [feltWidth, setFeltWidth] = useState(0)
+  const tableMainRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!crowded) return
+    const onResize = () => setViewWidth(window.innerWidth)
+    window.addEventListener('resize', onResize)
+    const felt = tableMainRef.current?.querySelector<HTMLElement>('.felt')
+    let ro: ResizeObserver | undefined
+    if (felt && typeof ResizeObserver !== 'undefined') {
+      const measure = () => setFeltWidth(felt.clientWidth)
+      measure()
+      ro = new ResizeObserver(measure)
+      ro.observe(felt)
+    }
+    return () => {
+      window.removeEventListener('resize', onResize)
+      ro?.disconnect()
+    }
+  }, [crowded])
+  const feltMin = crowded ? minFeltHeight(opponents.length, Math.max(280, feltWidth || viewWidth - 12.8)) : 0
+
+  // The hero panel and buttons are a sticky block over the bottom of the
+  // scroller: publish its height so scroll-padding-bottom keeps a seat from
+  // counting as visible while it is hidden underneath.
+  useEffect(() => {
+    const main = tableMainRef.current
+    const actions = main?.querySelector<HTMLElement>('.table-actions')
+    if (!crowded || !main || !actions || typeof ResizeObserver === 'undefined') return
+    const set = () => main.style.setProperty('--actions-h', `${actions.offsetHeight}px`)
+    set()
+    const ro = new ResizeObserver(set)
+    ro.observe(actions)
+    return () => ro.disconnect()
+  }, [crowded])
+
+  // Keep the acting seat in view, but only when the acting player changes, only
+  // where the table really scrolls (crowded, round layout, portrait phone), and
+  // not while the player is scrolling around to look at other seats.
+  const actingId = state.handInProgress ? currentPlayer?.id : undefined
+  const prevActingId = useRef<string | number | undefined>(undefined)
+  const lastUserScroll = useRef(0)
+  const ignoreScrollUntil = useRef(0)
+  useEffect(() => {
+    const main = tableMainRef.current
+    if (!crowded || !main) return
+    const onScroll = () => {
+      if (Date.now() > ignoreScrollUntil.current) lastUserScroll.current = Date.now()
+    }
+    main.addEventListener('scroll', onScroll, { passive: true })
+    return () => main.removeEventListener('scroll', onScroll)
+  }, [crowded])
+  useEffect(() => {
+    const changed = prevActingId.current !== actingId
+    prevActingId.current = actingId
+    if (!changed || actingId === undefined || !crowded) return
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return
+    if (document.documentElement.dataset.layout !== 'round') return
+    if (!window.matchMedia('(max-width: 820px) and (orientation: portrait)').matches) return
+    if (Date.now() - lastUserScroll.current < 1500) return
+    const seat = tableMainRef.current?.querySelector('.seat-active')
+    if (!seat || typeof seat.scrollIntoView !== 'function') return
+    const calm = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    ignoreScrollUntil.current = Date.now() + 900
+    seat.scrollIntoView({ block: 'nearest', behavior: calm ? 'auto' : 'smooth' })
+  }, [crowded, actingId])
   const [showPositions, setShowPositions] = useState(false)
   const [showLeave, setShowLeave] = useState(false)
   const [showPotential, setShowPotential] = useState(false)
@@ -302,7 +377,12 @@ export function Table({
       />
 
       <div className="table-body">
-        <div className="table-main">
+        <div
+          className="table-main"
+          ref={tableMainRef}
+          data-crowded={crowded ? '' : undefined}
+          style={crowded ? ({ '--felt-min': `${feltMin}px` } as React.CSSProperties) : undefined}
+        >
           {/* The felt is a real object, not a background: everything that
               belongs to the table — the seats around it and the board in the
               middle — lives inside this one bounded surface, which is what
@@ -369,6 +449,10 @@ export function Table({
             {paused && <div className="paused-badge">Paused — S to step, P to resume</div>}
           </section>
 
+          {/* The hero panel and the action dock travel together: on a crowded
+              phone table they stay pinned to the bottom while the table
+              scrolls. Elsewhere this wrapper adds no box. */}
+          <div className="table-actions">
           {activePlayer && (
             <HeroZone
               name={activePlayer.name}
@@ -482,6 +566,7 @@ export function Table({
           ) : state.handInProgress ? (
             <IdleBar label={currentPlayer ? `${currentPlayer.name} is deciding…` : 'Waiting…'} />
           ) : null}
+          </div>
         </div>
 
         {/* On a wide screen the log is a side panel beside the table. On a

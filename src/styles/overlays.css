@@ -32,7 +32,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.9rem;
-  box-shadow: 0 1.5rem 3rem rgba(0, 0, 0, 0.55);
+  box-shadow: var(--sh-3);
 }
 
 .dialog-wide {
@@ -320,7 +320,7 @@
 
 .potential-track {
   height: 0.4rem;
-  background: rgba(255, 255, 255, 0.07);
+  background: var(--surface-strong);
   border-radius: var(--r-pill);
   overflow: hidden;
 }
@@ -477,7 +477,7 @@
 
 .review-verdict-book {
   color: var(--green);
-  border-color: rgba(111, 174, 127, 0.5);
+  border-color: rgb(var(--win-rgb) / 0.5);
 }
 
 .review-verdict-mixed {
@@ -518,4 +518,51 @@
 
 .review-dim {
   color: var(--text-faint);
+}
+
+/* ---------- update banner: top edge, clear of the action buttons ---------- */
+.update-banner {
+  position: fixed;
+  top: max(0.5rem, env(safe-area-inset-top));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  max-width: calc(100vw - 1rem);
+  padding: 0.35rem 0.4rem 0.35rem 0.8rem;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--text);
+  font-size: 0.85rem;
+  box-shadow: var(--sh-2);
+}
+
+.update-banner__go {
+  background: var(--accent);
+  color: var(--on-accent);
+  border: 0;
+  border-radius: 999px;
+  padding: 0.35rem 0.8rem;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.update-banner__x {
+  background: transparent;
+  border: 0;
+  color: var(--text-dim);
+  font-size: 1.2rem;
+  line-height: 1;
+  padding: 0.2rem 0.5rem;
+  cursor: pointer;
+}
+
+.update-banner__go:focus-visible,
+.update-banner__x:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
 }

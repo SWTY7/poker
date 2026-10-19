@@ -3,6 +3,7 @@ import { isRoomCode } from '../../home/room'
 import { DEFAULT_LEVEL_MINUTES, LEVEL_MINUTE_OPTIONS, type CardMode, type HomeConfig } from '../../home/table'
 import { DealIcon } from '../icons'
 import { SUIT_PATH } from '../suit-icons'
+import { TRUST_NOTICE } from './nearby-copy'
 
 export interface HostSetup {
   config: HomeConfig
@@ -16,6 +17,8 @@ interface HostEntryProps {
   /** Opens the room; resolves to a message to show if it couldn't. */
   onOpen: (setup: HostSetup) => Promise<string | null>
   onBack: () => void
+  /** A table on this phone with no internet: no room server, no room number. */
+  nearby?: boolean
 }
 
 interface JoinEntryProps {
@@ -30,7 +33,7 @@ interface JoinEntryProps {
 
 const DEFAULT: HomeConfig = { startingStack: 1000, smallBlind: 5, bigBlind: 10, ante: 0, levelMinutes: 0 }
 
-function Frame({ title, subtitle, onBack, children }: { title: string; subtitle: string; onBack: () => void; children: React.ReactNode }) {
+export function Frame({ title, subtitle, onBack, children }: { title: string; subtitle: string; onBack: () => void; children: React.ReactNode }) {
   return (
     <div className="menu-scene">
       <svg className="menu-watermark menu-watermark-a" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -64,7 +67,7 @@ function NumberField({ label, value, onChange }: { label: string; value: number;
 }
 
 /** Setting up a room: the stakes, and whether the host sits in or only deals. */
-export function HostEntry({ initialName, onOpen, onBack }: HostEntryProps) {
+export function HostEntry({ initialName, onOpen, onBack, nearby = false }: HostEntryProps) {
   const [config, setConfig] = useState<HomeConfig>(DEFAULT)
   const [plays, setPlays] = useState(true)
   const [name, setName] = useState(initialName)
@@ -74,7 +77,11 @@ export function HostEntry({ initialName, onOpen, onBack }: HostEntryProps) {
   const valid = !opening && config.smallBlind > 0 && config.bigBlind >= config.smallBlind && config.startingStack > config.bigBlind && (!plays || name.trim() !== '')
 
   return (
-    <Frame title="Host a game" subtitle="Real cards, real table. The phones keep the chips." onBack={onBack}>
+    <Frame
+      title={nearby ? 'Host nearby' : 'Host a game'}
+      subtitle={nearby ? 'No internet needed. This phone runs the table.' : 'Real cards, real table. The phones keep the chips.'}
+      onBack={onBack}
+    >
       <section>
         <h2 className="menu-section">Stakes</h2>
         <div className="home-fields">
@@ -167,6 +174,7 @@ export function HostEntry({ initialName, onOpen, onBack }: HostEntryProps) {
         )}
       </section>
 
+      {nearby && <p className="nearby-trust">{TRUST_NOTICE}</p>}
       {problem && <p className="menu-hint home-problem">{problem}</p>}
 
       <button
@@ -180,7 +188,7 @@ export function HostEntry({ initialName, onOpen, onBack }: HostEntryProps) {
         }}
       >
         <DealIcon className="menu-start-icon" />
-        {opening ? 'Opening…' : 'Open the room'}
+        {opening ? 'Opening…' : nearby ? 'Open the table' : 'Open the room'}
       </button>
     </Frame>
   )

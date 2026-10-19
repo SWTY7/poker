@@ -10,82 +10,96 @@
   color-scheme: dark;
 
   /* --- colour -------------------------------------------------------------
-     A card room rather than a nightclub: near-black ground with a green
-     cast, deep felt green, walnut trim, brass as the single interactive
-     accent, green/red only for won/lost. Nothing else gets to use a hue —
-     that is what keeps "this is interactive" and "this is money" from
-     competing. Chip denominations (in table.css) carry the money colour now,
-     not a tint, which is the more formal convention. */
-  --bg: #100e0c;
-  --felt: #163a28;
-  --felt-rim: #3a2a1c;
+     Classic, dark: cool grey-blue slate. These are the fallback when no theme
+     attribute is set, and equal the Classic dark values in theme-classic.css,
+     which overrides them per mode. Other themes override whatever they need.
+     One accent for "this is interactive"; green/red only for won/lost. */
+  --bg: #1a1d24;
+  --felt: #26443a;
+  --felt-rim: #3b6657;
 
   /* The felt surface, and what is drawn on it. A theme replaces these to
      change what the table is made of, not just what colour it is. */
-  --felt-bg:
-    radial-gradient(85% 65% at 50% 42%, rgba(90, 140, 100, 0.12) 0%, transparent 70%),
-    linear-gradient(180deg, #1b3527 0%, #122015 100%);
-  --felt-border: 1px solid var(--felt-rim);
-  --felt-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.04),
-    var(--sh-2);
-  --felt-ring: rgb(var(--accent-rgb) / 0.09);
+  --felt-bg: #26443a;
+  --felt-border: 2px solid var(--felt-rim);
+  --felt-shadow: none;
+  --felt-ring: rgb(255 255 255 / 0.1);
+  /* Text drawn directly on the felt (the pot). */
+  --on-felt: #eef2f0;
+  --felt-text-shadow: 0 2px 10px rgb(0 0 0 / 0.6);
 
-  /* Playing cards. */
-  --card-face: linear-gradient(170deg, #fffdf8, #ece7f3);
-  --card-red: #a5333f;
-  --card-black: #241a0c;
+  /* Playing cards keep ivory faces with red/black suits in every theme. */
+  --card-face: #fbf8ef;
+  --card-red: #b3262f;
+  --card-black: #1b1d22;
   --card-back:
-    repeating-linear-gradient(45deg, rgb(var(--accent-rgb) / 0.16) 0 3px, transparent 3px 6px),
-    linear-gradient(165deg, #2e2418, #1c160e);
-  --card-back-edge: #4a3c26;
+    repeating-linear-gradient(45deg, rgb(223 227 234 / 0.2) 0 3px, transparent 3px 6px),
+    linear-gradient(#3b4558, #3b4558);
+  --card-back-edge: #7d8aa0;
 
   /* The same colours as bare channel triples, for the translucent tints
-     (glows, washes, badges) that need an alpha: rgb(var(--accent-rgb) / 0.2). */
-  --accent-rgb: 205 174 112;
-  --gold-rgb: 213 174 87;
-  --win-rgb: 126 207 149;
-  --lose-rgb: 238 125 153;
+     (washes, badges) that need an alpha: rgb(var(--accent-rgb) / 0.2). */
+  --accent-rgb: 125 138 160;
+  --gold-rgb: 214 182 106;
+  --win-rgb: 111 181 138;
+  --lose-rgb: 224 123 141;
 
-  --surface: rgba(255, 255, 255, 0.035);
-  --surface-strong: rgba(255, 255, 255, 0.07);
-  --panel: #17140f;
-  --hud-bg: #141210;
-  --scrim: rgba(8, 6, 4, 0.72);
+  --surface: rgb(255 255 255 / 0.035);
+  --surface-strong: rgb(255 255 255 / 0.07);
+  --panel: #1e2128;
+  --hud-bg: #161920;
+  --scrim: rgb(10 12 16 / 0.72);
+  /* Top-edge highlight inside raised panels. */
+  --hairline: rgb(255 255 255 / 0.05);
 
-  --line: #38321f;
-  --line-soft: #2f2a1c;
+  /* Seats are drawn as dashed outlines in the page colour. */
+  --seat-bg: var(--bg);
+  --seat-line: #7d8aa0;
 
-  --text: #f2efe6;
-  --text-dim: #a8a293;
-  /* Faint text still has to read: #8f8878 is 5.3:1 on --bg, over the 4.5:1 floor. */
-  --text-faint: #8f8878;
+  --line: #626d82;
+  --line-soft: #343b49;
 
-  --accent: #cdae70;
-  --accent-mid: #b6935a;
-  --accent-deep: #8a6a3c;
-  --accent-tint: rgba(205, 174, 112, 0.14);
+  --text: #dfe3ea;
+  --text-dim: #a3adbd;
+  --text-faint: #8793a6;
+
+  --accent: #7d8aa0;
+  --accent-mid: #7d8aa0;
+  --accent-deep: #5d6a80;
+  --accent-tint: rgb(125 138 160 / 0.16);
   /* Text on a solid accent fill (the main button, chips). */
-  --on-accent: #241a0c;
+  --on-accent: #12151b;
 
-  --gold: #d5ae57;
-  --green: #6fae7f;
-  --red: #c9707f;
-  --red-deep: #5c3038;
+  --gold: #d6b66a;
+  --green: #6fb58a;
+  --red: #e07b8d;
+  --red-deep: #6b3a45;
   --warn: #d9a75c;
+  /* Hand-feed deal/reveal lines. */
+  --info: #8fb0d6;
+  /* Dealer button, and the text on it. */
+  --dealer-bg: #d9bd72;
+  --on-dealer: #2b2208;
+  /* Initials on the coloured player avatars. */
+  --on-avatar: #fff;
+  --avatar-text-shadow: 0 1px 1px rgb(0 0 0 / 0.5);
+  /* The bet slider knob. */
+  --thumb: #dfe3ea;
+  /* Whose-turn and winner glows: none, Classic is flat. */
+  --glow-turn: none;
+  --glow-win: none;
 
-  /* Focus ring. One value, used by every interactive element — a keyboard
-     user should never have to work out which widget invented its own. */
-  --focus: #e3cd9a;
+  /* Focus ring. One value, used by every interactive element. */
+  --focus: #cfd6e3;
 
   /* --- type ---------------------------------------------------------------
-     A serif carries headings, the wordmark and card ranks — the one visible
-     signal that this is meant to read as formal rather than casual — and
-     Space Mono carries every number on the table (stacks, pot, bets):
-     tabular, so chip counts line up instead of jittering as they change. */
-  --font-display: 'Source Serif 4', Georgia, serif;
-  --font-mono: 'Space Mono', ui-monospace, monospace;
-  --font-wordmark: 'Source Serif 4', Georgia, serif;
+     Classic: Bricolage Grotesque (a clean variable sans, already bundled)
+     for headings, the wordmark and card ranks, and DM Mono for every number on
+     the table (stacks, pot, bets): tabular, so chip counts line up instead of
+     jittering as they change. */
+  --font-display: 'Bricolage Grotesque', system-ui, sans-serif;
+  --font-mono: 'DM Mono', ui-monospace, monospace;
+  --font-wordmark: 'Bricolage Grotesque', system-ui, sans-serif;
 
   /* A 1.2-ish scale. Labels live at the bottom, the pot at the top. */
   --fs-2xs: 0.58rem;
@@ -118,9 +132,9 @@
   --r-xl: 1.3rem;
   --r-pill: 999px;
 
-  --sh-1: 0 1px 2px rgba(0, 0, 0, 0.35);
-  --sh-2: 0 4px 14px rgba(0, 0, 0, 0.4);
-  --sh-3: 0 1.2rem 2.6rem rgba(0, 0, 0, 0.55);
+  --sh-1: 0 1px 2px rgb(0 0 0 / 0.35);
+  --sh-2: 0 4px 14px rgb(0 0 0 / 0.4);
+  --sh-3: 0 1.2rem 2.6rem rgb(0 0 0 / 0.55);
 
   /* --- motion -------------------------------------------------------------
      Three speeds, no more. Anything that needs its own timing is probably a
@@ -134,9 +148,7 @@
   --feed-w: 16.75rem;
   --dock-h: auto;
 
-  --table-bg:
-    radial-gradient(120% 50% at 50% 0%, oklch(0.27 0.025 145 / 0.3) 0%, transparent 50%),
-    radial-gradient(90% 70% at 50% 85%, oklch(0.21 0.028 145) 0%, oklch(0.14 0.016 130) 60%, oklch(0.1 0.012 90) 100%);
+  --table-bg: var(--bg);
 }
 
 /* Every size below is expressed in rem off this root, so one clamp scales the

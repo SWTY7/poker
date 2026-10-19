@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Theme options</title>
+<style>
+*{box-sizing:border-box;margin:0}
+body{font:15px/1.45 system-ui,sans-serif;background:#f4f1ea;color:#1c1a17;padding:20px 16px 60px;max-width:980px;margin:0 auto}
+h1{font-size:22px;margin-bottom:4px}
+.lead{color:#6b655b;margin-bottom:22px}
+h2{font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:#6b655b;margin:30px 0 12px;border-bottom:1px solid #cfc8ba;padding-bottom:6px}
+.opt{margin-bottom:26px}
+.opt h3{font-size:17px;margin-bottom:2px}
+.opt p{color:#6b655b;margin-bottom:10px;max-width:60ch}
+.pair{display:flex;gap:14px;flex-wrap:wrap}
+.tbl{width:210px;height:300px;border-radius:14px;position:relative;overflow:hidden;flex:0 0 auto}
+.tbl small{position:absolute;left:8px;top:6px;font:600 10px system-ui;letter-spacing:.1em;text-transform:uppercase;opacity:.7}
+.felt{position:absolute;left:22px;right:22px;top:58px;bottom:78px;border-radius:50%}
+.pot{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font:600 12px system-ui}
+.seat{position:absolute;width:42px;height:42px;border-radius:50%;display:grid;place-items:center;font:600 9px system-ui}
+.s1{left:84px;top:12px}.s2{left:2px;top:92px}.s3{right:2px;top:92px}.s4{left:2px;top:178px}.s5{right:2px;top:178px}
+.hero{position:absolute;left:0;right:0;bottom:0;height:62px;display:flex;align-items:center;justify-content:center;gap:6px}
+.card{width:30px;height:42px;border-radius:4px;background:#fbf8f0;color:#a4281f;font:700 14px Georgia,serif;display:grid;place-items:center}
+.card.b{color:#171717}
+.btns{position:absolute;bottom:6px;left:10px;right:10px;display:flex;gap:6px}
+.btns i{flex:1;height:16px;border-radius:3px;display:block}
+/* Classic A: current */
+.cA.d{background:#100e0c;color:#e9e2d2}.cA.d .felt{background:#1b3527}.cA.d .seat{background:#2a2622;border:1px solid #cdae70}.cA.d .btns i{background:#cdae70}.cA.d .hero{background:#171411}
+.cA.l{background:#f3efe4;color:#1c1a17}.cA.l .felt{background:#8db39a}.cA.l .seat{background:#fff;border:1px solid #8a6a2c}.cA.l .btns i{background:#8a6a2c}.cA.l .hero{background:#e8e2d2}
+/* Classic B: flat mono */
+.cB.d{background:#0b0b0b;color:#f2f2f2}.cB.d .felt{background:#0f4d33;border-radius:40px}.cB.d .seat{background:#0b0b0b;border:1.5px solid #f2f2f2;border-radius:6px}.cB.d .btns i{background:#f2f2f2;border-radius:0}.cB.d .hero{background:#0b0b0b}
+.cB.l{background:#fff;color:#111}.cB.l .felt{background:#2d8a5e;border-radius:40px}.cB.l .seat{background:#fff;border:1.5px solid #111;border-radius:6px}.cB.l .btns i{background:#111;border-radius:0}.cB.l .hero{background:#fff}
+/* Classic C: paper */
+.cC.d{background:#1a1d24;color:#dfe3ea}.cC.d .felt{background:#26443a;border:2px solid #3b6657}.cC.d .seat{background:#1a1d24;border:1px dashed #7d8aa0}.cC.d .btns i{background:#7d8aa0;border-radius:10px}.cC.d .hero{background:#1a1d24}
+.cC.l{background:#eef1f5;color:#1a1d24}.cC.l .felt{background:#a9c7bb;border:2px solid #6d9a88}.cC.l .seat{background:#fff;border:1px dashed #5b667a}.cC.l .btns i{background:#3b4558;border-radius:10px}.cC.l .hero{background:#eef1f5}
+/* Real A: card room */
+.rA.d{background:radial-gradient(circle at 50% 8%,#3a2614,#120c07 70%);color:#f0e4cc}
+.rA.d .felt{background:radial-gradient(ellipse at 50% 40%,#2a6a45,#17402a);border:10px solid #5a3a1e;box-shadow:inset 0 0 18px #0008,0 4px 14px #000a}
+.rA.d .seat{background:radial-gradient(circle at 35% 30%,#e8e0cc,#b8ac90);color:#2a2018;border:3px dashed #8a1f1f}
+.rA.d .btns i{background:linear-gradient(#e6bf6a,#a97a2a);box-shadow:0 2px 3px #000a}.rA.d .hero{background:linear-gradient(#3b2614,#241608)}
+.rA.l{background:radial-gradient(circle at 50% 8%,#fff3d9,#e4d2ae 75%);color:#2a2018}
+.rA.l .felt{background:radial-gradient(ellipse at 50% 40%,#4b9468,#2f7050);border:10px solid #b88a55;box-shadow:inset 0 0 14px #0004,0 3px 8px #0003}
+.rA.l .seat{background:radial-gradient(circle at 35% 30%,#fff,#dcd3bd);color:#2a2018;border:3px dashed #9a3030}
+.rA.l .btns i{background:linear-gradient(#e6bf6a,#a97a2a);box-shadow:0 2px 3px #0004}.rA.l .hero{background:linear-gradient(#d9bd8a,#c2a06a)}
+/* Real B: casino leather */
+.rB.d{background:#0a0a0c;color:#eee}
+.rB.d .felt{background:repeating-linear-gradient(45deg,#14573a 0 2px,#115034 2px 4px);border:12px solid #1d1d22;box-shadow:inset 0 0 0 2px #b3862f,inset 0 0 22px #000b,0 6px 16px #000}
+.rB.d .seat{background:radial-gradient(circle at 35% 30%,#d33,#7a0f0f);border:3px solid #f0f0f0;color:#fff}
+.rB.d .btns i{background:linear-gradient(#2c2c33,#16161a);border:1px solid #b3862f}.rB.d .hero{background:linear-gradient(#18181d,#0a0a0c)}
+.rB.l{background:#d9d4c8;color:#1b1b1f}
+.rB.l .felt{background:repeating-linear-gradient(45deg,#2a8a5e 0 2px,#268456 2px 4px);border:12px solid #4a4a52;box-shadow:inset 0 0 0 2px #b3862f,inset 0 0 18px #0005,0 5px 12px #0004}
+.rB.l .seat{background:radial-gradient(circle at 35% 30%,#e44,#8a1414);border:3px solid #fff;color:#fff}
+.rB.l .btns i{background:linear-gradient(#55555e,#34343b);border:1px solid #b3862f}.rB.l .hero{background:linear-gradient(#bdb7a8,#a9a392)}
+/* Real C: kitchen table */
+.rC.d{background:linear-gradient(#2b1e14,#1a110a);color:#f0e4cc}
+.rC.d .felt{background:#6a4a2c;border:1px solid #3a2616;box-shadow:inset 0 0 0 6px #7b5733,0 6px 14px #000a;border-radius:24px}
+.rC.d .seat{background:#2b1e14;border:2px solid #d9c9a8;border-radius:50%}
+.rC.d .btns i{background:#d9c9a8;border-radius:2px}.rC.d .hero{background:#241a11}
+.rC.l{background:linear-gradient(#f1e4c8,#dcc79d);color:#2a2018}
+.rC.l .felt{background:#c89c68;border:1px solid #8a6238;box-shadow:inset 0 0 0 6px #d6ab78,0 5px 10px #0003;border-radius:24px}
+.rC.l .seat{background:#fff7e6;border:2px solid #6b4a2a}
+.rC.l .btns i{background:#4a3320;border-radius:2px}.rC.l .hero{background:#e6d2a8}
+.note{background:#fff;border:1px solid #cfc8ba;padding:12px 14px;border-radius:8px;margin-top:26px}
+</style></head><body>
+<h1>Theme options</h1>
+<p class="lead">Two themes, one light/dark switch. Each option is shown dark (left) and light (right). Pick one Classic and one Realistic.</p>
+
+<h2>Theme 1 · Classic (simple)</h2>
+<div class="opt"><h3>C-A · Classic, as it is</h3><p>Today's look: near-black, felt green, brass. Light mode is warm paper with a sage felt. Round seats.</p>
+<div class="pair">
+<div class="tbl cA d"><small>dark</small><div class="felt"></div><div class="pot">pot 240</div><div class="seat s1">Ana</div><div class="seat s2">Bo</div><div class="seat s3">Cy</div><div class="seat s4">Di</div><div class="seat s5">Ed</div><div class="hero"><div class="card">A♥</div><div class="card b">K♠</div></div><div class="btns"><i></i><i></i><i></i></div></div>
+<div class="tbl cA l"><small>light</small><div class="felt"></div><div class="pot">pot 240</div><div class="seat s1">Ana</div><div class="seat s2">Bo</div><div class="seat s3">Cy</div><div class="seat s4">Di</div><div class="seat s5">Ed</div><div class="hero"><div class="card">A♥</div><div class="card b">K♠</div></div><div class="btns"><i></i><i></i><i></i></div></div>
+</div></div>
+<div class="opt"><h3>C-B · Flat mono</h3><p>Black or white, one green, square seats, square buttons, no texture. The plainest.</p>
+<div class="pair">
+<div class="tbl cB d"><small>dark</small><div class="felt"></div><div class="pot">pot 240</div><div class="seat s1">Ana</div><div class="seat s2">Bo</div><div class="seat s3">Cy</div><div class="seat s4">Di</div><div class="seat s5">Ed</div><div class="hero"><div class="card">A♥</div><div class="card b">K♠</div></div><div class="btns"><i></i><i></i><i></i></div></div>
+<div class="tbl cB l"><small>light</small><div class="felt"></div><div class="pot">pot 240</div><div class="seat s1">Ana</div><div class="seat s2">Bo</div><div class="seat s3">Cy</div><div class="seat s4">Di</div><div class="seat s5">Ed</div><div class="hero"><div class="card">A♥</div><div class="card b">K♠</div></div><div class="btns"><i></i><i></i><i></i></div></div>
+</div></div>
+<div class="opt"><h3>C-C · Slate and paper</h3><p>Cool grey-blue, outlined dashed seats, soft rounded buttons. Calm, like a diagram.</p>
+<div class="pair">
+<div class="tbl cC d"><small>dark</small><div class="felt"></div><div class="pot">pot 240</div><div class="seat s1">Ana</div><div class="seat s2">Bo</div><div class="seat s3">Cy</div><div class="seat s4">Di</div><div class="seat s5">Ed</div><div class="hero"><div class="card">A♥</div><div class="card b">K♠</div></div><div class="btns"><i></i><i></i><i></i></div></div>
+<div class="tbl cC l"><small>light</small><div class="felt"></div><div class="pot">pot 240</div><div class="seat s1">Ana</div><div class="seat s2">Bo</div><div class="seat s3">Cy</div><div class="seat s4">Di</div><div class="seat s5">Ed</div><div class="hero"><div class="card">A♥</div><div class="card b">K♠</div></div><div class="btns"><i></i><i></i><i></i></div></div>
+</div></div>
+
+<h2>Theme 2 · Realistic</h2>
+<div class="opt"><h3>R-A · Card room</h3><p>What you have now as the default: walnut rail, worn felt, lamp light, chip-disc seats, brass buttons. Light mode is the same room by day.</p>
+<div class="pair">
+<div class="tbl rA d"><small>dark</small><div class="felt"></div><div class="pot">pot 240</div><div class="seat s1">Ana</div><div class="seat s2">Bo</div><div class="seat s3">Cy</div><div class="seat s4">Di</div><div class="seat s5">Ed</div><div class="hero"><div class="card">A♥</div><div class="card b">K♠</div></div><div class="btns"><i></i><i></i><i></i></div></div>
+<div class="tbl rA l"><small>light</small><div class="felt"></div><div class="pot">pot 240</div><div class="seat s1">Ana</div><div class="seat s2">Bo</div><div class="seat s3">Cy</div><div class="seat s4">Di</div><div class="seat s5">Ed</div><div class="hero"><div class="card">A♥</div><div class="card b">K♠</div></div><div class="btns"><i></i><i></i><i></i></div></div>
+</div></div>
+<div class="opt"><h3>R-B · Casino</h3><p>Textured baize, black padded rail with a gold inlay line, red casino chips as seats, dark leather action bar. Light mode is a bright floor.</p>
+<div class="pair">
+<div class="tbl rB d"><small>dark</small><div class="felt"></div><div class="pot">pot 240</div><div class="seat s1">Ana</div><div class="seat s2">Bo</div><div class="seat s3">Cy</div><div class="seat s4">Di</div><div class="seat s5">Ed</div><div class="hero"><div class="card">A♥</div><div class="card b">K♠</div></div><div class="btns"><i></i><i></i><i></i></div></div>
+<div class="tbl rB l"><small>light</small><div class="felt"></div><div class="pot">pot 240</div><div class="seat s1">Ana</div><div class="seat s2">Bo</div><div class="seat s3">Cy</div><div class="seat s4">Di</div><div class="seat s5">Ed</div><div class="hero"><div class="card">A♥</div><div class="card b">K♠</div></div><div class="btns"><i></i><i></i><i></i></div></div>
+</div></div>
+<div class="opt"><h3>R-C · Home game</h3><p>A wooden kitchen table, no felt. Plain seats, wooden grain, matte buttons. Warmer and quieter than a casino.</p>
+<div class="pair">
+<div class="tbl rC d"><small>dark</small><div class="felt"></div><div class="pot">pot 240</div><div class="seat s1">Ana</div><div class="seat s2">Bo</div><div class="seat s3">Cy</div><div class="seat s4">Di</div><div class="seat s5">Ed</div><div class="hero"><div class="card">A♥</div><div class="card b">K♠</div></div><div class="btns"><i></i><i></i><i></i></div></div>
+<div class="tbl rC l"><small>light</small><div class="felt"></div><div class="pot">pot 240</div><div class="seat s1">Ana</div><div class="seat s2">Bo</div><div class="seat s3">Cy</div><div class="seat s4">Di</div><div class="seat s5">Ed</div><div class="hero"><div class="card">A♥</div><div class="card b">K♠</div></div><div class="btns"><i></i><i></i><i></i></div></div>
+</div></div>
+
+<div class="note"><b>Sketches, not final.</b> They show the direction (colours, rail, seat shape, buttons), not the real layout. Broadcast and Neon would be dropped, as would the font, layout, button and corner choices. Settings would end up as: Theme (2 choices) and Light/Dark.</div>
+</body></html>

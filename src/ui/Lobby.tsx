@@ -8,6 +8,8 @@ import { DealIcon, TrophyIcon } from './icons'
 import { ChipIcon } from './ChipIcon'
 import { SUIT_PATH } from './suit-icons'
 import { ordinal } from '../utils/format'
+import { loadNearbyRoom, nearbySupported } from '../home/p2p'
+import { NEARBY_LINE } from './home/nearby-copy'
 
 export interface LobbyProps {
   profile: Profile
@@ -29,6 +31,10 @@ export interface LobbyProps {
   onJoinGame: () => void
   onOpenYourPlay: () => void
   onOpenSettings: () => void
+  /** Home Game without internet: the intro for hosting or joining over a hotspot. */
+  onNearby?: () => void
+  /** Reopen the nearby table saved on this phone. */
+  onResumeNearby?: () => void
 }
 
 /**
@@ -64,8 +70,12 @@ export function Lobby({
   onJoinGame,
   onOpenSettings,
   onOpenYourPlay,
+  onNearby,
+  onResumeNearby,
 }: LobbyProps) {
   const [confirmingReset, setConfirmingReset] = useState(false)
+  const nearbyOn = !!onNearby && nearbySupported()
+  const nearbySaved = nearbyOn && !!onResumeNearby && loadNearbyRoom() !== null
   const canClaim = canClaimDailyStake(profile)
 
   return (
@@ -144,6 +154,24 @@ export function Lobby({
                 <span className="lobby-door-title">Join a game</span>
                 <span className="lobby-door-copy">Enter the host’s room number and play from your phone.</span>
               </button>
+              {nearbySaved && (
+                <button type="button" className="lobby-door" onClick={onResumeNearby}>
+                  <span className="lobby-door-icon">
+                    <DealIcon />
+                  </span>
+                  <span className="lobby-door-title">Reopen nearby table</span>
+                  <span className="lobby-door-copy">The offline game you were hosting. Players get new codes and rejoin.</span>
+                </button>
+              )}
+              {nearbyOn && (
+                <button type="button" className="lobby-door" onClick={onNearby}>
+                  <span className="lobby-door-icon">
+                    <TrophyIcon />
+                  </span>
+                  <span className="lobby-door-title">Nearby (no internet)</span>
+                  <span className="lobby-door-copy">{NEARBY_LINE}</span>
+                </button>
+              )}
             </section>
           ) : mode === 'quick' ? (
             <section className="lobby-doors lobby-doors-single">

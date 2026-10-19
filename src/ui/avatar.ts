@@ -1,14 +1,18 @@
 import type { CSSProperties } from 'react'
 
-/** Gradient pairs picked for contrast against the dark table, cycled by name hash so each player keeps a stable color for the session. */
-const AVATAR_PALETTES: [string, string][] = [
-  ['#4a8a82', '#2c5850'],
-  ['#cf6f8f', '#8f3f58'],
-  ['#c99a4e', '#8a6524'],
-  ['#5f8fd0', '#34568f'],
-  ['#7fb86b', '#4a7a3a'],
-  ['#c76b6b', '#8a3a3a'],
-  ['#9a7fd8', '#5f4a9a'],
+/**
+ * Gradient pairs for the avatar disc, cycled by name hash so each player keeps a
+ * stable color for the session. The initial is white on top, so every stop
+ * (the lighter one included) keeps at least 4.5:1 against white; a test checks it.
+ */
+export const AVATAR_PALETTES: [string, string][] = [
+  ['#447e77', '#2c5850'],
+  ['#c24971', '#8f3f58'],
+  ['#956e2e', '#8a6524'],
+  ['#3a75c5', '#34568f'],
+  ['#50813e', '#4a7a3a'],
+  ['#be5353', '#8a3a3a'],
+  ['#8160ce', '#5f4a9a'],
 ]
 
 function hashString(value: string): number {

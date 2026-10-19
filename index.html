@@ -2,17 +2,35 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
+    <meta name="theme-color" content="#100e0c" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Poker" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta
       name="viewport"
       content="width=device-width, initial-scale=1.0, viewport-fit=cover"
     />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&family=Space+Mono:wght@400;700&family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500;1,9..144,600&family=IBM+Plex+Mono:wght@400;600&family=Barlow+Condensed:wght@500;600;700;800&family=JetBrains+Mono:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=DM+Mono:wght@400;500&display=swap"
-    />
     <title>Poker</title>
+    <script>
+      // Apply the saved look before first paint (same mapping as applyLook in
+      // src/game/settings.ts). Only the {theme, mode} shape; anything else is
+      // left to the app, which migrates old saves.
+      try {
+        var l = JSON.parse(localStorage.getItem('poker.look'));
+        var T = { classic: { dark: '#1a1d24', light: '#eef1f5' }, realistic: { dark: '#0a0a0c', light: '#d9d4c8' } };
+        if (l && T[l.theme] && T[l.theme][l.mode]) {
+          var d = document.documentElement.dataset;
+          d.theme = l.theme;
+          d.mode = l.mode;
+          d.layout = l.theme === 'realistic' ? 'round' : 'standard';
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', T[l.theme][l.mode]);
+        }
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

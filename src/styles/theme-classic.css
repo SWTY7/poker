@@ -1,0 +1,178 @@
+/* ==========================================================================
+   Classic theme: "C-C Slate and paper", dark and light
+   --------------------------------------------------------------------------
+   Cool grey-blue, calm and flat like a diagram: no gradients, no glow.
+   Standard layout (no [data-layout] rules). Playing cards keep ivory faces
+   with red/black suits in both modes.
+
+   Both mode blocks must define the same set of custom properties; a test
+   (tests/ui/theme-classic.test.ts) checks that and the text contrast pairs.
+   The dark block equals the :root defaults in tokens.css, so a missing
+   attribute still looks right.
+
+   Fonts (from fonts.css, set in tokens.css): Bricolage Grotesque for the UI
+   and card ranks, DM Mono for numbers.
+   ========================================================================== */
+
+:root[data-theme='classic'][data-mode='dark'] {
+  color-scheme: dark;
+
+  --bg: #1a1d24;
+  --felt: #26443a;
+  --felt-rim: #3b6657;
+  --felt-bg: #26443a;
+  --felt-border: 2px solid var(--felt-rim);
+  --felt-shadow: none;
+  --felt-ring: rgb(255 255 255 / 0.1);
+  --on-felt: #eef2f0;
+  --felt-text-shadow: 0 2px 10px rgb(0 0 0 / 0.6);
+
+  --card-face: #fbf8ef;
+  --card-red: #b3262f;
+  --card-black: #1b1d22;
+  --card-back:
+    repeating-linear-gradient(45deg, rgb(223 227 234 / 0.2) 0 3px, transparent 3px 6px),
+    linear-gradient(#3b4558, #3b4558);
+  --card-back-edge: #7d8aa0;
+
+  --accent-rgb: 125 138 160;
+  --gold-rgb: 214 182 106;
+  --win-rgb: 111 181 138;
+  --lose-rgb: 224 123 141;
+
+  --surface: rgb(255 255 255 / 0.035);
+  --surface-strong: rgb(255 255 255 / 0.07);
+  --panel: #1e2128;
+  --hud-bg: #161920;
+  --scrim: rgb(10 12 16 / 0.72);
+  --hairline: rgb(255 255 255 / 0.05);
+
+  --seat-bg: var(--bg);
+  --seat-line: #7d8aa0;
+
+  --line: #626d82;
+  --line-soft: #343b49;
+
+  --text: #dfe3ea;
+  --text-dim: #a3adbd;
+  --text-faint: #8793a6;
+
+  --accent: #7d8aa0;
+  --accent-mid: #7d8aa0;
+  --accent-deep: #5d6a80;
+  --accent-tint: rgb(125 138 160 / 0.16);
+  --on-accent: #12151b;
+
+  --gold: #d6b66a;
+  --green: #6fb58a;
+  --red: #e07b8d;
+  --red-deep: #6b3a45;
+  --warn: #d9a75c;
+  --info: #8fb0d6;
+  --dealer-bg: #d9bd72;
+  --on-dealer: #2b2208;
+  --on-avatar: #fff;
+  --avatar-text-shadow: 0 1px 1px rgb(0 0 0 / 0.5);
+  --thumb: #dfe3ea;
+  --glow-turn: none;
+  --glow-win: none;
+  --focus: #cfd6e3;
+
+  --sh-1: 0 1px 2px rgb(0 0 0 / 0.35);
+  --sh-2: 0 4px 14px rgb(0 0 0 / 0.4);
+  --sh-3: 0 1.2rem 2.6rem rgb(0 0 0 / 0.55);
+
+  --table-bg: var(--bg);
+}
+
+:root[data-theme='classic'][data-mode='light'] {
+  color-scheme: light;
+
+  --bg: #eef1f5;
+  --felt: #a9c7bb;
+  --felt-rim: #6d9a88;
+  --felt-bg: #a9c7bb;
+  --felt-border: 2px solid var(--felt-rim);
+  --felt-shadow: none;
+  --felt-ring: rgb(26 29 36 / 0.14);
+  --on-felt: #1a1d24;
+  --felt-text-shadow: none;
+
+  --card-face: #fbf8ef;
+  --card-red: #b3262f;
+  --card-black: #1b1d22;
+  --card-back:
+    repeating-linear-gradient(45deg, rgb(238 241 245 / 0.2) 0 3px, transparent 3px 6px),
+    linear-gradient(#3b4558, #3b4558);
+  --card-back-edge: #1a1d24;
+
+  --accent-rgb: 59 69 88;
+  --gold-rgb: 124 94 14;
+  --win-rgb: 31 107 68;
+  --lose-rgb: 168 40 63;
+
+  --surface: rgb(26 29 36 / 0.04);
+  --surface-strong: rgb(26 29 36 / 0.08);
+  --panel: #ffffff;
+  --hud-bg: #e3e8ef;
+  --scrim: rgb(26 29 36 / 0.5);
+  --hairline: rgb(255 255 255 / 0.6);
+
+  --seat-bg: #ffffff;
+  --seat-line: #5b667a;
+
+  --line: #7a8599;
+  --line-soft: #c3cad6;
+
+  --text: #1a1d24;
+  --text-dim: #3f485a;
+  --text-faint: #465064;
+
+  --accent: #3b4558;
+  --accent-mid: #3b4558;
+  --accent-deep: #2b3341;
+  --accent-tint: rgb(59 69 88 / 0.1);
+  --on-accent: #ffffff;
+
+  --gold: #7c5e0e;
+  --green: #1f6b44;
+  --red: #a8283f;
+  --red-deep: #d9a3ae;
+  --warn: #8a5a00;
+  --info: #2a5a8a;
+  --dealer-bg: #d9bd72;
+  --on-dealer: #2b2208;
+  --on-avatar: #fff;
+  --avatar-text-shadow: 0 1px 1px rgb(0 0 0 / 0.5);
+  --thumb: #ffffff;
+  --glow-turn: none;
+  --glow-win: none;
+  --focus: #1f5fbf;
+
+  --sh-1: 0 1px 2px rgb(26 29 36 / 0.15);
+  --sh-2: 0 4px 14px rgb(26 29 36 / 0.16);
+  --sh-3: 0 1.2rem 2.6rem rgb(26 29 36 / 0.22);
+
+  --table-bg: var(--bg);
+}
+
+/* ---------- Seats: dashed outlines in the page colour ---------- */
+
+:root[data-theme='classic'] .seat {
+  background: var(--seat-bg);
+  border: 1px dashed var(--seat-line);
+}
+
+:root[data-theme='classic'] .seat-active {
+  border: 1px solid var(--accent);
+  background:
+    linear-gradient(var(--accent-tint), var(--accent-tint)),
+    var(--seat-bg);
+}
+
+:root[data-theme='classic'] .seat-winner {
+  border: 1px solid var(--green);
+  background:
+    linear-gradient(rgb(var(--win-rgb) / 0.12), rgb(var(--win-rgb) / 0.12)),
+    var(--seat-bg);
+}

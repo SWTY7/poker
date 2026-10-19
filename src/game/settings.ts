@@ -1,24 +1,17 @@
-import { readEnum, readJSON, writeJSON } from '../utils/storage'
+import { readJSON, writeJSON } from '../utils/storage'
 
 /**
- * The look of the app, kept on this device. It is five independent choices,
- * each one a `data-*` attribute on <html> that `styles/themes.css` and
- * `styles/layout-round.css` answer to, so any colours go with any layout,
- * fonts, buttons and corners. A preset is just a saved set of the five.
+ * The look of the app, kept on this device. Two choices: a theme (how the
+ * table and controls are drawn) and a mode (light or dark). Each is a `data-*`
+ * attribute on <html> that the stylesheets answer to.
  */
 
-export type ColorId = 'classic' | 'cardroom' | 'broadcast' | 'neon'
-export type LayoutId = 'standard' | 'round'
-export type FontId = 'classic' | 'warm' | 'condensed' | 'grotesque'
-export type ButtonsId = 'standard' | 'brass' | 'caps' | 'glow'
-export type CornersId = 'soft' | 'sharp' | 'square' | 'round'
+export type Theme = 'classic' | 'realistic'
+export type Mode = 'light' | 'dark'
 
 export interface Look {
-  color: ColorId
-  layout: LayoutId
-  font: FontId
-  buttons: ButtonsId
-  corners: CornersId
+  theme: Theme
+  mode: Mode
 }
 
 interface Option<Id extends string> {
@@ -27,78 +20,52 @@ interface Option<Id extends string> {
   description: string
 }
 
-export const COLORS: readonly (Option<ColorId> & { swatch: [string, string, string] })[] = [
-  { id: 'classic', name: 'Classic', description: 'Near-black, felt green and brass.', swatch: ['#100e0c', '#1b3527', '#cdae70'] },
-  { id: 'cardroom', name: 'Card room', description: 'Walnut, worn felt, warm brass.', swatch: ['#16100b', '#1f4a31', '#d9a24a'] },
-  { id: 'broadcast', name: 'Broadcast', description: 'Midnight blue and signal red.', swatch: ['#0a0d14', '#12303a', '#ff4a3a'] },
-  { id: 'neon', name: 'Neon', description: 'Purple night, glowing pink.', swatch: ['#170a1f', '#0d4a45', '#ff4fa3'] },
+export const THEMES: readonly Option<Theme>[] = [
+  { id: 'classic', name: 'Classic', description: 'Slate and paper, plain and flat' },
+  { id: 'realistic', name: 'Realistic', description: 'A casino table with felt, leather and chips' },
 ]
 
-export const LAYOUTS: readonly Option<LayoutId>[] = [
-  { id: 'standard', name: 'Standard', description: 'Seats in a row above the board. The original arrangement.' },
-  { id: 'round', name: 'Round table', description: 'An oval table with the seats around its rail, and your cards at the bottom edge.' },
+export const MODES: readonly Option<Mode>[] = [
+  { id: 'light', name: 'Light', description: 'Bright surfaces' },
+  { id: 'dark', name: 'Dark', description: 'Dim surfaces' },
 ]
 
-export const FONTS: readonly (Option<FontId> & { family: string })[] = [
-  { id: 'classic', name: 'Classic serif', description: 'Source Serif and Space Mono.', family: "'Source Serif 4', Georgia, serif" },
-  { id: 'warm', name: 'Warm serif', description: 'Fraunces, with quiet italic labels.', family: "'Fraunces', Georgia, serif" },
-  { id: 'condensed', name: 'Condensed', description: 'Barlow Condensed, like TV graphics.', family: "'Barlow Condensed', 'Arial Narrow', sans-serif" },
-  { id: 'grotesque', name: 'Grotesque', description: 'Bricolage Grotesque, a bold poster sans.', family: "'Bricolage Grotesque', system-ui, sans-serif" },
-]
-
-export const BUTTONS: readonly Option<ButtonsId>[] = [
-  { id: 'standard', name: 'Standard', description: 'Flat, with a thin outline.' },
-  { id: 'brass', name: 'Brass and leather', description: 'Raised brass plates; Fold in oxblood.' },
-  { id: 'caps', name: 'Capitals', description: 'Upper case, spaced out, squared off.' },
-  { id: 'glow', name: 'Glow', description: 'Lit from within, like a sign.' },
-]
-
-export const CORNERS: readonly Option<CornersId>[] = [
-  { id: 'soft', name: 'Soft', description: 'Gently rounded.' },
-  { id: 'sharp', name: 'Sharp', description: 'Barely rounded.' },
-  { id: 'square', name: 'Square', description: 'Square corners.' },
-  { id: 'round', name: 'Round', description: 'Big, pill-like curves.' },
-]
-
-/** Card room is the look the app opens on; Classic, the original, is still a preset. */
-export const DEFAULT_LOOK: Look = { color: 'cardroom', layout: 'round', font: 'warm', buttons: 'brass', corners: 'soft' }
-
-const CLASSIC_LOOK: Look = { color: 'classic', layout: 'standard', font: 'classic', buttons: 'standard', corners: 'soft' }
-
-/** The looks the app has been built with, each one a whole set of choices. */
-export const PRESETS: readonly { id: string; name: string; description: string; look: Look }[] = [
-  { id: 'cardroom', name: 'Card room', description: 'An oval table under a lamp.', look: DEFAULT_LOOK },
-  { id: 'classic', name: 'Classic', description: 'The original look.', look: CLASSIC_LOOK },
-  { id: 'broadcast', name: 'Broadcast', description: 'TV poker.', look: { color: 'broadcast', layout: 'standard', font: 'condensed', buttons: 'caps', corners: 'sharp' } },
-  { id: 'neon', name: 'Neon', description: 'Retro casino sign.', look: { color: 'neon', layout: 'standard', font: 'grotesque', buttons: 'glow', corners: 'round' } },
-]
-
-export function sameLook(a: Look, b: Look): boolean {
-  return a.color === b.color && a.layout === b.layout && a.font === b.font && a.buttons === b.buttons && a.corners === b.corners
-}
+export const DEFAULT_LOOK: Look = { theme: 'classic', mode: 'dark' }
 
 export const LOOK_STORAGE_KEY = 'poker.look'
 /** The single theme the app had before the look was split into choices. */
 const LEGACY_THEME_KEY = 'poker.theme'
-const DEFAULT_PRESET = 'cardroom'
+
+function pick<T extends string>(value: unknown, options: readonly { id: T }[], fallback: T): T {
+  return options.some((o) => o.id === value) ? (value as T) : fallback
+}
+
+/** Reads the older five-choice shape (or the single legacy theme) as a theme. */
+function themeFromOld(layout: unknown, color: unknown): Theme {
+  return layout === 'round' || color === 'cardroom' ? 'realistic' : 'classic'
+}
 
 /** The saved look; a value that isn't recognised falls back to the default for that choice. */
 export function loadLook(): Look {
-  const saved = readJSON<Partial<Look> | null>(LOOK_STORAGE_KEY, null)
-  if (saved) {
-    const pick = <T extends string>(value: unknown, options: readonly { id: T }[], fallback: T): T =>
-      options.some((o) => o.id === value) ? (value as T) : fallback
+  const saved = readJSON<Record<string, unknown> | null>(LOOK_STORAGE_KEY, null)
+  if (saved && typeof saved === 'object') {
+    if ('layout' in saved || 'color' in saved) {
+      return { theme: themeFromOld(saved.layout, saved.color), mode: 'dark' }
+    }
     return {
-      color: pick(saved.color, COLORS, DEFAULT_LOOK.color),
-      layout: pick(saved.layout, LAYOUTS, DEFAULT_LOOK.layout),
-      font: pick(saved.font, FONTS, DEFAULT_LOOK.font),
-      buttons: pick(saved.buttons, BUTTONS, DEFAULT_LOOK.buttons),
-      corners: pick(saved.corners, CORNERS, DEFAULT_LOOK.corners),
+      theme: pick(saved.theme, THEMES, DEFAULT_LOOK.theme),
+      mode: pick(saved.mode, MODES, DEFAULT_LOOK.mode),
     }
   }
-  // Someone who picked a theme before: that theme's whole look.
-  const legacy = readEnum(LEGACY_THEME_KEY, PRESETS.map((p) => p.id), DEFAULT_PRESET)
-  return PRESETS.find((p) => p.id === legacy)?.look ?? DEFAULT_LOOK
+  // Someone who picked a single theme before: 'cardroom' was the round table.
+  let legacy: string | null = null
+  try {
+    legacy = localStorage.getItem(LEGACY_THEME_KEY)
+  } catch {
+    legacy = null
+  }
+  if (legacy) return { theme: themeFromOld(undefined, legacy), mode: 'dark' }
+  return { ...DEFAULT_LOOK }
 }
 
 let current: Look | null = null
@@ -126,9 +93,17 @@ export function setLook(look: Look): void {
 
 export function applyLook(look: Look): void {
   const root = document.documentElement.dataset
-  root.color = look.color
-  root.layout = look.layout
-  root.font = look.font
-  root.buttons = look.buttons
-  root.corners = look.corners
+  root.theme = look.theme
+  root.mode = look.mode
+  // The round-table stylesheets still key on data-layout.
+  root.layout = look.theme === 'realistic' ? 'round' : 'standard'
+  // The status bar follows the page background (the --bg of each theme and mode).
+  const meta = document.querySelector?.('meta[name="theme-color"]')
+  meta?.setAttribute('content', THEME_COLOR[look.theme][look.mode])
+}
+
+/** Page background per theme and mode; keep equal to --bg in theme-classic.css and theme-realistic.css. */
+const THEME_COLOR: Record<Look['theme'], Record<Look['mode'], string>> = {
+  classic: { dark: '#1a1d24', light: '#eef1f5' },
+  realistic: { dark: '#0a0a0c', light: '#d9d4c8' },
 }
