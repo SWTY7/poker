@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Realistic controls</title>
+<style>
+*{box-sizing:border-box;margin:0}
+body{font:15px/1.4 system-ui,sans-serif;background:#26231f;color:#eee;padding:20px 14px 60px;max-width:1100px;margin:0 auto}
+h1{font-size:21px;margin-bottom:4px}.lead{color:#b8b2a6;margin-bottom:22px;max-width:62ch}
+.row{display:flex;gap:18px;flex-wrap:wrap}
+.col{flex:1 1 320px;max-width:360px}
+.col h2{font:600 12px system-ui;letter-spacing:.14em;text-transform:uppercase;color:#d9c48a;margin-bottom:4px}
+.col p{color:#b8b2a6;font-size:13px;margin-bottom:10px}
+.ph{border-radius:18px;padding:18px 16px;background:#0a0a0c;position:relative;overflow:hidden}
+.ph h3{font:700 26px Georgia,serif;margin-bottom:2px}.ph .sub{font-size:13px;opacity:.7;margin-bottom:14px}
+.lab{font:600 10px system-ui;letter-spacing:.14em;text-transform:uppercase;opacity:.65;margin:14px 0 6px}
+.btns{display:flex;gap:8px}.btns>*{flex:1}
+.seg{display:flex;gap:6px}.seg>*{flex:1;text-align:center}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.menu{margin-top:14px}
+.chipdot{display:inline-block;width:20px;height:20px;border-radius:50%;vertical-align:middle;margin-right:8px}
+/* A: brass plaque */
+.A{background:radial-gradient(circle at 50% 0,#1d1a15,#0a0a0c 70%)}
+.A .b{padding:12px 10px;text-align:center;font:700 14px system-ui;border-radius:7px;color:#2b1d07;background:linear-gradient(#f0cf7c,#b98a2e 55%,#8f6a1d);border:1px solid #5a3f0e;box-shadow:inset 0 1px 0 #fff8,inset 0 -2px 0 #0004,0 2px 0 #3a2808,0 5px 8px #000a;text-shadow:0 1px 0 #ffe9a8}
+.A .b.s{color:#e9d9ae;background:linear-gradient(#2a2620,#14110d);border-color:#6b5426;box-shadow:inset 0 1px 0 #fff2,inset 0 0 0 1px #0008,0 3px 6px #000a;text-shadow:0 1px 0 #000}
+.A .sg{padding:9px 4px;font:600 12px system-ui;border-radius:6px;color:#cdbf9a;background:linear-gradient(#1c1914,#100e0b);border:1px solid #3a3022;box-shadow:inset 0 2px 3px #000b}
+.A .sg.on{color:#2b1d07;background:linear-gradient(#e8c470,#b28126);border-color:#6b4d12;box-shadow:inset 0 2px 4px #0006,0 0 0 1px #e8c47055;text-shadow:0 1px 0 #ffe9a8}
+.A .tile{padding:12px 8px;text-align:center;border-radius:9px;background:linear-gradient(#211d17,#13110d);border:1px solid #3d3324;box-shadow:inset 0 1px 0 #fff1,0 3px 6px #000a;font-weight:700}
+.A .tile.on{border-color:#d9b25a;box-shadow:inset 0 1px 0 #fff2,0 0 0 1px #d9b25a,0 0 14px #d9b25a44}
+.A .mi{padding:13px 4px;border-bottom:1px solid #2c261c;display:flex;justify-content:space-between;font-family:Georgia,serif;font-size:17px;color:#efe3c3}
+.A .mi span:last-child{color:#c9a24a}
+/* B: chips */
+.B{background:#0b0b0e}
+.B .b{padding:12px 10px;text-align:center;font:800 13px system-ui;letter-spacing:.06em;text-transform:uppercase;border-radius:999px;color:#fff;background:radial-gradient(circle at 50% 25%,#e04040,#9a1515 60%,#6c0d0d);border:3px solid #f4f1ea;box-shadow:inset 0 0 0 2px #b01a1a,0 0 0 1px #0008,0 5px 9px #000b;text-shadow:0 1px 2px #0008;position:relative}
+.B .b.s{background:radial-gradient(circle at 50% 25%,#2f3a4a,#171d27 70%);box-shadow:inset 0 0 0 2px #3b4a60,0 0 0 1px #0008,0 5px 9px #000b}
+.B .sg{padding:9px 4px;font:700 12px system-ui;border-radius:999px;color:#cfd3dc;background:#14161c;border:2px dashed #4a5163}
+.B .sg.on{color:#fff;background:radial-gradient(circle at 50% 25%,#e04040,#9a1515);border:2px solid #f4f1ea;box-shadow:0 3px 6px #000a}
+.B .tile{padding:12px 8px;text-align:center;border-radius:14px;background:#13151b;border:2px dashed #404758;font-weight:700}
+.B .tile.on{border:2px solid #f4f1ea;background:radial-gradient(circle at 50% 0,#27303f,#13151b);box-shadow:0 0 0 2px #b01a1a}
+.B .mi{padding:12px 6px;display:flex;justify-content:space-between;align-items:center;font:700 15px system-ui;border-bottom:2px dotted #3a4153}
+.B .mi span:last-child{background:#b01a1a;color:#fff;border-radius:999px;padding:1px 10px;font-size:12px}
+/* C: leather and gold foil */
+.C{background:#0d0b09}
+.C::before{content:"";position:absolute;inset:0;background:radial-gradient(ellipse at 50% 0,#2a1f14aa,transparent 70%);pointer-events:none}
+.C .b{padding:13px 10px;text-align:center;font:600 13px Georgia,serif;letter-spacing:.14em;text-transform:uppercase;color:#d8b968;background:linear-gradient(#1b1510,#110d09);border:1px solid #6e5524;outline:1px solid #6e552455;outline-offset:3px;border-radius:2px;box-shadow:inset 0 0 18px #000a,0 2px 6px #000a}
+.C .b.p{color:#1a1206;background:linear-gradient(115deg,#a8802c,#f2d27e 30%,#c79a3b 55%,#f4dc92 78%,#a8802c);border-color:#f2d27e;text-shadow:0 1px 0 #ffeeb8;box-shadow:inset 0 1px 0 #fff8,inset 0 -1px 0 #0005,0 2px 6px #000a}
+.C .sg{padding:9px 4px;font:600 11px Georgia,serif;letter-spacing:.1em;text-transform:uppercase;color:#a99560;border:1px solid #4a3c1f;background:#120e0a;border-radius:2px}
+.C .sg.on{color:#1a1206;background:linear-gradient(115deg,#b58a30,#f2d27e 45%,#c79a3b);border-color:#f2d27e}
+.C .tile{padding:12px 8px;text-align:center;border:1px solid #4a3c1f;outline:1px solid #4a3c1f55;outline-offset:3px;border-radius:2px;background:#120e0a;font:600 14px Georgia,serif;color:#d8c9a0}
+.C .tile.on{border-color:#f2d27e;color:#f6e3a6;box-shadow:inset 0 0 20px #f2d27e22}
+.C .mi{padding:14px 2px;display:flex;justify-content:space-between;font:600 16px Georgia,serif;letter-spacing:.04em;color:#e9dcb4;border-bottom:1px solid #4a3c1f;background:linear-gradient(90deg,transparent,#ffffff05)}
+.C .mi span:last-child{color:#c9a24a;font-style:italic}
+.note{background:#1d1a16;border:1px solid #3d362c;padding:12px 14px;border-radius:8px;margin-top:26px;color:#cfc8b8}
+</style></head><body>
+<h1>Realistic: buttons and menus, three directions</h1>
+<p class="lead">Sketches of the same controls in each direction (dark mode shown; light mode would follow the same idea on the bright casino floor). Today they are flat outlined boxes with mustard fills. Each direction keeps the table, rail and chips as they are.</p>
+<div class="row">
+
+<div class="col"><h2>A · Brass plaque</h2><p>Engraved brass plates with a bevel, inset recessed wells for options, a lit brass ring on the selected tile. Serif menu rows ruled like a hotel directory.</p>
+<div class="ph A"><h3>Texas Hold’em</h3><div class="sub">A practice table.</div>
+<div class="btns"><div class="b">Deal me in</div><div class="b s">Lobby</div></div>
+<div class="lab">Blinds</div><div class="seg"><div class="sg">$1/$2</div><div class="sg on">$5/$10</div><div class="sg">$25/$50</div></div>
+<div class="lab">Stack depth</div><div class="tiles"><div class="tile">$100</div><div class="tile on">$1,000</div></div>
+<div class="menu"><div class="mi"><span>Home game</span><span>Host · Join</span></div><div class="mi"><span>Career</span><span>$1,000</span></div><div class="mi"><span>Quick Play</span><span>Play</span></div></div></div></div>
+
+<div class="col"><h2>B · Casino chips</h2><p>Buttons and selections are chips: round rimmed buttons, dashed edge on unselected options, a solid white-rimmed red chip when selected. Menu rows are ruled like a pit sheet with chip badges.</p>
+<div class="ph B"><h3>Texas Hold’em</h3><div class="sub">A practice table.</div>
+<div class="btns"><div class="b">Deal me in</div><div class="b s">Lobby</div></div>
+<div class="lab">Blinds</div><div class="seg"><div class="sg">$1/$2</div><div class="sg on">$5/$10</div><div class="sg">$25/$50</div></div>
+<div class="lab">Stack depth</div><div class="tiles"><div class="tile">$100</div><div class="tile on">$1,000</div></div>
+<div class="menu"><div class="mi"><span>Home game</span><span>Host</span></div><div class="mi"><span>Career</span><span>$1,000</span></div><div class="mi"><span>Quick Play</span><span>Play</span></div></div></div></div>
+
+<div class="col"><h2>C · Leather and gold foil</h2><p>Dark tooled leather with gold-foil lettering: thin double-rule frames, small capitals, a foil-stamped primary button. Quiet and formal, like a members’ club menu.</p>
+<div class="ph C"><h3>Texas Hold’em</h3><div class="sub">A practice table.</div>
+<div class="btns"><div class="b p">Deal me in</div><div class="b">Lobby</div></div>
+<div class="lab">Blinds</div><div class="seg"><div class="sg">$1/$2</div><div class="sg on">$5/$10</div><div class="sg">$25/$50</div></div>
+<div class="lab">Stack depth</div><div class="tiles"><div class="tile">$100</div><div class="tile on">$1,000</div></div>
+<div class="menu"><div class="mi"><span>Home game</span><span>Host · Join</span></div><div class="mi"><span>Career</span><span>$1,000</span></div><div class="mi"><span>Quick Play</span><span>Play</span></div></div></div></div>
+
+</div>
+<div class="note"><b>What changes in the app.</b> The primary action button, secondary buttons, segmented options (blinds, ante), option tiles (stack depth), toggles, menu rows and lobby boxes in the Realistic theme only. The Classic theme stays as it is. Fold/Call/Raise at the table are kept in the same family.</div>
+</body></html>

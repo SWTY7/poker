@@ -551,6 +551,41 @@
   }
 }
 
+/* On a phone the home-game box's actions are real buttons: Host is the brass plate, Join and
+   Nearby are the secondary plate. Prefixed with .room-acts / .room-nearby so they win over
+   room-lobby.css, which is imported after this file. */
+@media (max-width: 720px) {
+  :root[data-theme='realistic'] :is(.room-box-main .room-acts, .room-nearby) .room-go {
+    min-height: 2.75rem;
+    color: var(--plate2-ink);
+    background: linear-gradient(180deg, var(--plate2-1), var(--plate2-2));
+    border: 1px solid var(--plate2-edge);
+    border-radius: 7px;
+    text-shadow: none;
+    box-shadow:
+      inset 0 1px 0 var(--plate2-hi),
+      0 2px 0 var(--brass-edge-low),
+      var(--plate-drop);
+  }
+
+  :root[data-theme='realistic'] .room-box-main > .room-acts > .room-go:first-child {
+    color: var(--brass-ink);
+    background: linear-gradient(180deg, var(--brass-1), var(--brass-2) 55%, var(--brass-3));
+    border-color: var(--brass-edge);
+    text-shadow: 0 1px 0 var(--brass-glint);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.5),
+      inset 0 -2px 0 rgb(0 0 0 / 0.25),
+      0 2px 0 var(--brass-edge-low),
+      var(--plate-drop);
+  }
+
+  :root[data-theme='realistic'] :is(.room-box-main .room-acts, .room-nearby) .room-go:active {
+    transform: translateY(1px);
+    box-shadow: inset 0 1px 0 var(--plate2-hi), 0 1px 0 var(--brass-edge-low);
+  }
+}
+
 :root[data-theme='realistic'] :is(.menu-wordmark-text, .room-title) {
   font-family: var(--font-wordmark);
   letter-spacing: 0.01em;
@@ -738,4 +773,10 @@
   :root[data-theme='realistic'] .pot-stack i {
     animation: none;
   }
+}
+
+/* The gold field icons (Blinds, Ante) use a fixed pale gold; on the light floor they need a deeper brass. */
+:root[data-theme='realistic'][data-mode='light'] .menu-field-icon-gold {
+  color: #7a560f;
+  background: rgb(122 86 15 / 0.14);
 }
