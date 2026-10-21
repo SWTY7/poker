@@ -29,7 +29,7 @@ The hotspots:
    additions there to a single call each (`onHandEnd(state)`-style), with the logic living in the track's
    own module.
 2. **`src/game/profile.ts`**. Don't both bump the profile `version`. Each feature keeps its **own
-   `localStorage` key** (`poker.career`, `poker.rivals`, `poker.review`) via
+   `localStorage` key** (`poker.tour`, `poker.rivals`, `poker.review`) via
    `src/utils/storage.ts`, each with its own versioned schema. Then neither track touches the other's
    saved data, and the existing profile needs no migration.
 3. **`src/ai/psychology/*`**. The game track needs three small things from the bots. They're built in the

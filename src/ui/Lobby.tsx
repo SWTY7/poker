@@ -2,7 +2,7 @@ import { useState } from 'react'
 import type { Profile } from '../game/profile'
 import type { GameMode } from '../game/mode'
 import type { RoomInfo } from '../home/socket'
-import { TIERS, type CareerData } from '../game/career'
+import { CITIES, tourStatus, type TourData } from '../game/tour'
 import { canClaimDailyStake, DAILY_STAKE_AMOUNT, DAILY_STAKE_THRESHOLD } from '../game/profile'
 import { DealIcon, TrophyIcon } from './icons'
 import { ChipIcon } from './ChipIcon'
@@ -19,9 +19,8 @@ export interface LobbyProps {
   onClaimDailyStake: () => void
   onResetProfile: () => void
   onChooseCash: () => void
-  onChooseTournament: () => void
-  career: CareerData
-  onChooseCareer: () => void
+  tour: TourData
+  onChooseTour: () => void
   /** Home Game: a room this phone was hosting, to reopen after a reload. */
   savedRoom: string | null
   /** What the server says about that room; null until it has answered, or if it can't be reached. */
@@ -43,16 +42,23 @@ export interface LobbyProps {
  * carrying into the next table, and what they've done across every table
  * before it.
  *
- * Two doors lead out of it. A cash game and a tournament are different
- * enough games — leave whenever versus play until you bust or win, one
- * prize versus none — that folding them into one setup form would mean
- * every field either doesn't apply half the time or means something subtly
- * different depending on a toggle at the top. Separate screens instead.
+ * Two doors lead out of it: the Cash game (leave whenever you like) and the
+ * World Tour (a ladder of six-handed tournaments in casino cities). They are
+ * different enough games that each has its own screen.
  *
  * Above all of that sits the one toggle that does belong at the top: Quick
  * Play or Career. Quick Play hides the bankroll and record entirely, since
  * nothing it plays touches them, and leaves a single door to a practice table.
  */
+/** One line for the World Tour door: where you are on the ladder. */
+function tourLine(tour: TourData, bankroll: number): string {
+  const open = tourStatus(tour, bankroll).filter((c) => c.playable).length
+  const played = CITIES.filter((c) => (tour.cities[c.id]?.plays ?? 0) > 0).length
+  return played === 0
+    ? `${CITIES.length} casino cities, six players a table, top three paid. Start in ${CITIES[0].city}.`
+    : `${played} of ${CITIES.length} cities played · ${open} open to you now.`
+}
+
 export function Lobby({
   profile,
   mode,
@@ -61,9 +67,8 @@ export function Lobby({
   onClaimDailyStake,
   onResetProfile,
   onChooseCash,
-  onChooseTournament,
-  career,
-  onChooseCareer,
+  tour,
+  onChooseTour,
   savedRoom,
   onHostGame,
   onResumeRoom,
@@ -230,19 +235,12 @@ export function Lobby({
               <div className="menu-divider" />
 
               <section className="lobby-doors">
-                <button type="button" className="lobby-door lobby-door-wide" onClick={onChooseCareer}>
+                <button type="button" className="lobby-door lobby-door-wide" onClick={onChooseTour}>
                   <span className="lobby-door-icon">
                     <TrophyIcon />
                   </span>
-                  <span className="lobby-door-title">
-                    {TIERS[career.tier].name} season {career.season}
-                    {career.titles > 0 && ` · ${career.titles} title${career.titles === 1 ? '' : 's'}`}
-                  </span>
-                  <span className="lobby-door-copy">
-                    {career.lastSeason
-                      ? 'Season over. See how it finished.'
-                      : `Event ${career.eventIndex + 1} of ${TIERS[career.tier].events.length}. The same rivals every event; finish top two to move up a tier.`}
-                  </span>
+                  <span className="lobby-door-title">World Tour</span>
+                  <span className="lobby-door-copy">{tourLine(tour, profile.bankroll)}</span>
                 </button>
 
                 <button type="button" className="lobby-door" onClick={onChooseCash}>
@@ -251,14 +249,6 @@ export function Lobby({
                   </span>
                   <span className="lobby-door-title">Cash game</span>
                   <span className="lobby-door-copy">Pick your own stakes. Leave whenever you like and cash out.</span>
-                </button>
-
-                <button type="button" className="lobby-door" onClick={onChooseTournament}>
-                  <span className="lobby-door-icon">
-                    <TrophyIcon />
-                  </span>
-                  <span className="lobby-door-title">Tournament</span>
-                  <span className="lobby-door-copy">One buy-in, rising blinds, and a prize for the places that pay.</span>
                 </button>
               </section>
 
@@ -274,7 +264,7 @@ export function Lobby({
                         .map((entry) => (
                           <li key={entry.at} className="lobby-history-row">
                             <span className="lobby-history-mode">
-                              {entry.mode === 'tournament' ? `Tournament · ${ordinal(entry.finish ?? 0)} of ${entry.field}` : 'Cash game'}
+                              {entry.mode === 'tournament' ? `World Tour · ${ordinal(entry.finish ?? 0)} of ${entry.field}` : 'Cash game'}
                             </span>
                             <span className={`lobby-history-result ${entry.result >= 0 ? 'cashout-up' : 'cashout-down'}`}>
                               {entry.result >= 0 ? '+' : '−'}${Math.abs(entry.result).toLocaleString()}

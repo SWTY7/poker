@@ -50,17 +50,19 @@ this layer hasn't needed rework since the milestones in the v1 plan.
   for Quick Play.
 - `rivals.ts`: twelve rivals who remember you and whom you remember, across sessions, saved under
   `poker.rivals`. Each rival is a `CAST` character with a fixed seed, so it plays the same every time. A solo
-  Career table (cash or tournament) seats rivals plus about a third walk-ins, who are random and never
+  Career table (cash game or World Tour) seats rivals plus about a third walk-ins, who are random and never
   remembered. `RivalSession` pools the seated rivals' saved reads on you (averaged, faded by 0.7), seats
   anyone who left steaming already tilted, and after every hand saves each rival's public stats (VPIP, PFR,
   fold-to-bet, river bluffs seen at showdown), your net against them, their read on you, and how hot
   they'll arrive next time. Pass-and-play and Quick Play have no rivals.
-- `career.ts`: Career seasons, saved under `poker.career`. Four tiers (Local → Regional → National →
-  Championship), each a fixed field of four rivals plus a walk-in, seated with more discipline and depth
-  tier by tier. A season is five single-table tournaments (Sit & Go ×2, Standard ×2, a Deep final; the
-  Championship is one Deep final), with points 10/6/4/3/2/1. Top two move up; a Championship win is a
-  title, defended next season. Screens: `CareerHub` (events, standings, next event) and its season summary,
-  reached from a door in the Career lobby.
+- `tour.ts`: the World Tour, saved under `poker.tour` (the old `poker.career` season save is dropped on load).
+  Nine casino cities from Lisbon ($100) to Sydney ($10,000), each a six-handed tournament with its own buy-in,
+  rivals and difficulty. The top three are paid 50/30/20 of a purse above the money bought in, so 1st pays at
+  least 4x the buy-in (numbers in `docs/decisions/2026-10-21-world-tour.md`). A city opens after a top 3 in the
+  one before it, and needs the bankroll for its buy-in. Screens: `TourHub` (cities, buy-ins, prizes, lock reason,
+  best finish, Play) and `TournamentResults` with a top-3 payout line, reached from the World Tour door in the
+  Career lobby. The buy-in is taken on sitting down and the prize credited on the way out through the profile.
+  The standalone Tournament setup is gone; `tournament.ts` stays as the engine.
 - Achievements were built (ten, with toasts and a screen) and removed again on 2026-10-04 at sunwoo’s request; nothing else depended on them.
 - `blinds.ts`: rising blinds for the home game's house rule (about half again a level, on round amounts).
 
@@ -150,12 +152,12 @@ Wi-Fi lets phones reach each other (usually not), an iPhone as host (Personal Ho
 
 ## The table UI — `src/ui/`
 
-The lobby opens on a Quick Play / Career toggle (`docs/plans/game-modes.md` step 1). Quick Play is a practice
+The lobby opens on a Quick Play / Career / Home Game toggle (`docs/plans/game-modes.md` step 1). Quick Play is a practice
 table: `MenuScreen`'s `variant="quick"` (any stack depth, no bankroll, its own saved setup under
-`poker.quickConfig`), and leaving it records nothing. Career is everything below. A solo Career game shows
+`poker.quickConfig`), and leaving it records nothing. Career is the Cash game and the World Tour (the rest below). A solo Career game shows
 `TableSeating` (who's at the table, with scouting notes on rivals seen 30+ hands) before the buy-in is taken.
 
-Lobby → cash-game/tournament setup → table → results, all built on a shared `menu-*` visual vocabulary. A
+Lobby → cash-game setup or the World Tour hub → table → results, all built on a shared `menu-*` visual vocabulary. A
 poker chip + spade favicon, chip-denomination-colored bankroll/buy-in displays, a positional seat legend, a
 hand-strength study aid, a tournament HUD with a blind clock. The bet-sizing slider caps its own draggable
 range at `max(5x pot, $2,000)` rather than the full stack, so it stays precise regardless of how deep a
