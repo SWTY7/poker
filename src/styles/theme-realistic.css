@@ -1091,6 +1091,12 @@
   :root[data-theme='realistic'][data-layout='round'] .seat-bet {
     transform: translate(calc(-50% + var(--side) * (1 - var(--top)) * 5.6rem), -50%);
   }
+
+  /* The felt is a thin strip here and the top plate sits over the street label
+     (the pot and the board cards already say what street it is). */
+  :root[data-theme='realistic'][data-layout='round'] .board-street {
+    visibility: hidden;
+  }
 }
 
 /* --- plates: phones (round portrait over a small plate) --------------------- */
@@ -1216,7 +1222,7 @@
   }
 
   :root[data-theme='realistic'][data-layout='round'] .seat-bet {
-    transform: translate(calc(-50% + var(--side) * (1 - var(--top)) * 4.5rem), -50%);
+    transform: translate(calc(-50% + var(--side) * (1 - var(--top)) * 4.5rem), calc(-50% + (1 - var(--top)) * 1.4rem));
   }
 
   :root[data-theme='realistic'] .chip-pile {
