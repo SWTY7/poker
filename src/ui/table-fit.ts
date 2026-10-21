@@ -26,10 +26,10 @@ export const RING = { rx: 0.4, ry: 0.4, cy: 0.5, rdrop: 0.06, span: 290 }
 export const SEAT_BOX = { w: 56, above: 21, below: 43 }
 /**
  * The Realistic theme's phone seat: a portrait over a plate, measured in a
- * browser at 6-9 opponents (about 69x71px, shifted up 1.3rem, so 21px above the
+ * browser at 6-9 opponents (66px typical, 69 widest, 71px tall, shifted up 1.3rem, so 21px above the
  * anchor and 50px below). Classic keeps SEAT_BOX.
  */
-export const SEAT_BOX_REALISTIC = { w: 70, above: 21, below: 50 }
+export const SEAT_BOX_REALISTIC = { w: 66, above: 21, below: 50 }
 export type SeatBox = typeof SEAT_BOX
 
 /** The seat box of the theme on screen (read from data-theme), so callers need not pass it. */

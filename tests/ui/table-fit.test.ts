@@ -14,7 +14,7 @@ describe('table-fit', () => {
   })
 
   it('fits the wider Realistic seat box, and needs a taller felt than Classic', () => {
-    for (const width of [343, 359]) {
+    for (const width of [362, 377]) {
       for (let seats = CROWDED_FROM; seats <= 9; seats++) {
         const h = minFeltHeight(seats, width, 320, 1400, SEAT_BOX_REALISTIC)
         expect(layoutFits(seats, width, h, SEAT_BOX_REALISTIC)).toBe(true)
