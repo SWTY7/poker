@@ -4,6 +4,7 @@ import { CardView } from './CardView'
 import { CoinIcon } from './icons'
 import { Avatar } from './AvatarBust'
 import { avatarInitial, avatarStyle } from './avatar'
+import { ChipPile, betPiles } from './ChipPile'
 
 export interface SeatProps {
   name: string
@@ -92,6 +93,8 @@ export function Seat({
         {isCurrentTurn && <span className="seat-pip" aria-hidden="true" />}
       </div>
 
+      {/* The text lines are one plate in the Realistic theme; elsewhere this wrapper adds no box. */}
+      <div className="seat-plate">
       <span className="seat-name">{name}</span>
 
       <span className="seat-badges">
@@ -134,6 +137,7 @@ export function Seat({
       <span className={`seat-status ${folded ? 'seat-status-folded' : ''} ${isWinner ? 'seat-status-won' : ''}`}>
         {status || ' '}
       </span>
+      </div>
 
       {/* The chips this player has pushed out this street, rendered below the
           seat so they read as sitting on the felt between them and the pot —
@@ -141,6 +145,7 @@ export function Seat({
       {betThisStreet > 0 && !folded && (
         <span className="seat-bet money" aria-label={`has bet $${betThisStreet.toLocaleString()}`}>
           <CoinIcon className="seat-bet-icon" />
+          <ChipPile piles={betPiles(betThisStreet)} />
           {betThisStreet.toLocaleString()}
         </span>
       )}

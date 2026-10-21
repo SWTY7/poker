@@ -97,6 +97,13 @@ describe('theme-realistic.css', () => {
     ['--seat-ring', '--baize', 3],
     ['--accent', '--bg', 3],
     ['--bar-edge', '--leather-2', 1.5],
+    // Seat plates are dark leather in both modes.
+    ['--seat-plate-name', '--seat-plate-1', 4.5],
+    ['--seat-plate-name', '--seat-plate-2', 4.5],
+    ['--seat-plate-stack', '--seat-plate-1', 4.5],
+    ['--seat-plate-stack', '--seat-plate-2', 4.5],
+    ['--seat-plate-sub', '--seat-plate-1', 4.5],
+    ['--seat-plate-sub', '--seat-plate-2', 4.5],
   ]
 
   for (const [mode, vars] of [

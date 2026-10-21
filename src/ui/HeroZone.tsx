@@ -4,6 +4,7 @@ import { CardView } from './CardView'
 import { CoinIcon, PercentIcon } from './icons'
 import { Avatar } from './AvatarBust'
 import { avatarInitial, avatarStyle } from './avatar'
+import { ChipPile, betPiles, stackPiles } from './ChipPile'
 
 interface HeroZoneProps {
   name: string
@@ -114,6 +115,7 @@ export function HeroZone({
           {betThisStreet > 0 && !folded && (
             <span className="hero-bet money" aria-label={`you have bet $${betThisStreet.toLocaleString()}`}>
               <CoinIcon className="seat-bet-icon" />
+              <ChipPile piles={betPiles(betThisStreet)} className="chip-pile-sm" />
               {betThisStreet.toLocaleString()}
             </span>
           )}
@@ -124,6 +126,8 @@ export function HeroZone({
       </div>
 
       <div className="hero-right">
+        {/* Your stack as piles on the felt side of the dock (Realistic, phones). */}
+        <ChipPile piles={stackPiles(stack)} className="hero-pile" />
         {/* Always rendered: when there is nothing to call it is only hidden, so
             the row keeps its height and the cards and buttons don't jump
             between checking and facing a bet. */}
