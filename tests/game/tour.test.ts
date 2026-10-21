@@ -4,7 +4,6 @@ import {
   FIELD_SIZE,
   LEGACY_CAREER_KEY,
   TOUR_STORAGE_KEY,
-  finishingOrder,
   loadTour,
   migrateTour,
   newTour,
@@ -20,7 +19,6 @@ import {
 } from '../../src/game/tour'
 import { ROSTER, rivalProfile } from '../../src/game/rivals'
 import { STRUCTURES } from '../../src/game/tournament'
-import type { GameState } from '../../src/poker/game-state'
 import { createRng } from '../../src/utils/random'
 
 describe('the cities', () => {
@@ -160,39 +158,6 @@ describe('seating', () => {
 
   it('throws for an unknown city', () => {
     expect(() => planEvent('atlantis', createRng(1))).toThrow()
-  })
-})
-
-describe('finishing order', () => {
-  const state = (players: { id: string; stack: number; out?: boolean }[], eliminationOrder: string[]) =>
-    ({
-      players: players.map((p) => ({ id: p.id, stack: p.stack, isEliminated: Boolean(p.out) })),
-      eliminationOrder,
-    }) as unknown as GameState
-
-  it('puts the survivor first and the busted in reverse order of busting', () => {
-    const s = state(
-      [
-        { id: 'p0', stack: 9000 },
-        { id: 'p1', stack: 0, out: true },
-        { id: 'p2', stack: 0, out: true },
-      ],
-      ['p2', 'p1'],
-    )
-    expect(finishingOrder(s, 'p0', false)).toEqual(['p0', 'p1', 'p2'])
-  })
-
-  it('on a quit, places the others still in by chips, and you behind them', () => {
-    const s = state(
-      [
-        { id: 'p0', stack: 5000 },
-        { id: 'p1', stack: 1000 },
-        { id: 'p2', stack: 3000 },
-        { id: 'p3', stack: 0, out: true },
-      ],
-      ['p3'],
-    )
-    expect(finishingOrder(s, 'p0', true)).toEqual(['p2', 'p1', 'p0', 'p3'])
   })
 })
 

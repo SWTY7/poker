@@ -1,4 +1,3 @@
-import type { GameState } from '../poker/game-state'
 import { CAST, randomizeProfile, type PsychProfile } from '../ai/psychology/profile'
 import { STRUCTURES, prizesForField, type TournamentStructure } from './tournament'
 import { ROSTER, WALK_IN_NAMES, rivalProfile, type Rival, type SeatPlan } from './rivals'
@@ -273,22 +272,4 @@ export function planEvent(cityId: string, rng: Rng): SeatPlan[] {
 /** The tournament structure at a city. */
 export function structureFor(city: City): TournamentStructure {
   return STRUCTURES[city.structure]
-}
-
-/**
- * Everyone's finishing order, best first, as player ids. Busted players are
- * placed by when they busted. If the event was left early, the players still
- * in are placed by chip count, except that you finish behind all of them:
- * the same place a quit is paid for.
- */
-export function finishingOrder(state: GameState, humanId: string, forfeited: boolean): string[] {
-  const busted = [...state.eliminationOrder].reverse()
-  const alive = state.players
-    .filter((p) => !p.isEliminated && !busted.includes(p.id))
-    .sort((a, b) => b.stack - a.stack)
-    .map((p) => p.id)
-  if (forfeited && alive.includes(humanId)) {
-    return [...alive.filter((id) => id !== humanId), humanId, ...busted]
-  }
-  return [...alive, ...busted]
 }

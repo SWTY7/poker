@@ -639,11 +639,7 @@
   }
 
   /* Stakes is the tall column, so it takes the right-hand side on its own and
-     the two short groups stack down the left. Scoped the same way, and for
-     the same reason: TournamentSetup also has `.menu-group`/`.menu-start`
-     children, on a card that is `display: flex` outside this class, and a
-     `grid-column` on a flex item is simply ignored — but naming what these
-     rules are actually for beats relying on that being harmless. */
+     the two short groups stack down the left. Scoped to this class so other cards with `.menu-group` children are unaffected. */
   .menu-card-columns .menu-group:nth-of-type(2) {
     grid-column: 2;
     grid-row: 1 / span 2;

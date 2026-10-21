@@ -5,7 +5,7 @@ Read `docs/PROGRESS.md` first, then the plan for your track.*
 
 | track | plan | branch | owns |
 |---|---|---|---|
-| Game elements (modes, career, rivals, timing) | [`game-modes.md`](./game-modes.md) | its own branch, e.g. `claude/game-modes-*` | `src/game/career*`, `src/game/rivals*`, lobby / setup / career screens in `src/ui/` |
+| Game elements (modes, career, rivals, timing) | [`game-modes.md`](./game-modes.md) | its own branch, e.g. `claude/game-modes-*` | `src/game/tour*`, `src/game/rivals*`, lobby / setup / tour screens in `src/ui/` |
 | Home game (real cards, phones as chips; same track, after game-modes step 3) | [`home-game.md`](./home-game.md) | `claude/home-game-*` | `src/home/**`, home game screens in `src/ui/` |
 | Psychology (read-your-play, hand review, personality lab, real players) | [`psychology-lab.md`](./psychology-lab.md) | `claude/poker-bot-psychology-*` | `src/ai/**`, `src/review/**`, `src/gto/**`, research scripts |
 

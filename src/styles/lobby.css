@@ -361,15 +361,6 @@
   color: var(--text-faint);
 }
 
-.tournament-actions {
-  display: flex;
-  gap: 0.6rem;
-}
-
-.tournament-actions .menu-start {
-  flex: 1 1 auto;
-}
-
 /* ---------- results ---------- */
 
 /* The one moment on these four screens that earns a flourish: winning the
