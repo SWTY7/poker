@@ -1,7 +1,7 @@
 import { bustSpec } from './avatar'
 
 /** Character bust, drawn from the player's name. Decorative; the parent hides it from assistive tech. */
-export function Avatar({ name }: { name: string }) {
+export function AvatarBust({ name }: { name: string }) {
   const { skin, hair, backdrop, style, eyewear, shades } = bustSpec(name)
   const ink = '#1c1410'
   return (

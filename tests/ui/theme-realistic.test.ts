@@ -126,6 +126,30 @@ describe('theme-realistic.css', () => {
     })
   }
 
+  // A folded seat is drawn at --folded opacity over the baize; its text must still read.
+  for (const [mode, vars] of [
+    ['dark', dark],
+    ['light', light],
+  ] as const) {
+    it(`keeps a folded plate readable in ${mode} mode`, () => {
+      const opacity = parseFloat(css.match(/\.seat-folded \{\s*opacity:\s*([\d.]+)/)![1])
+      expect(opacity).toBeGreaterThanOrEqual(0.75)
+      const rgb = (hex: string) => {
+        const n = parseInt(hex.replace('#', ''), 16)
+        return [(n >> 16) & 255, (n >> 8) & 255, n & 255]
+      }
+      const mix = (fg: string, bg: string) => {
+        const [f, b] = [rgb(fg), rgb(bg)]
+        return '#' + f.map((c, i) => Math.round(c * opacity + b[i] * (1 - opacity)).toString(16).padStart(2, '0')).join('')
+      }
+      const baize = vars.get('--felt')!
+      const plate = mix(vars.get('--seat-plate-2')!, baize)
+      for (const t of ['--seat-plate-name', '--seat-plate-stack', '--seat-plate-sub']) {
+        expect(ratio(mix(vars.get(t)!, baize), plate), `${t} on folded plate`).toBeGreaterThanOrEqual(4.5)
+      }
+    })
+  }
+
   // Max alpha of a grain tile = the bias of the alpha row of its feColorMatrix
   // (conservative: the lit channel is never below 0).
   function grain(name: string): { alpha: number; size: number } {

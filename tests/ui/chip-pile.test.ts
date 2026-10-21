@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { betPiles, stackPiles, MAX_PILES, MAX_PILE_HEIGHT } from '../../src/ui/ChipPile'
+import { betPiles, stackPiles, MAX_PILES, MAX_PILE_HEIGHT } from '../../src/ui/chip-piles'
 
 describe('ChipPile', () => {
   it('draws nothing for no bet', () => {

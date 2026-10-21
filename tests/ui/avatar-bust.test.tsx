@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import { bustSpec } from '../../src/ui/avatar'
-import { Avatar } from '../../src/ui/AvatarBust'
+import { AvatarBust } from '../../src/ui/AvatarBust'
 import { Seat } from '../../src/ui/Seat'
 
 const NAMES = Array.from({ length: 400 }, (_, i) => `Player ${i} ${String.fromCharCode(65 + (i % 26))}`)
@@ -9,7 +9,7 @@ const NAMES = Array.from({ length: 400 }, (_, i) => `Player ${i} ${String.fromCh
 describe('bust avatar', () => {
   it('gives the same spec for the same name', () => {
     expect(bustSpec('Coco')).toEqual(bustSpec('Coco'))
-    expect(renderToStaticMarkup(<Avatar name="Coco" />)).toBe(renderToStaticMarkup(<Avatar name="Coco" />))
+    expect(renderToStaticMarkup(<AvatarBust name="Coco" />)).toBe(renderToStaticMarkup(<AvatarBust name="Coco" />))
   })
 
   it('reaches every hair/hat style, eyewear option, skin and backdrop', () => {
@@ -22,7 +22,7 @@ describe('bust avatar', () => {
 
   it('has no external references', () => {
     for (const n of NAMES) {
-      const svg = renderToStaticMarkup(<Avatar name={n} />)
+      const svg = renderToStaticMarkup(<AvatarBust name={n} />)
       expect(svg).not.toMatch(/href|url\(|<image|http/i)
       expect(svg).toContain('aria-hidden="true"')
     }

@@ -949,7 +949,7 @@
 }
 
 :root[data-theme='realistic'] .seat-folded {
-  opacity: 0.62;
+  opacity: 0.75;
   filter: grayscale(40%);
 }
 
@@ -1216,7 +1216,7 @@
   }
 
   :root[data-theme='realistic'][data-layout='round'] .seat-bet {
-    transform: translate(calc(-50% + var(--side) * (1 - var(--top)) * 3.6rem), -50%);
+    transform: translate(calc(-50% + var(--side) * (1 - var(--top)) * 4.5rem), -50%);
   }
 
   :root[data-theme='realistic'] .chip-pile {
@@ -1335,11 +1335,5 @@
 @media (max-width: 820px) and (orientation: portrait) {
   :root[data-theme='realistic'][data-layout='round'] .table-main[data-crowded] .table-actions {
     background: var(--wood-solid);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  :root[data-theme='realistic'] .chip {
-    animation: none;
   }
 }

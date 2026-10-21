@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import { CROWDED_FROM, RING, layoutFits, minFeltHeight } from '../../src/ui/table-fit'
+import { CROWDED_FROM, RING, SEAT_BOX_REALISTIC, layoutFits, minFeltHeight } from '../../src/ui/table-fit'
 
 describe('table-fit', () => {
   it('finds a layout with no overlap for 7-9 opponents at every phone width', () => {
@@ -9,6 +9,16 @@ describe('table-fit', () => {
         const h = minFeltHeight(seats, width)
         expect(h).toBeLessThan(1000)
         expect(layoutFits(seats, width, h)).toBe(true)
+      }
+    }
+  })
+
+  it('fits the wider Realistic seat box, and needs a taller felt than Classic', () => {
+    for (const width of [343, 359]) {
+      for (let seats = CROWDED_FROM; seats <= 9; seats++) {
+        const h = minFeltHeight(seats, width, 320, 1400, SEAT_BOX_REALISTIC)
+        expect(layoutFits(seats, width, h, SEAT_BOX_REALISTIC)).toBe(true)
+        expect(h).toBeGreaterThanOrEqual(minFeltHeight(seats, width))
       }
     }
   })
