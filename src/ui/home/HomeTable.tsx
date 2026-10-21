@@ -4,6 +4,7 @@ import type { TableView } from '../../home/room'
 import { betweenHands, canStartHand, currentBlinds, DEFAULT_LEVEL_MINUTES, levelEndsAt, LEVEL_MINUTE_OPTIONS, options, potTotal, type Command } from '../../home/table'
 import { risingBlinds } from '../../game/blinds'
 import type { RoomStatus } from '../../home/socket'
+import { Avatar } from '../Avatar.tsx'
 import { avatarInitial, avatarStyle } from '../avatar'
 import { CardView } from '../CardView'
 
@@ -216,7 +217,8 @@ function Seats({ view, myId, isHost, send }: { view: TableView; myId: string | n
         return (
           <li key={p.id} className={`home-seat ${p.id === toAct ? 'home-seat-turn' : ''} ${state === 'folded' || state === 'out' ? 'home-seat-dim' : ''}`}>
             <span className="seating-avatar" style={avatarStyle(p.name)} aria-hidden="true">
-              {avatarInitial(p.name)}
+              <span className="avatar-initial">{avatarInitial(p.name)}</span>
+              <Avatar name={p.name} />
             </span>
             <span className="home-seat-main">
               <span className="home-seat-name">

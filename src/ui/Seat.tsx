@@ -2,6 +2,7 @@ import type { Card } from '../poker/card'
 import { POSITION_NAMES, type PositionLabel } from '../poker/position'
 import { CardView } from './CardView'
 import { CoinIcon } from './icons'
+import { Avatar } from './Avatar.tsx'
 import { avatarInitial, avatarStyle } from './avatar'
 
 export interface SeatProps {
@@ -79,7 +80,8 @@ export function Seat({
     >
       <div className="seat-top">
         <span className="seat-avatar" style={avatarStyle(name)} aria-hidden="true">
-          {avatarInitial(name)}
+          <span className="avatar-initial">{avatarInitial(name)}</span>
+          <Avatar name={name} />
         </span>
         {/* The button as a puck on the felt, for layouts that draw one. */}
         {isDealer && (

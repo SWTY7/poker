@@ -2,6 +2,7 @@ import type { Card } from '../poker/card'
 import { POSITION_NAMES, type PositionLabel } from '../poker/position'
 import { CardView } from './CardView'
 import { CoinIcon, PercentIcon } from './icons'
+import { Avatar } from './Avatar.tsx'
 import { avatarInitial, avatarStyle } from './avatar'
 
 interface HeroZoneProps {
@@ -76,7 +77,8 @@ export function HeroZone({
             else. */}
         <div className="hero-head">
           <span className="seat-avatar hero-avatar" style={avatarStyle(name)} aria-hidden="true">
-            {avatarInitial(name)}
+            <span className="avatar-initial">{avatarInitial(name)}</span>
+            <Avatar name={name} />
           </span>
           <div className="hero-id">
             {isMyTurn && <span className="hero-turn-chip">Your turn</span>}
