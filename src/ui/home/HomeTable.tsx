@@ -4,7 +4,7 @@ import type { TableView } from '../../home/room'
 import { betweenHands, canStartHand, currentBlinds, DEFAULT_LEVEL_MINUTES, levelEndsAt, LEVEL_MINUTE_OPTIONS, options, potTotal, type Command } from '../../home/table'
 import { risingBlinds } from '../../game/blinds'
 import type { RoomStatus } from '../../home/socket'
-import { Avatar } from '../Avatar.tsx'
+import { Avatar } from '../AvatarBust'
 import { avatarInitial, avatarStyle } from '../avatar'
 import { CardView } from '../CardView'
 

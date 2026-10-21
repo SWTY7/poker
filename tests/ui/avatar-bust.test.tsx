@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import { bustSpec } from '../../src/ui/avatar'
-import { Avatar } from '../../src/ui/Avatar.tsx'
+import { Avatar } from '../../src/ui/AvatarBust'
 import { Seat } from '../../src/ui/Seat'
 
 const NAMES = Array.from({ length: 400 }, (_, i) => `Player ${i} ${String.fromCharCode(65 + (i % 26))}`)

@@ -2,7 +2,7 @@ import type { Card } from '../poker/card'
 import { POSITION_NAMES, type PositionLabel } from '../poker/position'
 import { CardView } from './CardView'
 import { CoinIcon, PercentIcon } from './icons'
-import { Avatar } from './Avatar.tsx'
+import { Avatar } from './AvatarBust'
 import { avatarInitial, avatarStyle } from './avatar'
 
 interface HeroZoneProps {
