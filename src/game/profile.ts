@@ -22,12 +22,10 @@ export const DAILY_STAKE_AMOUNT = 200
 
 /**
  * The floor a bankroll has to fall to (or below) before the daily stake is
- * offered. This is the smallest cash buy-in and the smallest tournament
- * buy-in the app offers — below it, there is nothing left to actually play,
- * which is the condition the stake exists to fix. It is not tied to zero:
- * $12 is not broke, but it is also not a seat at any table in the game.
+ * offered. It sits just under the cheapest World Tour entry ($100), so a
+ * bankroll that can no longer buy into any tour city can always recover.
  */
-export const DAILY_STAKE_THRESHOLD = 20
+export const DAILY_STAKE_THRESHOLD = 99
 
 export interface ProfileHistoryEntry {
   /** ISO timestamp, for sorting and for display. */
