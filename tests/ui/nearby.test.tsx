@@ -11,6 +11,7 @@ import { inviteStatusText, messageForCode, nearbyMessage, TRUST_NOTICE } from '.
 import { Lobby, type LobbyProps } from '../../src/ui/Lobby'
 import { RoomLobby } from '../../src/ui/RoomLobby'
 import { defaultProfile } from '../../src/game/profile'
+import { newTour } from '../../src/game/tour'
 
 const noop = () => undefined
 const invite: Invite = { id: 'a', code: 'P1H0123456789ABCDEFGHJKMNPQRSTVWXYZ0123456789ABCDEFGHJKMNPQRSTVWXYZ', status: 'waiting', mdnsOnly: false }
@@ -90,9 +91,8 @@ describe('lobby doors', () => {
     onClaimDailyStake: noop,
     onResetProfile: noop,
     onChooseCash: noop,
-    onChooseTournament: noop,
-    career: { tier: 0, season: 1, eventIndex: 0, lastSeason: null } as unknown as LobbyProps['career'],
-    onChooseCareer: noop,
+    tour: newTour(),
+    onChooseTour: noop,
     savedRoom: null,
     onHostGame: noop,
     onResumeRoom: noop,

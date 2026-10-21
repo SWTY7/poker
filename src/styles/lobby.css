@@ -1,4 +1,4 @@
-/* ---------- lobby, tournament setup, results ----------
+/* ---------- lobby, World Tour hub, results ----------
    Built on the same .menu-scene / .menu-card / .menu-section vocabulary as
    the cash-game setup screen, so the four screens a player moves through
    before ever seeing a card read as one system rather than four. */
@@ -361,15 +361,6 @@
   color: var(--text-faint);
 }
 
-.tournament-actions {
-  display: flex;
-  gap: 0.6rem;
-}
-
-.tournament-actions .menu-start {
-  flex: 1 1 auto;
-}
-
 /* ---------- results ---------- */
 
 /* The one moment on these four screens that earns a flourish: winning the
@@ -634,51 +625,122 @@
   grid-column: 1 / -1;
 }
 
-/* ---------- career hub ---------- */
+/* ---------- World Tour hub ---------- */
 
-.career-events,
-.career-standings {
+.tour-list {
   list-style: none;
-  margin: 0.4rem 0 0;
+  margin: 0;
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
 }
 
-.career-event {
+.tour-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    'where act'
+    'money money'
+    'record record'
+    'reason reason';
+  align-items: center;
+  gap: 0.3rem var(--sp-3);
+  padding: var(--sp-3) 0;
+  border-top: 1px solid var(--line-soft);
+}
+
+.tour-row:first-child {
+  border-top: 0;
+}
+
+.tour-where {
+  grid-area: where;
   display: flex;
-  justify-content: space-between;
-  padding: 0.35rem 0.6rem;
-  border-radius: var(--r-sm);
-  font-size: var(--fs-sm);
-  color: var(--text-faint);
+  flex-direction: column;
+  min-width: 0;
 }
 
-.career-event-done {
+.tour-city {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  color: var(--text);
+}
+
+.tour-room {
+  font-size: var(--fs-sm);
   color: var(--text-dim);
 }
 
-.career-event-next {
+.tour-money {
+  grid-area: money;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.15rem var(--sp-4);
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  font-variant-numeric: tabular-nums;
   color: var(--text);
-  font-weight: 700;
-  box-shadow: 0 0 0 1px var(--accent) inset;
 }
 
-.career-event-finish {
-  font-family: var(--font-mono);
-  color: var(--accent);
+.tour-prizes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.15rem var(--sp-3);
 }
 
-.career-titles {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  color: var(--accent);
-  font-family: var(--font-mono);
+.tour-label {
+  color: var(--text-faint);
+  font-size: var(--fs-xs);
 }
 
-.career-titles svg {
-  width: 0.9rem;
-  height: 0.9rem;
+.tour-record {
+  grid-area: record;
+  font-size: var(--fs-sm);
+  color: var(--text-dim);
+}
+
+.tour-reason {
+  grid-area: reason;
+  margin: 0;
+  font-size: var(--fs-sm);
+  color: var(--text-dim);
+}
+
+.tour-act {
+  grid-area: act;
+}
+
+.tour-act .tour-play {
+  margin: 0;
+  min-height: 2.75rem;
+  min-width: 5.5rem;
+  padding: 0.5rem 1rem;
+}
+
+.tour-row-locked .tour-city,
+.tour-row-locked .tour-money {
+  color: var(--text-faint);
+}
+
+.tour-row-short .tour-reason {
+  color: var(--red);
+}
+
+.tour-winnings {
+  color: var(--green);
+}
+
+@media (min-width: 720px) {
+  .tour-row {
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.7fr) 9rem 7rem;
+    grid-template-areas:
+      'where money record act'
+      'reason reason reason reason';
+  }
+
+  .tour-act {
+    justify-self: end;
+  }
 }

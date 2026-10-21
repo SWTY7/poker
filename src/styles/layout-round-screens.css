@@ -8,10 +8,6 @@
    Nothing here applies to the Standard layout.
    ========================================================================== */
 
-.career-outside {
-  display: none;
-}
-
 [data-layout='round'] .menu-scene {
   align-items: flex-start;
   justify-content: flex-start;
@@ -112,122 +108,31 @@
   opacity: 0.55;
 }
 
-/* --- career: the season as a row of events, then the other ways to play ---- */
+/* --- World Tour hub (tour-specific selectors only) ----------------------- */
 
-[data-layout='round'] .career-events {
-  flex-direction: row;
-  gap: var(--sp-2);
+[data-layout='round'] .tour-card {
+  width: min(56rem, 100%);
 }
 
-[data-layout='round'] .career-event {
-  flex: 1 1 0;
-  flex-direction: column;
-  gap: 0.1rem;
-  padding: var(--sp-2) 0 0;
-  border-radius: 0;
-  border-top: 2px solid var(--line);
-  box-shadow: none;
-  font-weight: 400;
+[data-layout='round'] .tour-row {
+  border-top: 1px dotted var(--line);
 }
 
-[data-layout='round'] .career-event-done {
-  border-top-color: var(--text-dim);
-}
-
-[data-layout='round'] .career-event-next {
-  border-top-color: var(--accent);
-  box-shadow: none;
-  color: var(--accent);
-}
-
-[data-layout='round'] .career-event-finish {
-  order: -1;
-  font-family: inherit;
-  font-weight: 600;
-  font-size: var(--fs-md);
-}
-
-[data-layout='round'] .career-outside {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-1);
-  margin-top: var(--sp-3);
-  padding-top: var(--sp-3);
-  border-top: 1px solid var(--line);
-}
-
-[data-layout='round'] .career-outside-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: var(--sp-4);
-  padding: var(--sp-2) 0;
-  font: inherit;
-  text-align: left;
-  color: inherit;
-  background: none;
-  border: 0;
-  border-top: 1px dotted var(--line-soft);
-  cursor: pointer;
-}
-
-[data-layout='round'] .career-outside-row:first-of-type {
+[data-layout='round'] .tour-row:first-child {
   border-top: 0;
 }
 
-[data-layout='round'] .career-outside-row strong {
-  display: block;
-  font-size: var(--fs-lg);
-}
-
-[data-layout='round'] .career-outside-verb {
-  color: var(--accent);
+[data-layout='round'] .tour-city {
+  font-family: var(--font-wordmark);
   font-weight: 600;
-  border-bottom: 1px solid var(--accent);
 }
 
-.career-recent {
-  list-style: none;
-  margin: var(--sp-3) 0 0;
-  padding: 0;
-  color: var(--text-dim);
-  font-size: var(--fs-sm);
+/* The Play button is the flat brass plaque (.menu-start), sized for a row. */
+[data-layout='round'] .tour-act .menu-start {
+  align-self: auto;
+  min-width: 5.5rem;
 }
 
-.career-recent li {
-  display: flex;
-  justify-content: space-between;
-  gap: var(--sp-4);
-  padding: 0.15rem 0;
-}
-
-@media (max-width: 560px) {
-  [data-layout='round'] .career-events {
-    flex-direction: column;
-    gap: 0;
-  }
-
-  [data-layout='round'] .career-event {
-    flex-direction: row;
-    justify-content: space-between;
-    padding: 0.2rem 0 0.2rem var(--sp-2);
-    border-top: 0;
-    border-left: 2px solid var(--line);
-  }
-
-  [data-layout='round'] .career-event-done {
-    border-left-color: var(--text-dim);
-  }
-
-  [data-layout='round'] .career-event-next {
-    border-left-color: var(--accent);
-  }
-
-  [data-layout='round'] .career-event-finish {
-    order: 0;
-  }
-
-  [data-layout='round'] .menu-start {
-    align-self: stretch;
-  }
+[data-layout='round'] .tour-row-locked {
+  opacity: 0.85;
 }

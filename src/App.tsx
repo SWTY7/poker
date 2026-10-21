@@ -4,13 +4,11 @@ import { MenuScreen } from './ui/MenuScreen'
 import { Lobby } from './ui/Lobby'
 import { RoomLobby } from './ui/RoomLobby'
 import { getLook, subscribeLook } from './game/settings'
-import { TournamentSetup } from './ui/TournamentSetup'
-import type { TournamentEntry } from './ui/TournamentSetup'
 import { TournamentResults } from './ui/TournamentResults'
 import { YourPlay } from './ui/YourPlay'
 import { SettingsScreen } from './ui/Settings'
 import { TableSeating } from './ui/TableSeating'
-import { CareerHub } from './ui/CareerHub'
+import { TourHub } from './ui/TourHub'
 import { HostEntry, JoinEntry, type HostSetup } from './ui/home/HomeEntry'
 import { RoomScreen } from './ui/home/HomeScreens'
 import { NearbyIntro } from './ui/home/NearbyIntro'
@@ -37,7 +35,6 @@ import {
 import {
   blindLevel,
   isTournamentOver,
-  prizeForPosition,
   tournamentHudInfo,
   tournamentStandings,
   type Standing,
@@ -48,15 +45,17 @@ import { RivalSession, loadRivals, planTable, saveRivals, type SeatPlan } from '
 import { createRng } from './utils/random'
 import {
   FIELD_SIZE,
-  YOU,
-  finishingOrder,
-  loadCareer,
-  nextEvent,
+  cityById,
+  loadTour,
   planEvent,
-  recordEvent,
-  saveCareer,
-  type CareerData,
-} from './game/career'
+  prizeFor,
+  purseFor,
+  recordTourResult,
+  saveTour,
+  structureFor,
+  type City,
+  type TourData,
+} from './game/tour'
 
 interface CashEntry {
   mode: 'cash'
@@ -75,11 +74,8 @@ interface TournamentGameEntry {
   fieldSize: number
   structure: TournamentStructure
   prizePool: number
-  /**
-   * A Career season event: who each seat is in the season's standings, by
-   * player id (`p0` is you; a walk-in is null).
-   */
-  career?: { entrants: Record<string, string | null> }
+  /** The World Tour city this table is in. */
+  cityId: string
 }
 
 type GameEntry = CashEntry | QuickEntry | TournamentGameEntry
@@ -88,11 +84,10 @@ type Screen =
   | { kind: 'lobby' }
   | { kind: 'cash-setup' }
   | { kind: 'quick-setup' }
-  | { kind: 'tournament-setup' }
   | { kind: 'seating'; config: GameConfigOptions; entry: CashEntry | TournamentGameEntry; seats: SeatPlan[]; title: string }
   | { kind: 'game'; config: GameConfigOptions; entry: GameEntry }
-  | { kind: 'results'; outcome: TournamentOutcome; backTo: 'lobby' | 'career' }
-  | { kind: 'career' }
+  | { kind: 'results'; outcome: TournamentOutcome }
+  | { kind: 'tour' }
   | { kind: 'home-host-setup' }
   | { kind: 'home-join'; code: string }
   | { kind: 'home-room'; code: string; playerId: string; seatKey: string; name?: string; hostToken?: string }
@@ -109,8 +104,6 @@ interface TournamentExitPayload {
   humanId: string
   /** True when the human quit rather than the tournament actually concluding — see LeaveDialog's note on what that does and doesn't tell you. */
   forfeited: boolean
-  /** Every player id, best finish first (`career.ts`'s `finishingOrder`). */
-  order: string[]
   handsPlayed: number
   biggestPot: number
 }
@@ -120,7 +113,6 @@ interface GameScreenProps {
   entry: GameEntry
   onTableExit: (finalStack: number, handsPlayed: number, biggestPot: number) => void
   onTournamentExit: (payload: TournamentExitPayload) => void
-  /** Career: whatever a finished hand earned. */
 }
 
 /**
@@ -149,7 +141,6 @@ function GameScreen({ config, entry, onTableExit, onTournamentExit }: GameScreen
       names,
       humanId: game.humanIds[0],
       forfeited: false,
-      order: finishingOrder(game.state, game.humanIds[0], false),
       handsPlayed: game.session.handsPlayed,
       biggestPot: game.session.biggestPot,
     })
@@ -185,7 +176,6 @@ function GameScreen({ config, entry, onTableExit, onTournamentExit }: GameScreen
       names,
       humanId,
       forfeited: true,
-      order: game.state ? finishingOrder(game.state, humanId, true) : [humanId],
       handsPlayed: game.session.handsPlayed,
       biggestPot: game.session.biggestPot,
     })
@@ -238,11 +228,11 @@ function App() {
   const [screen, setScreen] = useState<Screen>(() => (linkedRoom ? { kind: 'home-join', code: linkedRoom } : { kind: 'lobby' }))
   const [pendingNearby, setPendingNearby] = useState<HostSetup | null>(null)
   const [mode, setMode] = useState<GameMode>(() => (linkedRoom ? 'home' : loadMode()))
-  const [career, setCareer] = useState<CareerData>(() => loadCareer())
+  const [tour, setTour] = useState<TourData>(() => loadTour())
   const look = useSyncExternalStore(subscribeLook, getLook)
   useEffect(() => {
-    saveCareer(career)
-  }, [career])
+    saveTour(tour)
+  }, [tour])
 
   // The bankroll is the one thing in this app that has to survive a closed
   // tab, so every change to it is written straight through rather than only
@@ -331,15 +321,15 @@ function App() {
     setScreen({ kind: 'game', config, entry: { mode: 'quick', buyIn: 0 } })
   }
 
-  /** Takes the buy-in and deals. The one place a Career game's money leaves the bankroll. */
-  const beginCareerGame = (config: GameConfigOptions, entry: CashEntry | TournamentGameEntry) => {
+  /** Takes the buy-in and deals. The one place a game's money leaves the bankroll. */
+  const beginGame = (config: GameConfigOptions, entry: CashEntry | TournamentGameEntry) => {
     if (!canAffordBuyIn(profile.bankroll, entry.buyIn)) return
     setProfile((p) => applyBuyIn(p, entry.buyIn))
     setScreen({ kind: 'game', config, entry })
   }
 
   /**
-   * A solo Career table seats rivals and walk-ins, and you see who's there
+   * A solo table seats rivals and walk-ins, and you see who's there
    * before the buy-in is taken. Pass-and-play has no single "you" for a rival
    * to remember, so it deals straight in with a random table as before.
    */
@@ -351,7 +341,7 @@ function App() {
   ) => {
     if (!canAffordBuyIn(profile.bankroll, entry.buyIn)) return
     if (config.humanCount !== 1) {
-      beginCareerGame(config, entry)
+      beginGame(config, entry)
       return
     }
     setScreen({ kind: 'seating', config, entry, seats, title })
@@ -360,7 +350,7 @@ function App() {
   const handleSit = () => {
     if (screen.kind !== 'seating') return
     const rivals = new RivalSession(loadRivals(), screen.seats, screen.config.startingStack, saveRivals)
-    beginCareerGame({ ...screen.config, rivals }, screen.entry)
+    beginGame({ ...screen.config, rivals }, screen.entry)
   }
 
   const handleStartCash = (config: GameConfigOptions) => {
@@ -371,41 +361,20 @@ function App() {
     )
   }
 
-  const handleRegisterTournament = (registration: TournamentEntry) => {
-    const config = tournamentConfig(registration.structure, registration.fieldSize)
+  /** A World Tour table: the city's rivals and a walk-in, seated at the city's strength; the buy-in is taken when you sit. */
+  const handlePlayCity = (city: City) => {
     toTable(
-      config,
+      tournamentConfig(structureFor(city), FIELD_SIZE),
       {
         mode: 'tournament',
-        buyIn: registration.buyIn,
-        fieldSize: registration.fieldSize,
-        structure: registration.structure,
-        prizePool: registration.buyIn * registration.fieldSize,
-      },
-      `${registration.structure.name} tournament, ${registration.fieldSize} players, $${registration.buyIn.toLocaleString()} buy-in`,
-    )
-  }
-
-  /** The season's next event: the tier's own field, seated at the tier's strength. */
-  const handlePlayEvent = () => {
-    const event = nextEvent(career)
-    const seats = planEvent(career, createRng())
-    const entrants: Record<string, string | null> = { p0: YOU }
-    seats.forEach((seat, i) => {
-      entrants[`p${i + 1}`] = seat.kind === 'rival' ? seat.rival.id : null
-    })
-    toTable(
-      tournamentConfig(event.structure, FIELD_SIZE),
-      {
-        mode: 'tournament',
-        buyIn: event.tier.buyIn,
+        buyIn: city.buyIn,
         fieldSize: FIELD_SIZE,
-        structure: event.structure,
-        prizePool: event.tier.buyIn * FIELD_SIZE,
-        career: { entrants },
+        structure: structureFor(city),
+        prizePool: purseFor(city),
+        cityId: city.id,
       },
-      `${event.tier.name} season ${career.season}, event ${event.number} of ${event.of}: ${event.structure.name}, $${event.tier.buyIn} buy-in`,
-      seats,
+      `${city.city}, ${city.room}: $${city.buyIn.toLocaleString()} buy-in`,
+      planEvent(city.id, createRng()),
     )
   }
 
@@ -424,15 +393,13 @@ function App() {
     }
     const entry = screen.entry
     const finish = payload.standings.find((s) => s.playerId === payload.humanId)?.position ?? entry.fieldSize
-    const careerEntrants = entry.career?.entrants
-    if (careerEntrants) {
-      setCareer(recordEvent(career, payload.order.map((id) => careerEntrants[id] ?? null)))
-    }
+    const city = cityById(entry.cityId)
+    if (city) setTour((t) => recordTourResult(t, city.id, finish))
     // A quit pays exactly what that finish is worth, same as busting there
     // naturally would — real tournaments don't confiscate money you'd
     // already locked up just because you stopped playing it out. `forfeited`
     // only changes what the results screen says about the rest of the field.
-    const prize = prizeForPosition(entry.prizePool, entry.fieldSize, finish)
+    const prize = city ? prizeFor(city, finish) : 0
 
     setProfile((p) =>
       recordTournamentResult(p, {
@@ -453,9 +420,9 @@ function App() {
         fieldSize: entry.fieldSize,
         prizePool: entry.prizePool,
         buyIn: entry.buyIn,
+        city: city?.city,
         forfeited: payload.forfeited,
       },
-      backTo: careerEntrants ? 'career' : 'lobby',
     })
   }
 
@@ -478,9 +445,8 @@ function App() {
           onClaimDailyStake={() => setProfile((p) => claimDailyStake(p))}
           onResetProfile={() => setProfile(defaultProfile())}
           onChooseCash={() => setScreen({ kind: 'cash-setup' })}
-          onChooseTournament={() => setScreen({ kind: 'tournament-setup' })}
-          career={career}
-          onChooseCareer={() => setScreen({ kind: 'career' })}
+          tour={tour}
+          onChooseTour={() => setScreen({ kind: 'tour' })}
           savedRoom={savedRoom}
           savedRoomStatus={savedRoomStatus}
           onHostGame={() => setScreen({ kind: 'home-host-setup' })}
@@ -497,8 +463,6 @@ function App() {
       return <MenuScreen bankroll={profile.bankroll} onBack={goLobby} onStart={handleStartCash} />
     case 'quick-setup':
       return <MenuScreen variant="quick" onBack={goLobby} onStart={handleStartQuick} />
-    case 'tournament-setup':
-      return <TournamentSetup bankroll={profile.bankroll} onBack={goLobby} onRegister={handleRegisterTournament} />
     case 'seating':
       return (
         <TableSeating
@@ -506,7 +470,7 @@ function App() {
           rivals={loadRivals()}
           title={screen.title}
           onSit={handleSit}
-          onBack={screen.entry.mode === 'tournament' && screen.entry.career ? () => setScreen({ kind: 'career' }) : goLobby}
+          onBack={screen.entry.mode === 'tournament' ? () => setScreen({ kind: 'tour' }) : goLobby}
         />
       )
     case 'home-host-setup':
@@ -549,16 +513,15 @@ function App() {
           onExit={leaveHome}
         />
       )
-    case 'career':
+    case 'tour':
       return (
-        <CareerHub
-          career={career}
+        <TourHub
+          tour={tour}
           bankroll={profile.bankroll}
-          history={profile.history}
-          onPlayEvent={handlePlayEvent}
-          onCash={() => setScreen({ kind: 'cash-setup' })}
-          onTournament={() => setScreen({ kind: 'tournament-setup' })}
-          onDismissSeason={() => setCareer((c) => ({ ...c, lastSeason: null }))}
+          onPlay={(cityId) => {
+            const city = cityById(cityId)
+            if (city) handlePlayCity(city)
+          }}
           onBack={goLobby}
         />
       )
@@ -575,8 +538,8 @@ function App() {
       return (
         <TournamentResults
           outcome={screen.outcome}
-          onBackToLobby={screen.backTo === 'career' ? () => setScreen({ kind: 'career' }) : goLobby}
-          backLabel={screen.backTo === 'career' ? 'Back to the season' : undefined}
+          onBackToLobby={() => setScreen({ kind: 'tour' })}
+          backLabel="Back to the World Tour"
         />
       )
     case 'your-play':

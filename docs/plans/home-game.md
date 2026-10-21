@@ -1,6 +1,6 @@
 # Plan: home game (real cards, phones as chips)
 
-*Decided with the user 2026-09-28. Built after game-modes step 3 (Career seasons), on its own branch
+*Decided with the user 2026-09-28. Built after game-modes step 3 (Career, now the World Tour), on its own branch
 (`claude/home-game-*`). Part of the game-elements track: see `README.md`.*
 
 ## What it is
@@ -187,7 +187,7 @@ minutes a level, started by the first deal. Each level's small blind is about ha
 round amounts (5/10, 8/16, 15/30, 25/50, 40/80...: `game/blinds.ts`), and the big blind and ante keep
 their proportion. A level that runs out mid-hand applies from the next deal. The clock is the server's
 (`RoomCore` stamps `now` on every deal and every view), so no phone's clock matters, and every phone shows
-the same countdown. Tournaments and Career seasons already rise on their own structures; cash games and
+the same countdown. Tournaments and the World Tour already rise on their own structures; cash games and
 Quick Play stay fixed.
 
 ## Out of scope for now

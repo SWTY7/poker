@@ -9,10 +9,10 @@
   - **Quick Play**: the simple test mode. No buy-ins, no tournaments, no bankroll. Only quick game settings:
     number of players, human seats, stack depth, blinds, speed. Bots get random characters every game, as now.
     A **hand review** toggle lives here (built by the psychology track; see the README).
-  - **Career**: today's lobby (bankroll, cash games, tournaments) plus everything below. Cash games live
+  - **Career**: the lobby with a bankroll: the Cash game and the World Tour (see step 3). Cash games live
     only here.
 - Rivals remember you, and you them, across sessions (two-way memory).
-- Seasons: about 5 events each, 4 tiers.
+- World Tour: nine casino cities, one six-handed tournament each (replaced the 2026-09 season system).
 - No explicit rivalry labels ("nemesis", "pigeon"). Memory and pre-tilt, yes.
 - **Timing tells** in Career: how long a character takes to act depends on the decision and the character.
 - **Basic achievements.**
@@ -67,29 +67,18 @@ Decisions made along the way:*
   seed, random names from a separate pool). No memory, no notes.
 - Hook: one `onHandEnd` call in `useHoldemGame.ts` updates rival stats. The logic lives in `rivals.ts`.
 
-### 3. Career seasons — done 2026-09-28
+### 3. World Tour — done 2026-10-21 (replaced the Career seasons built 2026-09-28)
 
-*Built in `src/game/career.ts` (tests: `tests/game/career.test.ts`), `src/ui/CareerHub.tsx`, and `App.tsx`
-routing. Decisions made along the way:*
-- *Fields: Local pia/tomas/hal/wes, Regional lina/jax/mona/eli, National rosa/gus/jax/eli, Championship
-  nadia/otto/rosa/gus (some rivals follow you up). Tier boosts: discipline +0/0.1/0.2/0.3, level +0/0/1/1.*
-- *Buy-ins $50/$100/$250/$500; prizes use the normal 6-player payout (65/35).*
-- *The standings are you plus the tier's four rivals; walk-ins score nothing. Ties go to the better finish in
-  the final, then against you.*
-- *Promotion: top two. Everyone else repeats the tier. The "bottom finisher repeats" line needed no separate
-  rule, since rivals don't change tier.*
-- *Championship: win it for a title and defend it next season; lose it and you drop to National.*
-- *A quit event: players still in are placed by chips, with you behind them (the same place a quit is paid).*
-
-- `src/game/career.ts`, storage `poker.career`: tier, season number, event index, points table, titles.
-- **Tiers:** Local → Regional → National → Championship. Each tier's field is a fixed group of rivals plus a
-  walk-in or two. Stronger tiers seat stronger characters: higher `discipline` (closer to the solve) and
-  deeper level-k. That's real difficulty from existing parameters, not a fake knob.
-- **Season:** ~5 single-table events built on `game/tournament.ts`'s structures (Sit & Go early, Deep for the
-  final). Points by finish (e.g. 10/6/4/3/2/1). Entry fees and prizes still move the bankroll.
-- **End of season:** top 2 promoted, the bottom finisher repeats the tier. The Championship is a single deep
-  final, and winning it is a title.
-- Screens: a career hub (current tier, standings, next event, scouting notes) and a season summary.
+*Career = Cash game + World Tour. The Local/Regional/National/Championship seasons, their points and the
+`poker.career` save were removed. Decision record: `docs/decisions/2026-10-21-world-tour.md`.*
+- `src/game/tour.ts`, storage `poker.tour`: per city plays, best finish, wins, top-3 count; total winnings.
+- **Cities:** nine, Lisbon to Sydney, buy-ins on the cash ladder ($100 to $10,000). Each city has four fixed
+  rivals plus a walk-in, seated with more discipline and deeper level-k the further along the tour.
+- **Prizes:** top three, 50/30/20 of a purse above the money bought in; the numbers are in the decision record.
+- **Unlock:** a top 3 in the previous city, plus the bankroll for the buy-in. A locked row says which.
+- Screens: `TourHub` (cities, buy-ins, prizes, lock state, best finish, Play) and the tournament results screen
+  with a top-3 payout line. There is no separate Tournament setup any more.
+- *A quit event: you place behind everyone still in (the same place a quit is paid).*
 
 ### Then: the home game
 
@@ -112,7 +101,7 @@ with none. The list lives behind a button in the Career lobby.*
 
 - `src/game/achievements.ts`, storage `poker.achievements`: detected at hand end / event end from the hand
   log. First win, first title, win a hand with 7-2, win a showdown with a bluff-catcher, bust a rival, win
-  a season, promotion to each tier. Show a toast and list them on the profile.
+  a World Tour win. Show a toast and list them on the profile.
 
 ## Done means
 

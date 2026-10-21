@@ -1,5 +1,5 @@
 import type { Standing } from '../game/tournament'
-import { placesPaid, prizeForPosition } from '../game/tournament'
+import { placesPaid, prizeForPosition, prizesForField } from '../game/tournament'
 import { TrophyIcon } from './icons'
 import { SUIT_PATH } from './suit-icons'
 import { ordinal } from '../utils/format'
@@ -12,6 +12,8 @@ export interface TournamentOutcome {
   fieldSize: number
   prizePool: number
   buyIn: number
+  /** The World Tour city, for the headline. */
+  city?: string
   /** True if the human left before the tournament actually finished — see the note this renders. */
   forfeited: boolean
 }
@@ -35,6 +37,9 @@ export function TournamentResults({ outcome, onBackToLobby, backLabel = 'Back to
   const net = prize - buyIn
   const paid = placesPaid(fieldSize)
   const won = humanPosition === 1 && !forfeited
+  const payLine = prizesForField(prizePool, fieldSize)
+    .map((p, i) => `${ordinal(i + 1)} $${p.toLocaleString()}`)
+    .join(' · ')
 
   return (
     <div className="menu-scene">
@@ -54,7 +59,7 @@ export function TournamentResults({ outcome, onBackToLobby, backLabel = 'Back to
           <div className="menu-subtitle">
             {forfeited
               ? `You left the tournament with ${Math.max(humanPosition - 1, 0)} player${humanPosition === 2 ? '' : 's'} still in.`
-              : `Out of ${fieldSize} entries.`}
+              : `${outcome.city ? `${outcome.city}. ` : ''}Out of ${fieldSize} entries.`}
           </div>
         </div>
 
@@ -66,6 +71,7 @@ export function TournamentResults({ outcome, onBackToLobby, backLabel = 'Back to
             <div className="results-prize-detail">
               {prize > 0 ? `Prize $${prize.toLocaleString()} · ` : ''}Buy-in was ${buyIn.toLocaleString()}
             </div>
+            <div className="results-prize-detail results-pays">{`Top ${paid} paid: ${payLine}`}</div>
           </section>
 
           <div className="menu-divider" />

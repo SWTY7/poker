@@ -1,5 +1,5 @@
 import { useState, type CSSProperties } from 'react'
-import { TIERS } from '../game/career'
+import { CITIES, tourStatus } from '../game/tour'
 import { canClaimDailyStake, DAILY_STAKE_AMOUNT, DAILY_STAKE_THRESHOLD } from '../game/profile'
 import { ordinal } from '../utils/format'
 import type { LobbyProps } from './Lobby'
@@ -48,13 +48,14 @@ function ChipPile({ amount }: { amount: number }) {
 
 export function RoomLobby({
   profile,
-  career,
+  tour,
   savedRoom,
   savedRoomStatus,
   onChooseQuick,
+  onChooseCash,
   onClaimDailyStake,
   onResetProfile,
-  onChooseCareer,
+  onChooseTour,
   onHostGame,
   onResumeRoom,
   onJoinGame,
@@ -67,7 +68,8 @@ export function RoomLobby({
   const nearbyOn = !!onNearby && nearbySupported()
   const nearbySaved = nearbyOn && !!onResumeNearby && loadNearbyRoom() !== null
   const canClaim = canClaimDailyStake(profile)
-  const tier = TIERS[career.tier]
+  const played = CITIES.filter((c) => (tour.cities[c.id]?.plays ?? 0) > 0).length
+  const open = tourStatus(tour, profile.bankroll).filter((c) => c.playable).length
   const { lifetime } = profile
   // A room the server no longer has (it closes after a long quiet) can't be reopened.
   const roomGone = savedRoom !== null && savedRoomStatus?.exists === false
@@ -140,9 +142,9 @@ export function RoomLobby({
             <ChipPile amount={profile.bankroll} />
           </p>
           <p className="room-line">
-            {career.lastSeason
-              ? `${tier.name} season ${career.season} is over. See how it finished.`
-              : `${tier.name} season ${career.season}, event ${career.eventIndex + 1} of ${tier.events.length}.`}
+            {played === 0
+              ? `World Tour: ${CITIES.length} casino cities, top three paid. Start in ${CITIES[0].city}.`
+              : `World Tour: ${played} of ${CITIES.length} cities played, ${open} open to you now.`}
           </p>
           {canClaim && (
             <button type="button" className="room-text-link room-claim" onClick={onClaimDailyStake}>
@@ -151,9 +153,11 @@ export function RoomLobby({
           )}
           {!canClaim && profile.bankroll <= DAILY_STAKE_THRESHOLD && <p className="room-fine">Come back tomorrow for another stake.</p>}
           <div className="room-acts">
-            <span className="room-fine">Plus cash games and tournaments</span>
-            <button type="button" className="room-go" onClick={onChooseCareer}>
-              Open
+            <button type="button" className="room-go" onClick={onChooseCash}>
+              Cash game
+            </button>
+            <button type="button" className="room-go" onClick={onChooseTour}>
+              World Tour
             </button>
           </div>
         </section>

@@ -111,6 +111,17 @@ describe('payouts', () => {
     }
   })
 
+  it('pays three places 50/30/20 to a six-player field (the World Tour table)', () => {
+    expect(placesPaid(6)).toBe(3)
+    expect(prizesForField(1000, 6)).toEqual([500, 300, 200])
+    expect(prizesForField(1001, 6).reduce((a, b) => a + b, 0)).toBe(1001)
+    expect(prizeForPosition(1000, 6, 4)).toBe(0)
+  })
+
+  it('still pays two places 65/35 to a field of five or fewer', () => {
+    expect(prizesForField(1000, 5)).toEqual([650, 350])
+  })
+
   it('pays nothing to a finish outside the paid places', () => {
     expect(prizeForPosition(1000, 9, placesPaid(9) + 1)).toBe(0)
   })
