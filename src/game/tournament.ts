@@ -118,7 +118,9 @@ export function handsUntilNextLevel(structure: TournamentStructure, handsComplet
  */
 function payoutSplits(fieldSize: number): number[] {
   if (fieldSize <= 2) return [100]
-  if (fieldSize <= 6) return [65, 35]
+  // Six is the World Tour table: three places paid, 50/30/20.
+  if (fieldSize === 6) return [50, 30, 20]
+  if (fieldSize <= 5) return [65, 35]
   if (fieldSize <= 9) return [50, 30, 20]
   return [40, 25, 16, 10, 6, 3]
 }
