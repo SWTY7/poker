@@ -141,6 +141,39 @@
   --felt-border: 0.85rem solid var(--rail);
   --felt-shadow: inset 0 0 0 2px var(--inlay), inset 0 0 1.6rem rgb(0 0 0 / 0.7);
   --felt-ring: rgb(247 241 226 / 0.16);
+
+  /* Engraved brass plaques (buttons, wells, tiles, directory rows). */
+  --brass-1: #f0cf7c;
+  --brass-2: #b98a2e;
+  --brass-3: #8f6a1d;
+  --brass-edge: #5a3f0e;
+  --brass-edge-low: #3a2808;
+  --brass-ink: #2b1d07;
+  --brass-glint: #ffe9a8;
+  --plate-drop: 0 5px 8px rgb(0 0 0 / 0.6);
+  --plate2-1: #2a2620;
+  --plate2-2: #14110d;
+  --plate2-edge: #6b5426;
+  --plate2-ink: #e9d9ae;
+  --plate2-hi: rgb(255 255 255 / 0.13);
+  --plate2-glint: #000000;
+  --well-1: #1c1914;
+  --well-2: #100e0b;
+  --well-edge: #3a3022;
+  --well-ink: #cdbf9a;
+  --well-inset: rgb(0 0 0 / 0.72);
+  --sel-1: #e8c470;
+  --sel-2: #b28126;
+  --sel-edge: #6b4d12;
+  --sel-ink: #2b1d07;
+  --sel-glow: rgb(232 196 112 / 0.33);
+  --tile-1: #211d17;
+  --tile-2: #13110d;
+  --tile-edge: #3d3324;
+  --tile-ring: #d9b25a;
+  --row-rule: #4a3c1f;
+  --row-title: #efe3c3;
+  --row-act: #d9b25a;
 }
 
 /* --- light: bright casino floor, brighter baize, grey leather -------------- */
@@ -221,6 +254,39 @@
   --felt-border: 0.85rem solid var(--rail);
   --felt-shadow: inset 0 0 0 2px var(--inlay), inset 0 0 1.4rem rgb(0 0 0 / 0.5);
   --felt-ring: rgb(255 250 240 / 0.2);
+
+  /* Engraved brass plaques (buttons, wells, tiles, directory rows). */
+  --brass-1: #f0cf7c;
+  --brass-2: #b98a2e;
+  --brass-3: #8f6a1d;
+  --brass-edge: #5a3f0e;
+  --brass-edge-low: #3a2808;
+  --brass-ink: #2b1d07;
+  --brass-glint: #ffe9a8;
+  --plate-drop: 0 4px 6px rgb(40 28 8 / 0.4);
+  --plate2-1: #efe6d0;
+  --plate2-2: #d8cba9;
+  --plate2-edge: #8c6212;
+  --plate2-ink: #2a2218;
+  --plate2-hi: rgb(255 255 255 / 0.7);
+  --plate2-glint: #fff8e6;
+  --well-1: #cfc5ab;
+  --well-2: #e2d9c0;
+  --well-edge: #a88f58;
+  --well-ink: #2a2218;
+  --well-inset: rgb(60 40 10 / 0.4);
+  --sel-1: #e8c470;
+  --sel-2: #b28126;
+  --sel-edge: #6b4d12;
+  --sel-ink: #2b1d07;
+  --sel-glow: rgb(140 98 18 / 0.35);
+  --tile-1: #efe6d0;
+  --tile-2: #d8cba9;
+  --tile-edge: #8c6212;
+  --tile-ring: #8c6212;
+  --row-rule: #b9a77a;
+  --row-title: #2a2218;
+  --row-act: #6e4a0c;
 }
 
 /* --- the table: baize in a padded rail ------------------------------------ */
@@ -304,55 +370,220 @@
     inset 0 0.6rem 1rem rgb(0 0 0 / 0.28);
 }
 
-/* --- buttons: leather plates with a gold edge ----------------------------- */
+/* --- buttons: engraved brass plaques -------------------------------------- */
 
+/* Three plates, one construction: a vertical gradient, a 1px edge, a top
+   highlight, a bottom shade, a hard 2px lower edge and a soft drop shadow, so
+   each one reads as a raised piece of metal or leather. Colours come from the
+   --brass-*, --plate2-* and --well-* properties above (both modes). Pressing
+   sinks the plate by 1px and shortens the shadow. */
 :root[data-theme='realistic'] {
   --bx-weight: 700;
-  --bx-press: translateY(0.1rem);
+  --bx-press: translateY(1px);
   --bx-press-shadow: none;
 
-  /* Call: a gold plate with a dark label. */
-  --bx-primary-bg: linear-gradient(180deg, #f0cd77, #c99a3c 55%, #a77c28);
-  --bx-primary-hover-bg: linear-gradient(180deg, #f6d98d, #d6a748 55%, #b38630);
-  --bx-primary-border: #6d4f12;
-  --bx-primary-fg: var(--plate-fg);
-  --bx-primary-shadow: inset 0 1px 0 rgb(255 255 255 / 0.5), 0 0.15rem 0 rgb(0 0 0 / 0.55);
+  /* Call: a brass plate with a dark engraved label. */
+  --bx-primary-bg: linear-gradient(180deg, var(--brass-1), var(--brass-2) 55%, var(--brass-3));
+  --bx-primary-hover-bg: linear-gradient(180deg, #f6d98d, #c5953a 55%, #9a7422);
+  --bx-primary-border: var(--brass-edge);
+  --bx-primary-fg: var(--brass-ink);
+  --bx-primary-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.55), inset 0 -2px 0 rgb(0 0 0 / 0.27),
+    0 2px 0 var(--brass-edge-low), var(--plate-drop);
 
-  /* Fold: oxblood. */
-  --bx-danger-bg: linear-gradient(180deg, #7f1f1f, #4a0d0d);
-  --bx-danger-hover-bg: linear-gradient(180deg, #8f2828, #561212);
+  /* Fold: oxblood, same construction. */
+  --bx-danger-bg: linear-gradient(180deg, #8f2626, #4a0d0d);
+  --bx-danger-hover-bg: linear-gradient(180deg, #9f3030, #561212);
   --bx-danger-border: #b04a4a;
   --bx-danger-fg: #fbe6e2;
-  --bx-danger-shadow: inset 0 1px 0 rgb(255 255 255 / 0.14), 0 0.15rem 0 rgb(0 0 0 / 0.55);
+  --bx-danger-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.2), inset 0 -2px 0 rgb(0 0 0 / 0.35),
+    0 2px 0 #2a0606, var(--plate-drop);
 
-  /* Raise: a dark leather plate with a gold edge and a light label. */
+  /* Raise: dark leather with a brass edge and a light label. */
   --bx-accent-bg: linear-gradient(180deg, #4a3f26, #2a2415);
   --bx-accent-border: #d4a64a;
   --bx-accent-fg: #fbecc8;
-  --bx-accent-shadow: inset 0 1px 0 rgb(255 255 255 / 0.16), 0 0.15rem 0 rgb(0 0 0 / 0.55);
+  --bx-accent-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.16), inset 0 -2px 0 rgb(0 0 0 / 0.3),
+    0 2px 0 rgb(0 0 0 / 0.55), var(--plate-drop);
 }
 
-/* A plain button is always a plate with a light label, in both modes. Ghost
-   buttons stay see-through and follow the page text colour. */
+/* Engraved labels. */
+:root[data-theme='realistic'] :is(.btn-primary, .menu-start) {
+  text-shadow: 0 1px 0 var(--brass-glint);
+}
+
+:root[data-theme='realistic'] .btn-danger {
+  text-shadow: 0 1px 0 rgb(0 0 0 / 0.6);
+}
+
+/* Secondary: a plate with a brass edge. Dark leather by night, ivory by day.
+   Ghost buttons stay see-through. */
 :root[data-theme='realistic'] .btn:not(.btn-primary, .btn-danger, .btn-accent, .btn-ghost) {
-  --btn-bg: linear-gradient(180deg, var(--btn-1), var(--btn-2));
-  --btn-border: var(--inlay);
-  --btn-fg: var(--plate-text);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.14), 0 0.15rem 0 rgb(0 0 0 / 0.5);
+  --btn-bg: linear-gradient(180deg, var(--plate2-1), var(--plate2-2));
+  --btn-border: var(--plate2-edge);
+  --btn-fg: var(--plate2-ink);
+  text-shadow: 0 1px 0 var(--plate2-glint);
+  box-shadow:
+    inset 0 1px 0 var(--plate2-hi), inset 0 -1px 0 rgb(0 0 0 / 0.25),
+    0 2px 0 rgb(0 0 0 / 0.35), 0 3px 6px rgb(0 0 0 / 0.35);
 }
 
 @media (hover: hover) {
   :root[data-theme='realistic'] .btn:hover:not(:disabled, .btn-primary, .btn-danger, .btn-accent, .btn-ghost) {
-    --btn-bg: linear-gradient(180deg, var(--btn-hover-1), var(--btn-hover-2));
-    --btn-border: #d4a64a;
+    --btn-bg: linear-gradient(180deg, color-mix(in srgb, var(--plate2-1), var(--brass-1) 14%), color-mix(in srgb, var(--plate2-2), var(--brass-1) 14%));
+    --btn-border: var(--brass-2);
   }
 }
 
+/* The menu's Start button is the same brass plate as Call. */
 :root[data-theme='realistic'] .menu-start {
-  background: linear-gradient(180deg, #f0cd77, #c99a3c 55%, #a77c28);
-  color: var(--plate-fg);
-  border: 1px solid #6d4f12;
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.5), 0 0.15rem 0 rgb(0 0 0 / 0.5);
+  background: var(--bx-primary-bg);
+  color: var(--bx-primary-fg);
+  border: 1px solid var(--bx-primary-border);
+  box-shadow: var(--bx-primary-shadow);
+}
+
+/* Pressed: the plate sinks, its hard edge and shadow shorten. */
+:root[data-theme='realistic'] :is(.btn-primary, .menu-start):active:not(:disabled) {
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.4), inset 0 -1px 0 rgb(0 0 0 / 0.27),
+    0 1px 0 var(--brass-edge-low), 0 2px 3px rgb(0 0 0 / 0.4);
+}
+
+:root[data-theme='realistic'] .btn-danger:active:not(:disabled) {
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.12), inset 0 -1px 0 rgb(0 0 0 / 0.35),
+    0 1px 0 #2a0606, 0 2px 3px rgb(0 0 0 / 0.4);
+}
+
+:root[data-theme='realistic'] .btn:not(.btn-primary, .btn-danger, .btn-ghost):active:not(:disabled) {
+  box-shadow:
+    inset 0 1px 0 var(--plate2-hi), 0 1px 0 rgb(0 0 0 / 0.35), 0 2px 3px rgb(0 0 0 / 0.3);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root[data-theme='realistic'] .btn {
+    transition: none;
+  }
+}
+
+/* --- option wells, selected plates, tiles ---------------------------------- */
+
+/* A segmented option is a recessed well; the chosen one is a lit brass plate. */
+:root[data-theme='realistic'] .menu-option:not(.tournament-structure-card) {
+  color: var(--well-ink);
+  background: linear-gradient(180deg, var(--well-1), var(--well-2));
+  border-color: var(--well-edge);
+  box-shadow: inset 0 2px 3px var(--well-inset);
+}
+
+@media (hover: hover) {
+  :root[data-theme='realistic'] .menu-option:not(.tournament-structure-card, .menu-option-on):hover {
+    color: var(--well-ink);
+    border-color: var(--brass-2);
+  }
+}
+
+:root[data-theme='realistic'] :is(.menu-option, .buyin-option).menu-option-on:not(.tournament-structure-card) {
+  color: var(--sel-ink);
+  background: linear-gradient(180deg, var(--sel-1), var(--sel-2));
+  border-color: var(--sel-edge);
+  text-shadow: 0 1px 0 var(--brass-glint);
+  box-shadow: inset 0 2px 4px rgb(0 0 0 / 0.3), 0 0 0 1px var(--sel-glow);
+}
+
+/* Option tiles with chip icons (stack depth): raised plates, lit when chosen. */
+:root[data-theme='realistic'] .buyin-option:not(.menu-option-on),
+:root[data-theme='realistic'] .theme-option:not(.theme-option-on) {
+  color: var(--text);
+  background: linear-gradient(180deg, var(--tile-1), var(--tile-2));
+  border-color: var(--tile-edge);
+  box-shadow: inset 0 1px 0 var(--plate2-hi), 0 3px 6px rgb(0 0 0 / 0.35);
+}
+
+:root[data-theme='realistic'] .theme-option-on {
+  color: var(--text);
+  background: linear-gradient(180deg, var(--tile-1), var(--tile-2));
+  border-color: var(--tile-ring);
+  box-shadow: inset 0 1px 0 var(--plate2-hi), 0 0 0 1px var(--tile-ring), 0 0 14px var(--sel-glow);
+}
+
+:root[data-theme='realistic'] .theme-option-on .theme-name::after {
+  color: var(--row-act);
+}
+
+/* --- directory rows: serif titles, hairlines, brass actions ---------------- */
+
+:root[data-theme='realistic'] :is(.room-name, .career-outside-row strong) {
+  font-family: var(--font-wordmark);
+  color: var(--row-title);
+}
+
+:root[data-theme='realistic'] .room-acts {
+  border-top: 1px solid var(--row-rule);
+}
+
+:root[data-theme='realistic'] .career-outside-row {
+  border-top: 1px solid var(--row-rule);
+}
+
+:root[data-theme='realistic'] .career-outside-row:first-of-type {
+  border-top: 0;
+}
+
+:root[data-theme='realistic'] :is(.room-go, .career-outside-verb) {
+  color: var(--row-act);
+  border-bottom: 0;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-shadow: 0 1px 0 rgb(0 0 0 / 0.35);
+}
+
+:root[data-theme='realistic'] :is(.room-go, .career-outside-verb)::after {
+  content: ' \203A';
+}
+
+@media (hover: hover) {
+  :root[data-theme='realistic'] .room-go:hover {
+    color: var(--text);
+  }
+}
+
+/* On a phone the home-game box's actions are real buttons: Host is the brass plate, Join and
+   Nearby are the secondary plate. Prefixed with .room-acts / .room-nearby so they win over
+   room-lobby.css, which is imported after this file. */
+@media (max-width: 720px) {
+  :root[data-theme='realistic'] :is(.room-box-main .room-acts, .room-nearby) .room-go {
+    min-height: 2.75rem;
+    color: var(--plate2-ink);
+    background: linear-gradient(180deg, var(--plate2-1), var(--plate2-2));
+    border: 1px solid var(--plate2-edge);
+    border-radius: 7px;
+    text-shadow: none;
+    box-shadow:
+      inset 0 1px 0 var(--plate2-hi),
+      0 2px 0 var(--brass-edge-low),
+      var(--plate-drop);
+  }
+
+  :root[data-theme='realistic'] .room-box-main > .room-acts > .room-go:first-child {
+    color: var(--brass-ink);
+    background: linear-gradient(180deg, var(--brass-1), var(--brass-2) 55%, var(--brass-3));
+    border-color: var(--brass-edge);
+    text-shadow: 0 1px 0 var(--brass-glint);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.5),
+      inset 0 -2px 0 rgb(0 0 0 / 0.25),
+      0 2px 0 var(--brass-edge-low),
+      var(--plate-drop);
+  }
+
+  :root[data-theme='realistic'] :is(.room-box-main .room-acts, .room-nearby) .room-go:active {
+    transform: translateY(1px);
+    box-shadow: inset 0 1px 0 var(--plate2-hi), 0 1px 0 var(--brass-edge-low);
+  }
 }
 
 :root[data-theme='realistic'] :is(.menu-wordmark-text, .room-title) {
@@ -521,12 +752,14 @@
   background-color: var(--panel);
   /* Boxes carry body text: flat, no grain. */
   background-image: none;
-  border-color: var(--line);
+  border-color: var(--tile-edge);
+  /* A raised plate: inner highlight, brass-dark edge, soft shadow. */
+  box-shadow: inset 0 1px 0 var(--plate2-hi), 0 3px 6px rgb(0 0 0 / 0.3);
 }
 
 :root[data-theme='realistic'] .room-box-main {
   border-color: var(--inlay);
-  box-shadow: inset 0 0 0 1px rgb(179 134 47 / 0.35);
+  box-shadow: inset 0 1px 0 var(--plate2-hi), inset 0 0 0 1px rgb(179 134 47 / 0.35), 0 3px 6px rgb(0 0 0 / 0.3);
 }
 
 :root[data-theme='realistic'] .room-table-felt {
@@ -540,4 +773,10 @@
   :root[data-theme='realistic'] .pot-stack i {
     animation: none;
   }
+}
+
+/* The gold field icons (Blinds, Ante) use a fixed pale gold; on the light floor they need a deeper brass. */
+:root[data-theme='realistic'][data-mode='light'] .menu-field-icon-gold {
+  color: #7a560f;
+  background: rgb(122 86 15 / 0.14);
 }
