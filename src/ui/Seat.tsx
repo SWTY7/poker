@@ -2,7 +2,10 @@ import type { Card } from '../poker/card'
 import { POSITION_NAMES, type PositionLabel } from '../poker/position'
 import { CardView } from './CardView'
 import { CoinIcon } from './icons'
+import { AvatarBust } from './AvatarBust'
 import { avatarInitial, avatarStyle } from './avatar'
+import { ChipPile } from './ChipPile'
+import { betPiles } from './chip-piles'
 
 export interface SeatProps {
   name: string
@@ -79,7 +82,8 @@ export function Seat({
     >
       <div className="seat-top">
         <span className="seat-avatar" style={avatarStyle(name)} aria-hidden="true">
-          {avatarInitial(name)}
+          <span className="avatar-initial">{avatarInitial(name)}</span>
+          <AvatarBust name={name} />
         </span>
         {/* The button as a puck on the felt, for layouts that draw one. */}
         {isDealer && (
@@ -90,48 +94,51 @@ export function Seat({
         {isCurrentTurn && <span className="seat-pip" aria-hidden="true" />}
       </div>
 
-      <span className="seat-name">{name}</span>
+      {/* The text lines are one plate in the Realistic theme; elsewhere this wrapper adds no box. */}
+      <div className="seat-plate">
+        <span className="seat-name">{name}</span>
 
-      <span className="seat-badges">
-        {position && (
-          <span className="badge badge-pos" title={POSITION_NAMES[position]}>
-            {position}
-          </span>
-        )}
-        {isDealer && (
-          <span className="badge badge-dealer" title="Dealer button">
-            D
-          </span>
-        )}
-        {/* The position tag already reads SB/BB at those two seats, so only
-            add a blind badge where it would say something new — which is
-            heads-up, where the button posts the small blind and there is no
-            BTN tag to carry it. */}
-        {isSmallBlind && position !== 'SB' && (
-          <span className="badge badge-blind" title="Small blind">
-            SB
-          </span>
-        )}
-        {isBigBlind && position !== 'BB' && (
-          <span className="badge badge-blind" title="Big blind">
-            BB
-          </span>
-        )}
-      </span>
+        <span className="seat-badges">
+          {position && (
+            <span className="badge badge-pos" title={POSITION_NAMES[position]}>
+              {position}
+            </span>
+          )}
+          {isDealer && (
+            <span className="badge badge-dealer" title="Dealer button">
+              D
+            </span>
+          )}
+          {/* The position tag already reads SB/BB at those two seats, so only
+              add a blind badge where it would say something new — which is
+              heads-up, where the button posts the small blind and there is no
+              BTN tag to carry it. */}
+          {isSmallBlind && position !== 'SB' && (
+            <span className="badge badge-blind" title="Small blind">
+              SB
+            </span>
+          )}
+          {isBigBlind && position !== 'BB' && (
+            <span className="badge badge-blind" title="Big blind">
+              BB
+            </span>
+          )}
+        </span>
 
-      <span className="seat-stack money">${stack.toLocaleString()}</span>
+        <span className="seat-stack money">${stack.toLocaleString()}</span>
 
-      {revealCards && cards.length > 0 && (
-        <div className="seat-cards">
-          {cards.map((card, i) => (
-            <CardView key={i} card={card} size="sm" index={i} />
-          ))}
-        </div>
-      )}
+        {revealCards && cards.length > 0 && (
+          <div className="seat-cards">
+            {cards.map((card, i) => (
+              <CardView key={i} card={card} size="sm" index={i} />
+            ))}
+          </div>
+        )}
 
-      <span className={`seat-status ${folded ? 'seat-status-folded' : ''} ${isWinner ? 'seat-status-won' : ''}`}>
-        {status || ' '}
-      </span>
+        <span className={`seat-status ${folded ? 'seat-status-folded' : ''} ${isWinner ? 'seat-status-won' : ''}`}>
+          {status || ' '}
+        </span>
+      </div>
 
       {/* The chips this player has pushed out this street, rendered below the
           seat so they read as sitting on the felt between them and the pot —
@@ -139,6 +146,7 @@ export function Seat({
       {betThisStreet > 0 && !folded && (
         <span className="seat-bet money" aria-label={`has bet $${betThisStreet.toLocaleString()}`}>
           <CoinIcon className="seat-bet-icon" />
+          <ChipPile piles={betPiles(betThisStreet)} />
           {betThisStreet.toLocaleString()}
         </span>
       )}

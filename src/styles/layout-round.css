@@ -229,6 +229,16 @@
 
 /* --- seats ---------------------------------------------------------------- */
 
+/* The text lines of a seat are one plate in the Realistic theme (theme-realistic.css);
+   everywhere else the wrapper adds no box. Chip piles belong to Realistic too. */
+.seat-plate {
+  display: contents;
+}
+
+.chip-pile {
+  display: none;
+}
+
 /* Seats lean away from the centre, the way a person sitting there faces in. */
 [data-layout='round'] .seat {
   transform: rotate(calc(cos(var(--a)) * 6deg + var(--j) * 1.5deg));
