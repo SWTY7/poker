@@ -2,7 +2,10 @@ import type { Card } from '../poker/card'
 import { POSITION_NAMES, type PositionLabel } from '../poker/position'
 import { CardView } from './CardView'
 import { CoinIcon, PercentIcon } from './icons'
+import { AvatarBust } from './AvatarBust'
 import { avatarInitial, avatarStyle } from './avatar'
+import { ChipPile } from './ChipPile'
+import { betPiles, stackPiles } from './chip-piles'
 
 interface HeroZoneProps {
   name: string
@@ -76,7 +79,8 @@ export function HeroZone({
             else. */}
         <div className="hero-head">
           <span className="seat-avatar hero-avatar" style={avatarStyle(name)} aria-hidden="true">
-            {avatarInitial(name)}
+            <span className="avatar-initial">{avatarInitial(name)}</span>
+            <AvatarBust name={name} />
           </span>
           <div className="hero-id">
             {isMyTurn && <span className="hero-turn-chip">Your turn</span>}
@@ -112,6 +116,7 @@ export function HeroZone({
           {betThisStreet > 0 && !folded && (
             <span className="hero-bet money" aria-label={`you have bet $${betThisStreet.toLocaleString()}`}>
               <CoinIcon className="seat-bet-icon" />
+              <ChipPile piles={betPiles(betThisStreet)} className="chip-pile-sm" />
               {betThisStreet.toLocaleString()}
             </span>
           )}
@@ -122,6 +127,8 @@ export function HeroZone({
       </div>
 
       <div className="hero-right">
+        {/* Your stack as piles on the felt side of the dock (Realistic, phones). */}
+        <ChipPile piles={stackPiles(stack)} className="hero-pile" />
         {/* Always rendered: when there is nothing to call it is only hidden, so
             the row keeps its height and the cards and buttons don't jump
             between checking and facing a bet. */}

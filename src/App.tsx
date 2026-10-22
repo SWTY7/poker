@@ -126,6 +126,17 @@ function GameScreen({ config, entry, onTableExit, onTournamentExit }: GameScreen
   const game = useHoldemGame(config)
   const reportedRef = useRef(false)
 
+  // The tour table sits in its city: tour-backdrops.css keys off this.
+  const cityId = entry.mode === 'tournament' ? entry.cityId : undefined
+  useEffect(() => {
+    if (!cityId) return
+    const root = document.documentElement
+    root.dataset.city = cityId
+    return () => {
+      delete root.dataset.city
+    }
+  }, [cityId])
+
   // A tournament ending on its own (down to one seat) has no button press to
   // hang the profile update on, so it's caught here instead: once a hand
   // finishes and only one player is left, that's the whole session.
