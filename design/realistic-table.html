@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Realistic table</title>
+<style>
+*{box-sizing:border-box;margin:0}
+body{font:15px/1.4 system-ui,sans-serif;background:#1a1613;color:#eee;padding:20px 14px 60px;max-width:1180px;margin:0 auto}
+h1{font-size:21px;margin-bottom:4px}.lead{color:#b8b2a6;margin-bottom:22px;max-width:70ch}
+h2{font:600 12px system-ui;letter-spacing:.14em;text-transform:uppercase;color:#d9c48a;margin:30px 0 4px}
+p.d{color:#b8b2a6;font-size:13px;margin-bottom:10px;max-width:72ch}
+.row{display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start}
+
+/* ---------- landscape table ---------- */
+.land{position:relative;width:100%;max-width:820px;aspect-ratio:844/390;border-radius:14px;overflow:hidden;
+ background:
+  repeating-linear-gradient(92deg,#0000 0 7px,#0003 7px 8px,#0000 8px 19px,#ffffff06 19px 20px),
+  radial-gradient(ellipse at 50% 40%,#4a2c18,#2a1709 80%);}
+.rail{position:absolute;left:11%;right:11%;top:13%;bottom:13%;border-radius:50%;
+ background:linear-gradient(180deg,#3a2a22,#17110d);
+ box-shadow:0 0 0 2px #0008,0 14px 30px #000c,inset 0 2px 0 #ffffff22,inset 0 -3px 6px #000a}
+.rail::after{content:"";position:absolute;inset:7px;border-radius:50%;border:1px dashed #d8b96888}
+.felt{position:absolute;inset:5.5% 4.5%;border-radius:50%;
+ background:radial-gradient(ellipse at 50% 35%,#2f7a52,#145234 70%,#0b3822);
+ box-shadow:inset 0 0 0 2px #d9b25a,inset 0 0 0 5px #0c3a24,inset 0 0 34px #000c}
+.felt::before{content:"";position:absolute;inset:0;border-radius:50%;opacity:.5;mix-blend-mode:overlay;
+ background:repeating-linear-gradient(45deg,#fff1 0 1px,#0000 1px 3px),repeating-linear-gradient(-45deg,#0002 0 1px,#0000 1px 3px)}
+.line{position:absolute;left:24%;right:24%;top:24%;bottom:24%;border:1.5px solid #d9b25a66;border-radius:50%}
+.pot{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font:700 22px Georgia,serif;color:#f2e6c4;text-shadow:0 2px 3px #000}
+.pot small{display:block;text-align:center;font:600 9px system-ui;letter-spacing:.2em;opacity:.7}
+.board{position:absolute;left:50%;top:36%;transform:translateX(-50%);display:flex;gap:4px}
+.crd{width:30px;height:42px;border-radius:4px;background:#f6f1e4;color:#222;font:700 13px Georgia,serif;display:grid;place-items:center;box-shadow:0 2px 4px #000a}
+.crd.r{color:#b3202a}.crd.b{background:repeating-linear-gradient(45deg,#7b1620 0 3px,#5d0f18 3px 6px);border:2px solid #f6f1e4}
+.stk{position:absolute;display:flex;gap:2px;align-items:flex-end}
+.chip{width:15px;height:15px;border-radius:50%;border:2px dashed #fffc;background:#a52432;box-shadow:0 2px 0 #4a0f16,0 3px 3px #000a}
+.chip.g{background:#1d6d46;box-shadow:0 2px 0 #0b3322,0 3px 3px #000a}.chip.k{background:#25262b;box-shadow:0 2px 0 #000,0 3px 3px #000a}.chip.b{background:#2a5bb0;box-shadow:0 2px 0 #14295a,0 3px 3px #000a}
+.dbtn{position:absolute;width:22px;height:22px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff,#d9d2bf);color:#222;font:800 11px system-ui;display:grid;place-items:center;box-shadow:0 2px 3px #000b}
+
+/* seat plate: portrait on the left, three lines on the right (like the reference) */
+.seat{position:absolute;transform:translate(-50%,-50%);display:flex;align-items:stretch;min-width:112px;border-radius:7px;
+ background:linear-gradient(180deg,#2a2420,#120f0c);border:1px solid #6b5426;
+ box-shadow:inset 0 1px 0 #ffffff22,0 0 0 1px #000,0 6px 10px #000a}
+.seat .pf{width:38px;flex:none;border-radius:6px 0 0 6px;overflow:hidden;border-right:1px solid #6b5426;background:#000}
+.seat .pf svg{display:block;width:100%;height:100%}
+.seat .tx{padding:3px 7px 4px;line-height:1.15}
+.seat b{display:block;font:700 11px Georgia,serif;color:#f2e6c4}
+.seat i{display:block;font:700 11px system-ui;color:#e8c470;font-style:normal}
+.seat u{display:block;font:600 9.5px system-ui;color:#b9ae92;text-decoration:none}
+.seat.act{box-shadow:inset 0 1px 0 #ffffff22,0 0 0 2px #e8c470,0 0 16px #e8c47088,0 6px 10px #000a}
+.seat.fold{opacity:.55}
+.hero{position:absolute;right:2.5%;bottom:3%;display:flex;gap:10px;align-items:flex-end}
+.hero .seat{position:static;transform:none;min-width:150px}
+.hero .seat .pf{width:48px}
+.fan{display:flex;margin-bottom:2px}
+.fan .crd{width:42px;height:58px;font-size:17px;transform-origin:50% 120%}
+.fan .crd:first-child{transform:rotate(-8deg)}.fan .crd:last-child{transform:rotate(7deg) translateX(-10px)}
+
+/* ---------- portrait phone ---------- */
+.phone{position:relative;width:340px;height:640px;border-radius:26px;overflow:hidden;flex:none;
+ background:radial-gradient(ellipse at 50% 0,#3b2616,#150e08 75%);box-shadow:0 0 0 2px #000,0 10px 30px #000a}
+.phone .bar{position:absolute;left:0;right:0;top:0;height:46px;display:flex;align-items:center;justify-content:space-between;padding:0 12px;background:linear-gradient(#251d17,#120e0b);border-bottom:1px solid #6b5426;font:700 13px Georgia,serif;color:#f2e6c4}
+.phone .bar span{font:600 11px system-ui;padding:5px 10px;border-radius:6px;border:1px solid #6b5426;background:#1b1612}
+.ptable{position:absolute;left:3%;right:3%;top:70px;height:360px;perspective:700px}
+.ptable .tilt{position:absolute;inset:0;transform:rotateX(26deg);transform-origin:50% 100%}
+.ptable .rail{left:0;right:0;top:0;bottom:0}
+.ptable .felt{inset:5%}
+.ptable .felt::after{content:"";position:absolute;inset:0;border-radius:50%;background:linear-gradient(180deg,#0006,#0000 40%)}
+.pseat{position:absolute;transform:translate(-50%,-50%);width:76px;text-align:center}
+.pseat .pf{width:46px;height:46px;margin:0 auto -9px;border-radius:50%;overflow:hidden;position:relative;z-index:1;box-shadow:0 0 0 2px #d9b25a,0 0 0 4px #000a,0 4px 8px #000b;background:#000}
+.pseat .pf svg{display:block;width:100%;height:100%}
+.pseat .pl{padding:11px 4px 3px;border-radius:6px;background:linear-gradient(180deg,#2a2420,#120f0c);border:1px solid #6b5426;box-shadow:0 4px 8px #000a;line-height:1.15}
+.pseat b{display:block;font:700 10.5px Georgia,serif;color:#f2e6c4}.pseat i{display:block;font:700 10.5px system-ui;color:#e8c470;font-style:normal}
+.pseat u{display:block;font:600 9px system-ui;color:#b9ae92;text-decoration:none}
+.pseat.act .pf{box-shadow:0 0 0 2px #fff3c4,0 0 0 4px #e8c470,0 0 16px #e8c470}
+.dock{position:absolute;left:0;right:0;bottom:0;height:200px;padding:10px 14px;background:linear-gradient(#0000,#000b 30%)}
+.dock .me{display:flex;justify-content:space-between;align-items:flex-end}
+.dock .fan .crd{width:64px;height:88px;font-size:24px}
+.dock .stacks{display:flex;gap:6px;align-items:flex-end;padding-bottom:6px}
+.pile{display:flex;flex-direction:column-reverse;gap:-4px}
+.pile .chip{width:34px;height:34px;margin-top:-26px;border-width:3px}
+.pile .chip:first-child{margin-top:0}
+.acts{display:flex;gap:8px;margin-top:14px}
+.acts div{flex:1;text-align:center;padding:12px 4px;font:700 13px system-ui;border-radius:7px;color:#e9d9ae;background:linear-gradient(#2a2620,#14110d);border:1px solid #6b5426;box-shadow:inset 0 1px 0 #fff2,0 3px 6px #000a}
+.acts div.p{color:#2b1d07;background:linear-gradient(#f0cf7c,#b98a2e 55%,#8f6a1d);text-shadow:0 1px 0 #ffe9a8}
+
+.note{background:#241f1a;border:1px solid #3d362c;padding:12px 14px;border-radius:8px;margin-top:26px;color:#cfc8b8;max-width:80ch}
+.sw{display:flex;gap:16px;flex-wrap:wrap;margin:8px 0 6px}
+.sw figure{text-align:center;font-size:11px;color:#b8b2a6}
+.sw .pf{width:64px;height:64px;border-radius:50%;overflow:hidden;margin:0 auto 4px;background:#000;box-shadow:0 0 0 2px #d9b25a,0 0 0 4px #000a}
+.sw .pf svg{width:100%;height:100%;display:block}
+</style></head><body>
+<h1>Realistic table: structure, layout and texture</h1>
+<p class="lead">Taken from your two screenshots: a wooden tabletop under a padded rail, name plates with a portrait on the left and three lines of text, chip piles on the felt in front of each seat, and a larger dock for you with fanned cards. On the phone, the table tilts away from you in perspective and your cards and chips sit big at the bottom. Colours stay in the current Realistic palette (green felt, brass, dark leather). No photos or realistic people.</p>
+
+<h2>Landscape and desktop</h2>
+<p class="d">Seats sit on the rail like the first screenshot. The seat plate shows portrait, name, stack and last action. The pot sits in the middle with a betting line, and each seat has a small chip pile toward the centre.</p>
+<div class="land" id="land"></div>
+
+<h2>Phone, portrait</h2>
+<p class="d">Like the second screenshot: perspective table, round portraits with a brass ring sitting on top of a small plate, big hole cards at the bottom left, your chips as stacked piles at the bottom right, buttons underneath.</p>
+<div class="row"><div class="phone" id="phone"></div></div>
+
+<h2>Avatars: pick one of three</h2>
+<p class="d">All three are drawn in code (SVG), so they work offline and stay tiny. Each player gets the same figure every time, picked from their name. Shown below at the size used in the seat plate.</p>
+<div id="avs"></div>
+
+<div class="note"><b>What changes in the app.</b> Realistic theme only; Classic stays as it is. The table gets the wooden floor, padded rail and felt texture (in landscape and phone layouts), the seat becomes a plate with a portrait, the dealer button and bets become chips on the felt, and the avatar is replaced by the direction you choose. The seat component keeps the same fields, so the game logic is untouched.</div>
+
+<script>
+const SK=['#f1c9a0','#d9a273','#b87a4b','#8a5a38','#5c3a24','#e8b98f'];
+const HC=['#1c1410','#4a2a14','#8a5a22','#c9a24a','#7a2a1a','#d8d4cc'];
+const TEAL=['#2f6f66','#a23a5a','#3a62a8','#6a4aa8','#a85a2a','#3f7a3a','#9a2f2f'];
+const NAMES=[['Coco',0],['Jack',1],['Lars',2],['Carlos',3],['Desperado',4],['Whitney',5],['Chip',6],['Tiffany',7],['Darla',8],['You',9]];
+function h(s){let x=0;for(const c of s)x=(x*31+c.charCodeAt(0))|0;return Math.abs(x)}
+/* A: chip token with suit */
+function A(n){const k=h(n),c=TEAL[k%7],su='♠♥♦♣'[k%4],red=(k%4)%3==1;
+ let sp='';for(let i=0;i<8;i++)sp+=`<rect x="46" y="2" width="8" height="14" rx="2" fill="#f6f1e4" transform="rotate(${i*45} 50 50)"/>`;
+ return `<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="49" fill="${c}"/>${sp}<circle cx="50" cy="50" r="34" fill="none" stroke="#f6f1e4" stroke-width="2" stroke-dasharray="3 3"/><circle cx="50" cy="50" r="30" fill="#14110d"/><text x="50" y="47" text-anchor="middle" font-family="Georgia,serif" font-weight="700" font-size="26" fill="#f2e6c4">${n[0].toUpperCase()}</text><text x="50" y="73" text-anchor="middle" font-size="20" fill="${red?'#e05a5a':'#e8e0cc'}">${su}</text></svg>`}
+/* B: flat character bust with varied hair / hat / glasses */
+function B(n){const k=h(n),sk=SK[k%6],hc=HC[(k>>3)%6],bg=TEAL[(k>>5)%7],style=(k>>7)%5,gl=(k>>10)%3,sh=(k>>12)%2?'#2a2a30':'#e8e0cc';
+ let hair='',hat='';
+ if(style==0)hair=`<path d="M28 44 Q28 18 50 18 Q72 18 72 44 Q64 32 50 32 Q36 32 28 44Z" fill="${hc}"/>`;
+ if(style==1)hair=`<path d="M26 56 Q22 16 50 16 Q78 16 74 56 Q70 34 50 34 Q30 34 26 56Z" fill="${hc}"/>`;
+ if(style==2)hat=`<path d="M24 36 Q50 22 76 36 L76 40 L24 40Z" fill="#14110d"/><path d="M30 38 Q50 8 70 38Z" fill="#14110d"/><rect x="30" y="31" width="40" height="5" fill="#b98a2e"/>`;
+ if(style==3)hair=`<path d="M28 46 Q28 24 50 24 Q72 24 72 46 Q60 36 50 36 Q40 36 28 46Z" fill="${hc}"/>`,hat=`<path d="M28 34 Q50 14 72 34 Q60 28 50 28 Q40 28 28 34Z" fill="${bg}"/><path d="M24 36 L48 34 L48 38 L24 40Z" fill="${bg}"/>`;
+ if(style==4)hair=`<path d="M27 50 Q24 18 50 18 Q76 18 73 50 Q68 30 50 30 Q32 30 27 50Z" fill="${hc}"/><circle cx="50" cy="14" r="7" fill="${hc}"/>`;
+ let eyes=gl==0?`<circle cx="42" cy="50" r="2.6" fill="#1c1410"/><circle cx="58" cy="50" r="2.6" fill="#1c1410"/>`
+  :gl==1?`<rect x="34" y="45" width="14" height="10" rx="3" fill="${sh}"/><rect x="52" y="45" width="14" height="10" rx="3" fill="${sh}"/><rect x="48" y="49" width="4" height="2" fill="${sh}"/>`
+  :`<circle cx="42" cy="50" r="6" fill="none" stroke="#1c1410" stroke-width="1.8"/><circle cx="58" cy="50" r="6" fill="none" stroke="#1c1410" stroke-width="1.8"/><circle cx="42" cy="50" r="2" fill="#1c1410"/><circle cx="58" cy="50" r="2" fill="#1c1410"/>`;
+ return `<svg viewBox="0 0 100 100"><rect width="100" height="100" fill="${bg}"/><circle cx="50" cy="40" r="60" fill="#fff" opacity=".08"/><path d="M12 100 Q14 74 50 72 Q86 74 88 100Z" fill="#14110d"/><path d="M42 72 L50 84 L58 72Z" fill="#f6f1e4"/><rect x="44" y="60" width="12" height="14" fill="${sk}"/><ellipse cx="50" cy="46" rx="21" ry="25" fill="${sk}"/>${hair}${eyes}<path d="M43 62 Q50 67 57 62" stroke="#5a2a1a" stroke-width="2" fill="none" stroke-linecap="round"/>${hat}</svg>`}
+/* C: engraved court-card monogram */
+function C(n){const k=h(n),su='♠♥♦♣'[k%4],red=(k%4)%3==1,col=red?'#b3202a':'#1c1b20';
+ return `<svg viewBox="0 0 100 100"><rect width="100" height="100" fill="#f1e8d0"/><rect x="5" y="5" width="90" height="90" fill="none" stroke="${col}" stroke-width="2"/><rect x="10" y="10" width="80" height="80" fill="none" stroke="#b98a2e" stroke-width="1"/><path d="M10 50 L50 10 L90 50 L50 90Z" fill="none" stroke="#b98a2e" stroke-width="1"/><text x="50" y="62" text-anchor="middle" font-family="Georgia,serif" font-weight="700" font-size="44" fill="${col}">${n[0].toUpperCase()}</text><text x="19" y="25" text-anchor="middle" font-size="14" fill="${col}">${su}</text><text x="81" y="86" text-anchor="middle" font-size="14" fill="${col}" transform="rotate(180 81 80)">${su}</text></svg>`}
+let cur=B;
+const seatsL=[['Coco',17,17,'$8,400','Call $1,600'],['Jack',38,13,'$8,400','Call $1,600'],['Lars',62,13,'$7,200','Raise $2,800'],['Carlos',83,17,'$7,200','Call $2,800'],['Desperado',13,60,'$8,400','Call $1,600'],['Whitney',87,62,'$7,200','Call $2,600'],['Chip',22,85,'$8,400','Call $1,600'],['Tiffany',45,88,'$8,400','Raise $1,600']];
+function stk(x,y,cs){return `<div class="stk" style="left:${x}%;top:${y}%">${cs.map(c=>`<span class="chip ${c}"></span>`).join('')}</div>`}
+function render(){
+ const f=cur;
+ let L=`<div class="rail"><div class="felt"><div class="line"></div></div></div>`;
+ L+=`<div class="board">${['A♠','K♦','8♣','5♥','2♠'].map(x=>`<span class="crd ${x.includes('♦')||x.includes('♥')?'r':''}">${x}</span>`).join('')}</div>`;
+ L+=`<div class="pot"><small>POT</small>$9,600</div>`;
+ L+=stk(30,35,['r','r','g']);L+=stk(66,35,['k','b']);L+=stk(28,64,['g','g']);L+=stk(70,64,['r','k','k']);
+ L+=`<div class="dbtn" style="left:72%;top:24%">D</div>`;
+ seatsL.forEach((s,i)=>{L+=`<div class="seat ${i==2?'act':''} ${i==5?'fold':''}" style="left:${s[1]}%;top:${s[2]}%"><div class="pf">${f(s[0])}</div><div class="tx"><b>${s[0]}</b><i>${s[3]}</i><u>${s[4]}</u></div></div>`});
+ L+=`<div class="hero"><div class="fan"><span class="crd r">7♥</span><span class="crd">A♠</span></div><div class="seat act"><div class="pf">${f('You')}</div><div class="tx"><b>You · BTN</b><i>$9,600</i><u>To call $2,400</u></div></div></div>`;
+ land.innerHTML=L;
+ const ps=[['Coco',16,12],['Jack',50,6],['Lars',84,12],['Desperado',9,46],['Whitney',91,46],['Chip',20,80],['Tiffany',80,80]];
+ let P=`<div class="bar">Hand 12 · $5 / $10<span>Menu</span></div><div class="ptable"><div class="tilt"><div class="rail"><div class="felt"><div class="line"></div></div></div>
+ <div class="pot" style="top:44%;transform:translate(-50%,-50%) rotateX(-20deg)"><small>POT</small>$9,600</div>
+ <div class="board" style="top:57%;transform:translateX(-50%)">${['A♠','K♦','8♣','5♥','·'].map(x=>`<span class="crd ${x.includes('♦')||x.includes('♥')?'r':''} ${x=='·'?'b':''}">${x=='·'?'':x}</span>`).join('')}</div>
+ ${ps.map((s,i)=>`<div class="pseat ${i==1?'act':''}" style="left:${s[1]}%;top:${s[2]}%"><div class="pf">${f(s[0])}</div><div class="pl"><b>${s[0]}</b><i>$8,400</i><u>${i==1?'Raise $2,800':'Call $1,600'}</u></div></div>`).join('')}
+ </div></div>
+ <div class="dock"><div class="me"><div class="fan"><span class="crd r">7♥</span><span class="crd">A♠</span></div>
+ <div class="stacks"><div class="pile"><span class="chip r"></span><span class="chip r"></span><span class="chip r"></span><span class="chip r"></span></div><div class="pile"><span class="chip k"></span><span class="chip k"></span><span class="chip k"></span></div><div class="pile"><span class="chip g"></span><span class="chip g"></span></div></div></div>
+ <div class="acts"><div>Fold</div><div>Call $2,400</div><div class="p">Raise</div></div></div>`;
+ phone.innerHTML=P;
+}
+let av='';[['A · Chip token','Each player is a casino chip with edge inserts, their initial and a suit. Colour per player.',A],['B · Character bust','Flat illustrated busts: five hairstyles or hats, three eyewear options, six skin tones, in a coloured backdrop. About 1,000 combinations, picked from the name.',B],['C · Court-card monogram','An engraved face-card tile: initial in the middle, suit pips in the corners, gold inner border. Stays on theme with the cards.',C]].forEach(([t,d,fn])=>{
+ av+=`<h2 style="margin-top:18px">${t}</h2><p class="d">${d}</p><div class="sw">${NAMES.slice(0,8).map(n=>`<figure><div class="pf">${fn(n[0])}</div>${n[0]}</figure>`).join('')}</div>`});
+avs.innerHTML=av;
+/* page previews use the character bust by default; click a direction heading's swatch to preview it on the table */
+document.addEventListener('click',e=>{const s=e.target.closest('.sw');if(!s)return;const i=[...document.querySelectorAll('.sw')].indexOf(s);cur=[A,B,C][i];render();window.scrollTo({top:0,behavior:'smooth'})});
+render();
+</script>
+</body></html>
