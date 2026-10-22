@@ -196,7 +196,7 @@ export function RoomLobby({
         {confirmingReset ? (
           <span className="room-reset">
             Wipe your bankroll and history?{' '}
-            <button type="button" className="room-text-link" onClick={onResetProfile}>
+            <button type="button" className="room-text-link" onClick={() => { onResetProfile(); setConfirmingReset(false) }}>
               Yes, reset
             </button>{' '}
             <button type="button" className="room-text-link" onClick={() => setConfirmingReset(false)}>

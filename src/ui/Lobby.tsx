@@ -290,7 +290,7 @@ export function Lobby({
                 {confirmingReset ? (
                   <span className="lobby-reset-confirm">
                     Wipe your bankroll and history and start over?
-                    <button type="button" className="lobby-reset-link" onClick={onResetProfile}>
+                    <button type="button" className="lobby-reset-link" onClick={() => { onResetProfile(); setConfirmingReset(false) }}>
                       Yes, reset
                     </button>
                     <button type="button" className="lobby-reset-link" onClick={() => setConfirmingReset(false)}>

@@ -8,7 +8,12 @@
    ========================================================================== */
 
 .room {
-  min-height: 100dvh;
+  /* #root is height:100% with overflow:hidden, so a min-height here grows
+     past the clip and scrolls nothing; the room has to be the scroller. */
+  height: 100vh;
+  height: 100dvh;
+  overflow-y: auto;
+  overflow-x: hidden;
   box-sizing: border-box;
   padding: clamp(1.25rem, 4vw, 3rem) clamp(1rem, 5vw, 4rem) 2.5rem;
   background: var(--table-bg);
